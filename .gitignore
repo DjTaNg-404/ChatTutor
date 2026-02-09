@@ -1,0 +1,27 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Environments
+.env
+.venv
+env/
+venv/
+ENV/
+
+# Mac OS
+.DS_Store
+
+# IDEs
+.vscode/
+.idea/
+
+# Project Specific Data (Runtime Data)
+memory/sessions/*
+!memory/sessions/.gitkeep
+memory/notes/*
+!memory/notes/.gitkeep
+
+# Logs
+*.log
