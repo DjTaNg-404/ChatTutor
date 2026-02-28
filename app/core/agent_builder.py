@@ -211,8 +211,9 @@ def aggregator_node(state: AgentState) -> Dict[str, Any]:
         # 如果处于 Concluding 状态，直接使用 Summary Output
         final_response = AIMessage(content=summary_out)
     elif not any([tutor_out, judge_out, inquiry_out, summary_out]):
-        # 这里增加一个快速检查：如果所有输出都为空（极端情况），做兜底
-        final_response = AIMessage(content="我似乎没听懂你的意思，能再说具体点吗？")
+        # 闲聊/低信息量场景：走专用闲聊 Prompt，生成自然回复
+        inputs = context.build_context(state, prompts.CHITCHAT_SYSTEM_PROMPT)
+        final_response = model.invoke(inputs)
     else:
         # 构造 Prompt
         prompt = prompts.AGGREGATOR_SYSTEM_PROMPT.format(
