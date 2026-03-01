@@ -32,23 +32,28 @@ async def chat_endpoint(request: ChatRequest):
     # 1. 尝试从本地加载历史会话状态
     current_state = memory.load_session(request.session_id)
     
-    # 2. 如果没有历史记录，初始化一个新的状态
+    # 2. 如果没有历史记录，初始化一个新的状态；若有历史记录，补全加载时缺失的字段
+    _defaults = {
+        "messages": [],
+        "current_topic": request.topic,
+        "session_id": request.session_id,
+        "user_id": request.session_id,  # 供 profile_store 识别用户，可后续改为真实用户ID
+        "conversation_summary": "",
+        "summarized_msg_count": 0,
+        "plan": None,
+        "should_exit": False,
+        "tutor_output": None,
+        "judge_output": None,
+        "inquiry_output": None,
+        "summary_output": None,
+        "last_intent": None,
+    }
     if not current_state:
-        current_state = {
-            "messages": [],
-            "current_topic": request.topic,
-            "session_id": request.session_id,
-            "user_id": request.session_id,  # 供 profile_store 识别用户，可后续改为真实用户ID
-            "conversation_summary": "",
-            "summarized_msg_count": 0,
-            "plan": None,
-            "should_exit": False,
-            "tutor_output": None,
-            "judge_output": None,
-            "inquiry_output": None,
-            "summary_output": None,
-            "last_intent": None
-        }
+        current_state = _defaults
+    else:
+        # 补全旧会话中因版本迭代而新增但尚未持久化的字段
+        for key, default_val in _defaults.items():
+            current_state.setdefault(key, default_val)
     
     # 3. 将用户的新消息追加到状态中
     user_msg = HumanMessage(content=request.message)
