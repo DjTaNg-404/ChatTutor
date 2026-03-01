@@ -1,0 +1,25 @@
+# ===== 基础运行依赖 =====
+streamlit>=1.35.0
+fastapi>=0.100.0
+uvicorn>=0.20.0
+langchain-core>=0.1.30
+langchain-deepseek
+langgraph>=0.0.25
+pydantic-settings
+rich
+requests
+openai
+
+# ===== 阶段一：缓存 + 学习画像（无额外依赖，已含在基础包中）=====
+# pymysql  ← 可选，仅当 PROFILE_STORE=mysql 时才需要安装
+
+# ===== 阶段二：知识图谱（新增）=====
+networkx>=3.0
+pyvis>=0.3.0
+plotly>=5.18.0
+transformers>=4.36.0
+torch>=2.0.0
+keybert>=0.8.0
+spacy>=3.7.0
+# 安装后需手动下载中文模型：
+# python -m spacy download zh_core_web_sm

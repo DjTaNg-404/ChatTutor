@@ -1,15 +1,20 @@
 from typing import Dict, Any, Literal
+import hashlib
 
 from langchain_deepseek import ChatDeepSeek
 from langchain_core.messages import SystemMessage, HumanMessage, AIMessage
 from langgraph.graph import StateGraph, START, END
+from rich import print as rprint
 
 from langchain_core.messages import ToolMessage
 
 from app.core.config import settings
 from app.core.models import AgentState, ExecutionPlan
 from app.core import prompts, memory, context
-from app.core.tools import search_tool
+from app.core.cache import generation_cache, retrieval_cache
+from app.core import learning_profile
+from app.core import profile_store
+from app.core.tools_v2 import search_tool_v2
 
 # --- 1. Model Initialization ---
 # 通用模型：用于文本生成 (Tutor, Judge, Inquiry, Aggregator)
@@ -21,7 +26,7 @@ model = ChatDeepSeek(
 
 # 绑定了工具的模型 (ReAct Worker)
 # DeepSeek 原生支持工具调用，我们把 Search 绑定给它
-model_with_tools = model.bind_tools([search_tool])
+model_with_tools = model.bind_tools([search_tool_v2])
 
 # 分析模型：用于结构化输出规划 (Analyzer)
 # 通常我们可以用稍微低一点的 temperature 保证 JSON 格式稳定
@@ -30,6 +35,70 @@ analyzer_model_raw = ChatDeepSeek(
     api_key=settings.DEEPSEEK_API_KEY,
     temperature=0.1
 )
+
+PERSIST_MESSAGES_LIMIT = 0  # 0 = 不裁剪，保留全量历史
+
+# --- Cache & Profile Helpers ---
+
+def _history_sig(state: AgentState) -> str:
+    """生成最近消息的 MD5 签名，用于缓存 key 的一部分。"""
+    msgs = state.get("messages", [])
+    recent = msgs[-8:]
+    parts = [str(getattr(m, "content", "")) for m in recent if getattr(m, "content", "")]
+    summary = state.get("conversation_summary") or ""
+    seed = "||".join(parts) + "||" + summary
+    return hashlib.md5(seed.encode("utf-8")).hexdigest()
+
+
+def _gen_cache_key(state: AgentState, node_name: str, prompt_str: str) -> str:
+    return generation_cache.make_key(
+        session_id=state.get("session_id", ""),
+        node=node_name,
+        prompt=prompt_str,
+        history_sig=_history_sig(state),
+    )
+
+
+def _ensure_cache_trace(state: AgentState) -> dict:
+    trace = state.setdefault("_cache_trace", {})
+    trace.setdefault("generation_cache_hit", {})
+    trace.setdefault("retrieval_cache_hit", False)
+    return trace
+
+
+def _mark_gen_cache(state: AgentState, node_name: str, hit: bool):
+    _ensure_cache_trace(state)["generation_cache_hit"][node_name] = bool(hit)
+
+
+def _mark_retrieval_cache(state: AgentState, hit: bool):
+    trace = _ensure_cache_trace(state)
+    trace["retrieval_cache_hit"] = trace["retrieval_cache_hit"] or bool(hit)
+
+
+def _get_user_id(state: AgentState) -> str:
+    return state.get("user_id") or state.get("session_id") or "anonymous"
+
+
+def _inject_profile(prompt_str: str, state: AgentState) -> str:
+    """将用户学习画像摘要注入 Prompt 末尾。"""
+    user_id = _get_user_id(state)
+    profile = profile_store.load_profile(user_id)
+    summary = learning_profile.profile_summary(profile)
+    if not summary:
+        return prompt_str
+    return prompt_str + "\n\n[Learning Profile]\n" + summary
+
+
+_CACHE_INVALIDATE_KEYWORDS: list = []  # 可按需添加触发缓存失效的关键词
+
+
+def _should_invalidate_cache(messages) -> bool:
+    for m in reversed(messages):
+        if isinstance(m, HumanMessage):
+            text = m.content or ""
+            return any(k in text for k in _CACHE_INVALIDATE_KEYWORDS)
+    return False
+
 
 # --- 2. Node Functions (节点逻辑) ---
 
@@ -41,11 +110,12 @@ def analyzer_node(state: AgentState) -> Dict[str, Any]:
     messages = state["messages"]
     if not messages:
         return {}
-    
+
+    _ensure_cache_trace(state)
     recent_context = messages[-3:]
     
-    # 构造 Prompt
-    sys_msg = SystemMessage(content=prompts.ANALYZER_SYSTEM_PROMPT)
+    # 构造 Prompt（注入用户学习画像）
+    sys_msg = SystemMessage(content=_inject_profile(prompts.ANALYZER_SYSTEM_PROMPT, state))
     
     # 绑定结构化输出
     planner = analyzer_model_raw.with_structured_output(ExecutionPlan)
@@ -104,9 +174,15 @@ def _run_tool_loop(prompt_content, state):
             if tool_call["name"] == "baidu_search":
                 args = tool_call['args']
                 query_str = args.get('query', str(args))
-                print(f"🔍 Searching Baidu for: {query_str} ...")
+                try:
+                    key = retrieval_cache.make_key(query_str)
+                    hit = retrieval_cache.get(key) is not None
+                except Exception:
+                    hit = False
+                _mark_retrieval_cache(state, hit)
+                rprint(f"[dim italic]   🔍 Searching Baidu for: [cyan]{query_str}[/cyan] ...[/dim italic]")
                 
-                tool_result = search_tool.invoke(tool_call["args"])
+                tool_result = search_tool_v2.invoke(tool_call["args"])
                 
                 # 构造 ToolMessage 反馈给模型
                 tool_msg = ToolMessage(
@@ -130,10 +206,17 @@ def tutor_node(state: AgentState) -> Dict[str, Any]:
     Worker A: 答疑者。支持联网搜索。
     """
     topic = state.get("current_topic", "General Knowledge")
-    prompt_str = prompts.TUTOR_WORKER_PROMPT.format(topic=topic)
-    
+    prompt_str = _inject_profile(prompts.TUTOR_WORKER_PROMPT.format(topic=topic), state)
+
+    cache_key = _gen_cache_key(state, "tutor", prompt_str)
+    cached = generation_cache.get(cache_key)
+    if cached is not None:
+        _mark_gen_cache(state, "tutor", True)
+        return {"tutor_output": cached}
+
+    _mark_gen_cache(state, "tutor", False)
     content = _run_tool_loop(prompt_str, state)
-    
+    generation_cache.set(cache_key, content, session_id=state.get("session_id"))
     return {"tutor_output": content}
 
 def judge_node(state: AgentState) -> Dict[str, Any]:
@@ -141,10 +224,17 @@ def judge_node(state: AgentState) -> Dict[str, Any]:
     Worker B: 评审员。支持联网搜索。
     """
     topic = state.get("current_topic", "General Knowledge")
-    prompt_str = prompts.JUDGE_WORKER_PROMPT.format(topic=topic)
-    
+    prompt_str = _inject_profile(prompts.JUDGE_WORKER_PROMPT.format(topic=topic), state)
+
+    cache_key = _gen_cache_key(state, "judge", prompt_str)
+    cached = generation_cache.get(cache_key)
+    if cached is not None:
+        _mark_gen_cache(state, "judge", True)
+        return {"judge_output": cached}
+
+    _mark_gen_cache(state, "judge", False)
     content = _run_tool_loop(prompt_str, state)
-    
+    generation_cache.set(cache_key, content, session_id=state.get("session_id"))
     return {"judge_output": content}
 
 def inquiry_node(state: AgentState) -> Dict[str, Any]:
@@ -155,13 +245,19 @@ def inquiry_node(state: AgentState) -> Dict[str, Any]:
     judge_fb = state.get("judge_output") or "无"
     
     # 直接在 Prompt 中注入 Feedback，简单明了
-    sys_msg_str = prompts.INQUIRY_WORKER_PROMPT.format(topic=topic, judge_feedback=judge_fb)
-    
+    sys_msg_str = _inject_profile(prompts.INQUIRY_WORKER_PROMPT.format(topic=topic, judge_feedback=judge_fb), state)
+
+    cache_key = _gen_cache_key(state, "inquiry", sys_msg_str)
+    cached = generation_cache.get(cache_key)
+    if cached is not None:
+        _mark_gen_cache(state, "inquiry", True)
+        return {"inquiry_output": cached}
+
+    _mark_gen_cache(state, "inquiry", False)
     # 先构建标准上下文 [System, Summary, Recent]
     inputs = context.build_context(state, sys_msg_str)
-    
     response = model.invoke(inputs)
-    
+    generation_cache.set(cache_key, response.content, session_id=state.get("session_id"))
     return {"inquiry_output": response.content}
 
 def summary_node(state: AgentState) -> Dict[str, Any]:
@@ -172,27 +268,38 @@ def summary_node(state: AgentState) -> Dict[str, Any]:
     
     # 场景1：Ending (离场)
     if plan and plan.is_concluding:
-        # 1. 强制生成一份学习报告 (Note)
-        # 使用专门的结课报告 Prompt
-        # 当做总结时，我们应该看尽可能多的历史，所以这里也许不需要太激进的裁剪？
-        # 但如果历史太长还是得裁剪。build_context 是安全的。
-        inputs = context.build_context(state, prompts.SUMMARIZER_NOTE_PROMPT)
-        
+        prompt_str = _inject_profile(prompts.SUMMARIZER_NOTE_PROMPT, state)
+        cache_key = _gen_cache_key(state, "summary_note", prompt_str)
+        cached = generation_cache.get(cache_key)
+        if cached is not None:
+            _mark_gen_cache(state, "summary_note", True)
+            return {"summary_output": cached, "should_exit": True}
+
+        _mark_gen_cache(state, "summary_note", False)
+        inputs = context.build_context(state, prompt_str)
         response = model.invoke(inputs)
         summary_text = response.content
-        
-        # 2. 设置退出标志
+        generation_cache.set(cache_key, summary_text, session_id=state.get("session_id"))
         return {
-            "summary_output": summary_text, 
+            "summary_output": summary_text,
             "should_exit": True
         }
-        
+
     # 场景2：Review (临时回顾)
     elif plan and plan.request_summary:
-        inputs = context.build_context(state, prompts.SUMMARIZER_REVIEW_PROMPT)
+        prompt_str = _inject_profile(prompts.SUMMARIZER_REVIEW_PROMPT, state)
+        cache_key = _gen_cache_key(state, "summary_review", prompt_str)
+        cached = generation_cache.get(cache_key)
+        if cached is not None:
+            _mark_gen_cache(state, "summary_review", True)
+            return {"summary_output": cached}
+
+        _mark_gen_cache(state, "summary_review", False)
+        inputs = context.build_context(state, prompt_str)
         response = model.invoke(inputs)
+        generation_cache.set(cache_key, response.content, session_id=state.get("session_id"))
         return {"summary_output": response.content}
-        
+
     return {}
 
 def aggregator_node(state: AgentState) -> Dict[str, Any]:
@@ -255,15 +362,88 @@ def aggregator_node(state: AgentState) -> Dict[str, Any]:
         # (Optional) Print debug info
         print(f"🧠 Memory Compressed! New summary length: {len(new_summary)}, Cursor: {new_cursor}")
     
-    # 4. 执行物理存档
+    # 4. 附加 cache trace 到 AIMessage
+    trace = state.get("_cache_trace", {})
+    try:
+        if isinstance(final_response, AIMessage):
+            if final_response.additional_kwargs is None:
+                final_response.additional_kwargs = {}
+            final_response.additional_kwargs["cache_trace"] = trace
+    except Exception:
+        pass
+
+    # 5. 更新学习画像
+    try:
+        user_id = _get_user_id(state)
+        user_text = ""
+        for m in reversed(state.get("messages", [])):
+            if isinstance(m, HumanMessage):
+                user_text = m.content or ""
+                break
+        assistant_text = final_response.content if isinstance(final_response, AIMessage) else ""
+        cards = learning_profile.extract_learning_facts(
+            user_text=user_text,
+            assistant_text=assistant_text,
+            source=user_id
+        )
+        if cards:
+            profile = profile_store.load_profile(user_id)
+            profile = learning_profile.upsert_cards(profile, cards)
+            profile_store.save_profile(profile)
+    except Exception:
+        pass
+
+    # 6. 缓存失效检查
+    if _should_invalidate_cache(state.get("messages", [])):
+        generation_cache.clear_session(state.get("session_id", ""))
+
+    # 7. 执行物理存档
     memory.save_session(state_to_save)
+
+    # 8. KG 自动触发：会话结束时在后台构建知识图谱（不阻塞响应）
+    if state.get("should_exit"):
+        import threading
+        _session_id_for_kg = state.get("session_id", "")
+        if _session_id_for_kg:
+            def _build_kg_background(sid: str):
+                try:
+                    from app.kg.kg_builder import KnowledgeGraphBuilder
+                    import os as _os
+                    from app.core import memory as _mem
+                    _state = _mem.load_session(sid)
+                    if not _state:
+                        return
+                    msgs = _state.get("messages", [])
+                    text = "\n".join(
+                        getattr(m, "content", "") for m in msgs
+                        if hasattr(m, "content") and getattr(m, "content", "")
+                    )
+                    if not text.strip():
+                        return
+                    builder = KnowledgeGraphBuilder(use_advanced_extractor=True)
+                    builder.load_models()
+                    builder.build_graph(text)
+                    _os.makedirs("kg_output", exist_ok=True)
+                    builder.visualize_graph(f"kg_output/kg_{sid}.html")
+                    builder.export_graph_data(f"kg_output/kg_{sid}.json")
+                    print(f"✅ KG built for session {sid}")
+                except Exception as _e:
+                    print(f"⚠️ KG build failed for session {sid}: {_e}")
+
+            t = threading.Thread(
+                target=_build_kg_background,
+                args=(_session_id_for_kg,),
+                daemon=True,
+            )
+            t.start()
     # ----------------------------------------------------
-    
+
     # 返回给 Graph 的更新 (包括 messages 和 可能更新的 summary/cursor)
     return {
         "messages": [final_response],
         "conversation_summary": state_to_save["conversation_summary"], # 可能没变
-        "summarized_msg_count": state_to_save["summarized_msg_count"]  # 可能没变
+        "summarized_msg_count": state_to_save["summarized_msg_count"], # 可能没变
+        "_cache_trace": {}  # 清零，供下一轮使用
     }
 
 

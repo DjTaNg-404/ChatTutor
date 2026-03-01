@@ -38,6 +38,7 @@ async def chat_endpoint(request: ChatRequest):
             "messages": [],
             "current_topic": request.topic,
             "session_id": request.session_id,
+            "user_id": request.session_id,  # 供 profile_store 识别用户，可后续改为真实用户ID
             "conversation_summary": "",
             "summarized_msg_count": 0,
             "plan": None,

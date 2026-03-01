@@ -1,4 +1,4 @@
-from typing import Annotated, Literal, Optional, List, TypedDict
+from typing import Annotated, Literal, Optional, List, Dict, Any, TypedDict
 from pydantic import BaseModel, Field
 from langgraph.graph.message import add_messages
 from langchain_core.messages import AnyMessage
@@ -45,6 +45,12 @@ class AgentState(TypedDict):
     
     # 临时字段
     last_intent: Optional[str]
+
+    # 用户标识（供 profile_store 识别学习画像）
+    user_id: Optional[str]
+
+    # 缓存命中追踪（每轮清零，不持久化）
+    _cache_trace: Optional[Dict[str, Any]]
 
 
 # --- 2. Structured Output Models (LLM的结构化输出) ---

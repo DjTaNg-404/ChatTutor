@@ -1,0 +1,34 @@
+{
+  "learner_id": "web_session_1",
+  "updated_at": "2026-03-01T22:12:13",
+  "cards": [
+    {
+      "type": "learning_fact",
+      "fact_type": "goal",
+      "fields": {
+        "subject": "Transformer 的注意力机制"
+      },
+      "source": "web_session_1",
+      "ts": "2026-03-01T22:01:46"
+    },
+    {
+      "type": "learning_fact",
+      "fact_type": "skill_state",
+      "fields": {
+        "topic": "矩阵乘法",
+        "level": "weak"
+      },
+      "source": "web_session_1",
+      "ts": "2026-03-01T22:01:46"
+    },
+    {
+      "type": "learning_fact",
+      "fact_type": "goal",
+      "fields": {
+        "subject": "巩固理解"
+      },
+      "source": "web_session_1",
+      "ts": "2026-03-01T22:08:19"
+    }
+  ]
+}

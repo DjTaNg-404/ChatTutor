@@ -1,3 +1,0 @@
-"""
-ChatTutor core modules.
-"""
