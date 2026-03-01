@@ -1,0 +1,91 @@
+{
+  "session_id": "20260228_110425_8eac",
+  "last_updated": "2026-02-28T11:42:26.959153",
+  "topic": "General Knowledge",
+  "conversation_summary": null,
+  "messages": [
+    {
+      "type": "human",
+      "data": {
+        "content": "用天空造句",
+        "additional_kwargs": {},
+        "response_metadata": {},
+        "type": "human",
+        "name": null,
+        "id": "ae1063e5-24ee-41e6-8a7f-c2d87a7488c9"
+      }
+    },
+    {
+      "type": "ai",
+      "data": {
+        "content": "I did not catch that. Could you clarify?",
+        "additional_kwargs": {
+          "cache_trace": {}
+        },
+        "response_metadata": {},
+        "type": "ai",
+        "name": null,
+        "id": "a4de55b5-7319-401d-9c58-7776452e763f",
+        "tool_calls": [],
+        "invalid_tool_calls": [],
+        "usage_metadata": null
+      }
+    },
+    {
+      "type": "human",
+      "data": {
+        "content": "天空上有什么",
+        "additional_kwargs": {},
+        "response_metadata": {},
+        "type": "human",
+        "name": null,
+        "id": "65c5415c-f2a7-4b47-8d33-174464cd0fcf"
+      }
+    },
+    {
+      "type": "ai",
+      "data": {
+        "content": "天空上有很多有趣的东西呢！白天有太阳和白云，晚上有月亮和星星，下雨时还能看到乌云、闪电和彩虹。你最喜欢天空上的什么呢？",
+        "additional_kwargs": {
+          "refusal": null,
+          "cache_trace": {}
+        },
+        "response_metadata": {
+          "token_usage": {
+            "completion_tokens": 35,
+            "prompt_tokens": 331,
+            "total_tokens": 366,
+            "completion_tokens_details": null,
+            "prompt_tokens_details": {
+              "audio_tokens": null,
+              "cached_tokens": 0
+            },
+            "prompt_cache_hit_tokens": 0,
+            "prompt_cache_miss_tokens": 331
+          },
+          "model_provider": "deepseek",
+          "model_name": "deepseek-chat",
+          "system_fingerprint": "fp_eaab8d114b_prod0820_fp8_kvcache",
+          "id": "34f5ae04-bb31-4704-ab87-10cddfe42600",
+          "finish_reason": "stop",
+          "logprobs": null
+        },
+        "type": "ai",
+        "name": null,
+        "id": "lc_run--019ca257-1c28-7a11-a1ad-67de5d232ab7-0",
+        "tool_calls": [],
+        "invalid_tool_calls": [],
+        "usage_metadata": {
+          "input_tokens": 331,
+          "output_tokens": 35,
+          "total_tokens": 366,
+          "input_token_details": {
+            "cache_read": 0
+          },
+          "output_token_details": {}
+        }
+      }
+    }
+  ],
+  "user_id": null
+}

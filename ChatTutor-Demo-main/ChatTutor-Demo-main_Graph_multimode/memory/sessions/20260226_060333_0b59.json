@@ -1,0 +1,36 @@
+{
+  "session_id": "20260226_060333_0b59",
+  "last_updated": "2026-02-26T06:03:45.546653",
+  "topic": "General Knowledge",
+  "conversation_summary": null,
+  "messages": [
+    {
+      "type": "human",
+      "data": {
+        "content": "你好",
+        "additional_kwargs": {},
+        "response_metadata": {},
+        "type": "human",
+        "name": null,
+        "id": "15b4666c-132b-4070-97a2-4e614b0264ed"
+      }
+    },
+    {
+      "type": "ai",
+      "data": {
+        "content": "I did not catch that. Could you clarify?",
+        "additional_kwargs": {
+          "cache_trace": {}
+        },
+        "response_metadata": {},
+        "type": "ai",
+        "name": null,
+        "id": null,
+        "tool_calls": [],
+        "invalid_tool_calls": [],
+        "usage_metadata": null
+      }
+    }
+  ],
+  "user_id": null
+}

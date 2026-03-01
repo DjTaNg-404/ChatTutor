@@ -1,0 +1,174 @@
+{
+  "session_id": "20260226_111227_8374",
+  "last_updated": "2026-02-26T11:28:21.356381",
+  "topic": "General Knowledge",
+  "conversation_summary": null,
+  "messages": [
+    {
+      "type": "human",
+      "data": {
+        "content": "大模型有哪些技术",
+        "additional_kwargs": {},
+        "response_metadata": {},
+        "type": "human",
+        "name": null,
+        "id": "80a320f0-2000-498e-bb3b-29c9fba22041"
+      }
+    },
+    {
+      "type": "ai",
+      "data": {
+        "content": "大模型的技术栈确实非常丰富，从核心的Transformer架构，到预训练、微调、指令微调以及RLHF等训练方法，再到混合精度训练、模型并行等优化技术，都是为了应对其巨大的计算需求。此外，为了进一步提升规模和效率，还有MoE架构、KV缓存与量化等推理加速技术，以及像CLIP这样的多模态对齐技术，将文本、图像等统一到同一语义空间。总的来说，这是一个从底层架构到上层应用，不断演进的庞大技术生态。",
+        "additional_kwargs": {
+          "refusal": null,
+          "cache_trace": {}
+        },
+        "response_metadata": {
+          "token_usage": {
+            "completion_tokens": 108,
+            "prompt_tokens": 329,
+            "total_tokens": 437,
+            "completion_tokens_details": null,
+            "prompt_tokens_details": {
+              "audio_tokens": null,
+              "cached_tokens": 0
+            },
+            "prompt_cache_hit_tokens": 0,
+            "prompt_cache_miss_tokens": 329
+          },
+          "model_provider": "deepseek",
+          "model_name": "deepseek-chat",
+          "system_fingerprint": "fp_eaab8d114b_prod0820_fp8_kvcache",
+          "id": "dc7d1e09-5186-4fb8-8f20-71665979f049",
+          "finish_reason": "stop",
+          "logprobs": null
+        },
+        "type": "ai",
+        "name": null,
+        "id": "lc_run--019c97f0-1e73-7133-9102-bf77561ad801-0",
+        "tool_calls": [],
+        "invalid_tool_calls": [],
+        "usage_metadata": {
+          "input_tokens": 329,
+          "output_tokens": 108,
+          "total_tokens": 437,
+          "input_token_details": {
+            "cache_read": 0
+          },
+          "output_token_details": {}
+        }
+      }
+    },
+    {
+      "type": "human",
+      "data": {
+        "content": "大模型里面的topk参数做什么的",
+        "additional_kwargs": {},
+        "response_metadata": {},
+        "type": "human",
+        "name": null,
+        "id": "938b8cc7-dafd-4934-9c4e-64f93d709fa0"
+      }
+    },
+    {
+      "type": "ai",
+      "data": {
+        "content": "Top-k参数是大模型生成文本时的一种采样策略，用于控制输出的多样性和质量。具体来说，在模型生成每个新词时，它会计算所有可能词汇的概率分布，然后只保留概率最高的k个候选词，再从这个子集中进行采样。k值越小，输出越确定、保守，容易产生重复内容；k值越大，输出越多样、有创造性，但也可能包含不合理的内容。通常k值设置在10到100之间，根据任务需求调整。这是平衡生成质量与多样性的一种常用方法。",
+        "additional_kwargs": {
+          "refusal": null,
+          "cache_trace": {}
+        },
+        "response_metadata": {
+          "token_usage": {
+            "completion_tokens": 111,
+            "prompt_tokens": 279,
+            "total_tokens": 390,
+            "completion_tokens_details": null,
+            "prompt_tokens_details": {
+              "audio_tokens": null,
+              "cached_tokens": 0
+            },
+            "prompt_cache_hit_tokens": 0,
+            "prompt_cache_miss_tokens": 279
+          },
+          "model_provider": "deepseek",
+          "model_name": "deepseek-chat",
+          "system_fingerprint": "fp_eaab8d114b_prod0820_fp8_kvcache",
+          "id": "1dfeba1f-717b-4aa1-8866-6ede93205d68",
+          "finish_reason": "stop",
+          "logprobs": null
+        },
+        "type": "ai",
+        "name": null,
+        "id": "lc_run--019c97f6-3845-70b0-a17e-f6b26867b009-0",
+        "tool_calls": [],
+        "invalid_tool_calls": [],
+        "usage_metadata": {
+          "input_tokens": 279,
+          "output_tokens": 111,
+          "total_tokens": 390,
+          "input_token_details": {
+            "cache_read": 0
+          },
+          "output_token_details": {}
+        }
+      }
+    },
+    {
+      "type": "human",
+      "data": {
+        "content": "rag工作流程",
+        "additional_kwargs": {},
+        "response_metadata": {},
+        "type": "human",
+        "name": null,
+        "id": "5f642f74-d63a-4667-8cad-340c5f5141d1"
+      }
+    },
+    {
+      "type": "ai",
+      "data": {
+        "content": "RAG（检索增强生成）的工作流程可以概括为四个核心步骤。首先是索引构建，将外部知识源分块、编码为向量并存入数据库；然后是检索，根据查询向量查找最相关的文档片段；接着是增强，将这些片段与原始查询拼接形成提示词；最后是生成，大模型基于这个包含上下文的提示词给出最终答案。整个过程的核心就是让模型在回答时能参考外部实时知识，从而提升准确性和时效性。",
+        "additional_kwargs": {
+          "refusal": null,
+          "cache_trace": {}
+        },
+        "response_metadata": {
+          "token_usage": {
+            "completion_tokens": 98,
+            "prompt_tokens": 301,
+            "total_tokens": 399,
+            "completion_tokens_details": null,
+            "prompt_tokens_details": {
+              "audio_tokens": null,
+              "cached_tokens": 0
+            },
+            "prompt_cache_hit_tokens": 0,
+            "prompt_cache_miss_tokens": 301
+          },
+          "model_provider": "deepseek",
+          "model_name": "deepseek-chat",
+          "system_fingerprint": "fp_eaab8d114b_prod0820_fp8_kvcache",
+          "id": "0395200d-c603-4027-989b-9d992fc68ad0",
+          "finish_reason": "stop",
+          "logprobs": null
+        },
+        "type": "ai",
+        "name": null,
+        "id": "lc_run--019c97fd-7abf-7652-80cb-33951fefb1e4-0",
+        "tool_calls": [],
+        "invalid_tool_calls": [],
+        "usage_metadata": {
+          "input_tokens": 301,
+          "output_tokens": 98,
+          "total_tokens": 399,
+          "input_token_details": {
+            "cache_read": 0
+          },
+          "output_token_details": {}
+        }
+      }
+    }
+  ],
+  "user_id": null
+}

@@ -1,0 +1,6943 @@
+{
+  "nodes": [
+    {
+      "id": "解 决_ORG",
+      "label": "解 决",
+      "type": "ORG",
+      "score": 0.5274502038955688
+    },
+    {
+      "id": "问 题_PER",
+      "label": "问 题",
+      "type": "PER",
+      "score": 0.5528348088264465
+    },
+    {
+      "id": "三 种 调_PER",
+      "label": "三 种 调",
+      "type": "PER",
+      "score": 0.5570648908615112
+    },
+    {
+      "id": "度 模_ORG",
+      "label": "度 模",
+      "type": "ORG",
+      "score": 0.5613534450531006
+    },
+    {
+      "id": "管 理_PER",
+      "label": "管 理",
+      "type": "PER",
+      "score": 0.5957223176956177
+    },
+    {
+      "id": "器 模 式_ORG",
+      "label": "器 模 式",
+      "type": "ORG",
+      "score": 0.5264013409614563
+    },
+    {
+      "id": "聊 管 理_PER",
+      "label": "聊 管 理",
+      "type": "PER",
+      "score": 0.5671432614326477
+    },
+    {
+      "id": "驱 动_ORG",
+      "label": "驱 动",
+      "type": "ORG",
+      "score": 0.6239624619483948
+    },
+    {
+      "id": "流 程_ORG",
+      "label": "流 程",
+      "type": "ORG",
+      "score": 0.5615659952163696
+    },
+    {
+      "id": "及 agent 智_PER",
+      "label": "及 agent 智",
+      "type": "PER",
+      "score": 0.5914329290390015
+    },
+    {
+      "id": "心 组 成 模_PER",
+      "label": "心 组 成 模",
+      "type": "PER",
+      "score": 0.5603158473968506
+    },
+    {
+      "id": "生 成 式_ORG",
+      "label": "生 成 式",
+      "type": "ORG",
+      "score": 0.5699350237846375
+    },
+    {
+      "id": "技 术_ORG",
+      "label": "技 术",
+      "type": "ORG",
+      "score": 0.6143513917922974
+    },
+    {
+      "id": "说 明_PER",
+      "label": "说 明",
+      "type": "PER",
+      "score": 0.6082625985145569
+    },
+    {
+      "id": "方 案_ORG",
+      "label": "方 案",
+      "type": "ORG",
+      "score": 0.5248867273330688
+    },
+    {
+      "id": "模 化 多_ORG",
+      "label": "模 化 多",
+      "type": "ORG",
+      "score": 0.5571019649505615
+    },
+    {
+      "id": "agent 协 同 处 理 复_PER",
+      "label": "agent 协 同 处 理 复",
+      "type": "PER",
+      "score": 0.586821973323822
+    },
+    {
+      "id": "IDP_PER",
+      "label": "IDP",
+      "type": "PER",
+      "score": 0.5196037292480469
+    },
+    {
+      "id": "涵 盖_PER",
+      "label": "涵 盖",
+      "type": "PER",
+      "score": 0.5417503118515015
+    },
+    {
+      "id": "agent 分 工 机 制_PER",
+      "label": "agent 分 工 机 制",
+      "type": "PER",
+      "score": 0.6293115615844727
+    },
+    {
+      "id": "RAG_PER",
+      "label": "RAG",
+      "type": "PER",
+      "score": 0.5987824201583862
+    },
+    {
+      "id": "心 作 用 解 决 大 模_PER",
+      "label": "心 作 用 解 决 大 模",
+      "type": "PER",
+      "score": 0.5756123661994934
+    },
+    {
+      "id": "知 识 滞 后 与 幻 觉 问 题 （ 当 然 也 会 问 sql_PER",
+      "label": "知 识 滞 后 与 幻 觉 问 题 （ 当 然 也 会 问 sql",
+      "type": "PER",
+      "score": 0.6265846490859985
+    },
+    {
+      "id": "句 、 python 等 等 ， 可 以 试 着 自 己 答_PER",
+      "label": "句 、 python 等 等 ， 可 以 试 着 自 己 答",
+      "type": "PER",
+      "score": 0.6149724721908569
+    },
+    {
+      "id": "下 梳 理_PER",
+      "label": "下 梳 理",
+      "type": "PER",
+      "score": 0.6361048817634583
+    },
+    {
+      "id": "一 遍_ORG",
+      "label": "一 遍",
+      "type": "ORG",
+      "score": 0.5195651054382324
+    },
+    {
+      "id": "回 答_PER",
+      "label": "回 答",
+      "type": "PER",
+      "score": 0.6592326164245605
+    },
+    {
+      "id": "以 上 仅 是 我 自 己_PER",
+      "label": "以 上 仅 是 我 自 己",
+      "type": "PER",
+      "score": 0.6875062584877014
+    },
+    {
+      "id": "ai 算法问题总结 transformer_TECH",
+      "label": "ai 算法问题总结 transformer",
+      "type": "TECH",
+      "score": 0.7946
+    },
+    {
+      "id": "qkv qk 获取分数再取权重对_GENERAL",
+      "label": "qkv qk 获取分数再取权重对",
+      "type": "GENERAL",
+      "score": 0.5253
+    },
+    {
+      "id": "整个句子一次性矩阵乘法完成_GENERAL",
+      "label": "整个句子一次性矩阵乘法完成",
+      "type": "GENERAL",
+      "score": 0.5221
+    },
+    {
+      "id": "静态样例_GENERAL",
+      "label": "静态样例",
+      "type": "GENERAL",
+      "score": 0.4033
+    },
+    {
+      "id": "prompt 引导模型的推理流程 停止标记_TECH",
+      "label": "prompt 引导模型的推理流程 停止标记",
+      "type": "TECH",
+      "score": 0.3928
+    },
+    {
+      "id": "lightrag 把图谱和向量同层索引_GENERAL",
+      "label": "lightrag 把图谱和向量同层索引",
+      "type": "GENERAL",
+      "score": 0.3377
+    },
+    {
+      "id": "形状虽与 相同 真正可训练_METHOD",
+      "label": "形状虽与 相同 真正可训练",
+      "type": "METHOD",
+      "score": 0.3225
+    },
+    {
+      "id": "query 扩展 重排_GENERAL",
+      "label": "query 扩展 重排",
+      "type": "GENERAL",
+      "score": 0.3081
+    },
+    {
+      "id": "存管理不用加细粒度锁 但让多线程对 cpu_GENERAL",
+      "label": "存管理不用加细粒度锁 但让多线程对 cpu",
+      "type": "GENERAL",
+      "score": 0.2883
+    },
+    {
+      "id": "能够自动检查输入数据的格式_CONCEPT",
+      "label": "能够自动检查输入数据的格式",
+      "type": "CONCEPT",
+      "score": 0.2739
+    },
+    {
+      "id": "haystack 测试模型在 200k_TECH",
+      "label": "haystack 测试模型在 200k",
+      "type": "TECH",
+      "score": 0.2473
+    },
+    {
+      "id": "的选择 通常 64_GENERAL",
+      "label": "的选择 通常 64",
+      "type": "GENERAL",
+      "score": 0.2451
+    },
+    {
+      "id": "calling ool use_GENERAL",
+      "label": "calling ool use",
+      "type": "GENERAL",
+      "score": 0.2401
+    },
+    {
+      "id": "闸门 三元组写进 neo4j_GENERAL",
+      "label": "闸门 三元组写进 neo4j",
+      "type": "GENERAL",
+      "score": 0.2077
+    },
+    {
+      "id": "不应取维度的一半_GENERAL",
+      "label": "不应取维度的一半",
+      "type": "GENERAL",
+      "score": 0.1862
+    },
+    {
+      "id": "扩展和管理数千个_GENERAL",
+      "label": "扩展和管理数千个",
+      "type": "GENERAL",
+      "score": 0.1479
+    },
+    {
+      "id": "效果边界完全不同_GENERAL",
+      "label": "效果边界完全不同",
+      "type": "GENERAL",
+      "score": 0.1344
+    },
+    {
+      "id": "action json_GENERAL",
+      "label": "action json",
+      "type": "GENERAL",
+      "score": 0.128
+    },
+    {
+      "id": "cpython_GENERAL",
+      "label": "cpython",
+      "type": "GENERAL",
+      "score": 0.1049
+    },
+    {
+      "id": "他们彼此 对话_GENERAL",
+      "label": "他们彼此 对话",
+      "type": "GENERAL",
+      "score": 0.0522
+    },
+    {
+      "id": "分类_DOMAIN",
+      "label": "分类",
+      "type": "DOMAIN",
+      "score": 0.9
+    },
+    {
+      "id": "过拟合_DOMAIN",
+      "label": "过拟合",
+      "type": "DOMAIN",
+      "score": 0.9
+    },
+    {
+      "id": "准确率_DOMAIN",
+      "label": "准确率",
+      "type": "DOMAIN",
+      "score": 0.9
+    },
+    {
+      "id": "召回率_DOMAIN",
+      "label": "召回率",
+      "type": "DOMAIN",
+      "score": 0.9
+    },
+    {
+      "id": "损失函数_DOMAIN",
+      "label": "损失函数",
+      "type": "DOMAIN",
+      "score": 0.9
+    },
+    {
+      "id": "迭代_DOMAIN",
+      "label": "迭代",
+      "type": "DOMAIN",
+      "score": 0.9
+    },
+    {
+      "id": "优化器_DOMAIN",
+      "label": "优化器",
+      "type": "DOMAIN",
+      "score": 0.9
+    },
+    {
+      "id": "神经网络_DOMAIN",
+      "label": "神经网络",
+      "type": "DOMAIN",
+      "score": 0.9
+    },
+    {
+      "id": "前馈神经网络_DOMAIN",
+      "label": "前馈神经网络",
+      "type": "DOMAIN",
+      "score": 0.9
+    },
+    {
+      "id": "GPT_DOMAIN",
+      "label": "GPT",
+      "type": "DOMAIN",
+      "score": 0.9
+    },
+    {
+      "id": "梯度爆炸_DOMAIN",
+      "label": "梯度爆炸",
+      "type": "DOMAIN",
+      "score": 0.9
+    },
+    {
+      "id": "层归一化_DOMAIN",
+      "label": "层归一化",
+      "type": "DOMAIN",
+      "score": 0.9
+    },
+    {
+      "id": "残差连接_DOMAIN",
+      "label": "残差连接",
+      "type": "DOMAIN",
+      "score": 0.9
+    },
+    {
+      "id": "位置编码_DOMAIN",
+      "label": "位置编码",
+      "type": "DOMAIN",
+      "score": 0.9
+    },
+    {
+      "id": "预训练模型_DOMAIN",
+      "label": "预训练模型",
+      "type": "DOMAIN",
+      "score": 0.9
+    },
+    {
+      "id": "微调_DOMAIN",
+      "label": "微调",
+      "type": "DOMAIN",
+      "score": 0.9
+    },
+    {
+      "id": "知识图谱_DOMAIN",
+      "label": "知识图谱",
+      "type": "DOMAIN",
+      "score": 0.9
+    },
+    {
+      "id": "Python_DOMAIN",
+      "label": "Python",
+      "type": "DOMAIN",
+      "score": 0.9
+    },
+    {
+      "id": "Docker_DOMAIN",
+      "label": "Docker",
+      "type": "DOMAIN",
+      "score": 0.9
+    },
+    {
+      "id": "Kubernetes_DOMAIN",
+      "label": "Kubernetes",
+      "type": "DOMAIN",
+      "score": 0.9
+    }
+  ],
+  "edges": [
+    {
+      "source": "解 决_ORG",
+      "target": "问 题_PER",
+      "type": "work_for",
+      "strength": 0.8480427519083023,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "解 决_ORG",
+      "target": "三 种 调_PER",
+      "type": "work_for",
+      "strength": 0.8206772642135619,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "解 决_ORG",
+      "target": "ai 算法问题总结 transformer_TECH",
+      "type": "related_to",
+      "strength": 0.8913075305843352,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "解 决_ORG",
+      "target": "qkv qk 获取分数再取权重对_GENERAL",
+      "type": "related_to",
+      "strength": 0.8509125305843352,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "解 决_ORG",
+      "target": "整个句子一次性矩阵乘法完成_GENERAL",
+      "type": "related_to",
+      "strength": 0.8504325305843352,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "解 决_ORG",
+      "target": "静态样例_GENERAL",
+      "type": "related_to",
+      "strength": 0.8326125305843353,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "解 决_ORG",
+      "target": "prompt 引导模型的推理流程 停止标记_TECH",
+      "type": "related_to",
+      "strength": 0.8310375305843353,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "解 决_ORG",
+      "target": "lightrag 把图谱和向量同层索引_GENERAL",
+      "type": "related_to",
+      "strength": 0.8227725305843353,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "解 决_ORG",
+      "target": "形状虽与 相同 真正可训练_METHOD",
+      "type": "related_to",
+      "strength": 0.8204925305843352,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "解 决_ORG",
+      "target": "query 扩展 重排_GENERAL",
+      "type": "related_to",
+      "strength": 0.8183325305843353,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "解 决_ORG",
+      "target": "存管理不用加细粒度锁 但让多线程对 cpu_GENERAL",
+      "type": "related_to",
+      "strength": 0.8153625305843353,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "解 决_ORG",
+      "target": "能够自动检查输入数据的格式_CONCEPT",
+      "type": "related_to",
+      "strength": 0.8132025305843353,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "解 决_ORG",
+      "target": "haystack 测试模型在 200k_TECH",
+      "type": "related_to",
+      "strength": 0.8092125305843353,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "解 决_ORG",
+      "target": "的选择 通常 64_GENERAL",
+      "type": "related_to",
+      "strength": 0.8088825305843352,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "解 决_ORG",
+      "target": "calling ool use_GENERAL",
+      "type": "related_to",
+      "strength": 0.8081325305843352,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "解 决_ORG",
+      "target": "闸门 三元组写进 neo4j_GENERAL",
+      "type": "related_to",
+      "strength": 0.8032725305843352,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "解 决_ORG",
+      "target": "不应取维度的一半_GENERAL",
+      "type": "related_to",
+      "strength": 0.8000475305843353,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "解 决_ORG",
+      "target": "扩展和管理数千个_GENERAL",
+      "type": "related_to",
+      "strength": 0.7943025305843353,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "解 决_ORG",
+      "target": "效果边界完全不同_GENERAL",
+      "type": "related_to",
+      "strength": 0.7922775305843353,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "解 决_ORG",
+      "target": "action json_GENERAL",
+      "type": "related_to",
+      "strength": 0.7913175305843353,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "解 决_ORG",
+      "target": "cpython_GENERAL",
+      "type": "related_to",
+      "strength": 0.7878525305843352,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "解 决_ORG",
+      "target": "他们彼此 对话_GENERAL",
+      "type": "related_to",
+      "strength": 0.7799475305843353,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "解 决_ORG",
+      "target": "分类_DOMAIN",
+      "type": "related_to",
+      "strength": 0.9071175305843353,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "解 决_ORG",
+      "target": "过拟合_DOMAIN",
+      "type": "related_to",
+      "strength": 0.9071175305843353,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "解 决_ORG",
+      "target": "准确率_DOMAIN",
+      "type": "related_to",
+      "strength": 0.9071175305843353,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "解 决_ORG",
+      "target": "召回率_DOMAIN",
+      "type": "related_to",
+      "strength": 0.9071175305843353,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "解 决_ORG",
+      "target": "损失函数_DOMAIN",
+      "type": "related_to",
+      "strength": 0.9071175305843353,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "解 决_ORG",
+      "target": "迭代_DOMAIN",
+      "type": "related_to",
+      "strength": 0.9071175305843353,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "解 决_ORG",
+      "target": "优化器_DOMAIN",
+      "type": "related_to",
+      "strength": 0.9071175305843353,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "解 决_ORG",
+      "target": "神经网络_DOMAIN",
+      "type": "related_to",
+      "strength": 0.9071175305843353,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "解 决_ORG",
+      "target": "前馈神经网络_DOMAIN",
+      "type": "related_to",
+      "strength": 0.9071175305843353,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "解 决_ORG",
+      "target": "GPT_DOMAIN",
+      "type": "related_to",
+      "strength": 0.9071175305843353,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "解 决_ORG",
+      "target": "梯度爆炸_DOMAIN",
+      "type": "related_to",
+      "strength": 0.9071175305843353,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "解 决_ORG",
+      "target": "层归一化_DOMAIN",
+      "type": "related_to",
+      "strength": 0.9071175305843353,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "解 决_ORG",
+      "target": "残差连接_DOMAIN",
+      "type": "related_to",
+      "strength": 0.9071175305843353,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "解 决_ORG",
+      "target": "位置编码_DOMAIN",
+      "type": "related_to",
+      "strength": 0.9071175305843353,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "解 决_ORG",
+      "target": "预训练模型_DOMAIN",
+      "type": "related_to",
+      "strength": 0.9071175305843353,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "解 决_ORG",
+      "target": "微调_DOMAIN",
+      "type": "related_to",
+      "strength": 0.9071175305843353,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "解 决_ORG",
+      "target": "知识图谱_DOMAIN",
+      "type": "related_to",
+      "strength": 0.9071175305843353,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "解 决_ORG",
+      "target": "Python_DOMAIN",
+      "type": "related_to",
+      "strength": 0.9071175305843353,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "解 决_ORG",
+      "target": "Docker_DOMAIN",
+      "type": "related_to",
+      "strength": 0.9071175305843353,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "解 决_ORG",
+      "target": "Kubernetes_DOMAIN",
+      "type": "related_to",
+      "strength": 0.9071175305843353,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "问 题_PER",
+      "target": "三 种 调_PER",
+      "type": "related_to",
+      "strength": 0.8384849549531936,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "问 题_PER",
+      "target": "ai 算法问题总结 transformer_TECH",
+      "type": "associated_with",
+      "strength": 0.8811152213239669,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "问 题_PER",
+      "target": "qkv qk 获取分数再取权重对_GENERAL",
+      "type": "associated_with",
+      "strength": 0.840720221323967,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "问 题_PER",
+      "target": "整个句子一次性矩阵乘法完成_GENERAL",
+      "type": "associated_with",
+      "strength": 0.8402402213239669,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "问 题_PER",
+      "target": "静态样例_GENERAL",
+      "type": "associated_with",
+      "strength": 0.8224202213239669,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "问 题_PER",
+      "target": "prompt 引导模型的推理流程 停止标记_TECH",
+      "type": "associated_with",
+      "strength": 0.820845221323967,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "问 题_PER",
+      "target": "lightrag 把图谱和向量同层索引_GENERAL",
+      "type": "associated_with",
+      "strength": 0.8125802213239669,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "问 题_PER",
+      "target": "形状虽与 相同 真正可训练_METHOD",
+      "type": "associated_with",
+      "strength": 0.810300221323967,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "问 题_PER",
+      "target": "query 扩展 重排_GENERAL",
+      "type": "associated_with",
+      "strength": 0.8081402213239669,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "问 题_PER",
+      "target": "存管理不用加细粒度锁 但让多线程对 cpu_GENERAL",
+      "type": "associated_with",
+      "strength": 0.8051702213239669,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "问 题_PER",
+      "target": "能够自动检查输入数据的格式_CONCEPT",
+      "type": "associated_with",
+      "strength": 0.8030102213239669,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "问 题_PER",
+      "target": "haystack 测试模型在 200k_TECH",
+      "type": "associated_with",
+      "strength": 0.7990202213239669,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "问 题_PER",
+      "target": "的选择 通常 64_GENERAL",
+      "type": "associated_with",
+      "strength": 0.7986902213239669,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "问 题_PER",
+      "target": "calling ool use_GENERAL",
+      "type": "associated_with",
+      "strength": 0.7979402213239669,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "问 题_PER",
+      "target": "闸门 三元组写进 neo4j_GENERAL",
+      "type": "associated_with",
+      "strength": 0.7930802213239669,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "问 题_PER",
+      "target": "不应取维度的一半_GENERAL",
+      "type": "associated_with",
+      "strength": 0.7898552213239669,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "问 题_PER",
+      "target": "扩展和管理数千个_GENERAL",
+      "type": "associated_with",
+      "strength": 0.7841102213239669,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "问 题_PER",
+      "target": "效果边界完全不同_GENERAL",
+      "type": "associated_with",
+      "strength": 0.7820852213239669,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "问 题_PER",
+      "target": "action json_GENERAL",
+      "type": "associated_with",
+      "strength": 0.7811252213239669,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "问 题_PER",
+      "target": "cpython_GENERAL",
+      "type": "associated_with",
+      "strength": 0.777660221323967,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "问 题_PER",
+      "target": "他们彼此 对话_GENERAL",
+      "type": "associated_with",
+      "strength": 0.7697552213239669,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "问 题_PER",
+      "target": "分类_DOMAIN",
+      "type": "associated_with",
+      "strength": 0.8969252213239669,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "问 题_PER",
+      "target": "过拟合_DOMAIN",
+      "type": "associated_with",
+      "strength": 0.8969252213239669,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "问 题_PER",
+      "target": "准确率_DOMAIN",
+      "type": "associated_with",
+      "strength": 0.8969252213239669,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "问 题_PER",
+      "target": "召回率_DOMAIN",
+      "type": "associated_with",
+      "strength": 0.8969252213239669,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "问 题_PER",
+      "target": "损失函数_DOMAIN",
+      "type": "associated_with",
+      "strength": 0.8969252213239669,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "问 题_PER",
+      "target": "迭代_DOMAIN",
+      "type": "associated_with",
+      "strength": 0.8969252213239669,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "问 题_PER",
+      "target": "优化器_DOMAIN",
+      "type": "associated_with",
+      "strength": 0.8969252213239669,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "问 题_PER",
+      "target": "神经网络_DOMAIN",
+      "type": "associated_with",
+      "strength": 0.8969252213239669,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "问 题_PER",
+      "target": "前馈神经网络_DOMAIN",
+      "type": "associated_with",
+      "strength": 0.8969252213239669,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "问 题_PER",
+      "target": "GPT_DOMAIN",
+      "type": "associated_with",
+      "strength": 0.8969252213239669,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "问 题_PER",
+      "target": "梯度爆炸_DOMAIN",
+      "type": "associated_with",
+      "strength": 0.8969252213239669,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "问 题_PER",
+      "target": "层归一化_DOMAIN",
+      "type": "associated_with",
+      "strength": 0.8969252213239669,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "问 题_PER",
+      "target": "残差连接_DOMAIN",
+      "type": "associated_with",
+      "strength": 0.8969252213239669,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "问 题_PER",
+      "target": "位置编码_DOMAIN",
+      "type": "associated_with",
+      "strength": 0.8969252213239669,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "问 题_PER",
+      "target": "预训练模型_DOMAIN",
+      "type": "associated_with",
+      "strength": 0.8969252213239669,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "问 题_PER",
+      "target": "微调_DOMAIN",
+      "type": "associated_with",
+      "strength": 0.8969252213239669,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "问 题_PER",
+      "target": "知识图谱_DOMAIN",
+      "type": "associated_with",
+      "strength": 0.8969252213239669,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "问 题_PER",
+      "target": "Python_DOMAIN",
+      "type": "associated_with",
+      "strength": 0.8969252213239669,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "问 题_PER",
+      "target": "Docker_DOMAIN",
+      "type": "associated_with",
+      "strength": 0.8969252213239669,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "问 题_PER",
+      "target": "Kubernetes_DOMAIN",
+      "type": "associated_with",
+      "strength": 0.8969252213239669,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "三 种 调_PER",
+      "target": "ai 算法问题总结 transformer_TECH",
+      "type": "associated_with",
+      "strength": 0.8537497336292266,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "三 种 调_PER",
+      "target": "qkv qk 获取分数再取权重对_GENERAL",
+      "type": "associated_with",
+      "strength": 0.8133547336292266,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "三 种 调_PER",
+      "target": "整个句子一次性矩阵乘法完成_GENERAL",
+      "type": "associated_with",
+      "strength": 0.8128747336292266,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "三 种 调_PER",
+      "target": "静态样例_GENERAL",
+      "type": "associated_with",
+      "strength": 0.7950547336292266,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "三 种 调_PER",
+      "target": "prompt 引导模型的推理流程 停止标记_TECH",
+      "type": "associated_with",
+      "strength": 0.7934797336292266,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "三 种 调_PER",
+      "target": "lightrag 把图谱和向量同层索引_GENERAL",
+      "type": "associated_with",
+      "strength": 0.7852147336292266,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "三 种 调_PER",
+      "target": "形状虽与 相同 真正可训练_METHOD",
+      "type": "associated_with",
+      "strength": 0.7829347336292266,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "三 种 调_PER",
+      "target": "query 扩展 重排_GENERAL",
+      "type": "associated_with",
+      "strength": 0.7807747336292266,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "三 种 调_PER",
+      "target": "存管理不用加细粒度锁 但让多线程对 cpu_GENERAL",
+      "type": "associated_with",
+      "strength": 0.7778047336292266,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "三 种 调_PER",
+      "target": "能够自动检查输入数据的格式_CONCEPT",
+      "type": "associated_with",
+      "strength": 0.7756447336292266,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "三 种 调_PER",
+      "target": "haystack 测试模型在 200k_TECH",
+      "type": "associated_with",
+      "strength": 0.7716547336292265,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "三 种 调_PER",
+      "target": "的选择 通常 64_GENERAL",
+      "type": "associated_with",
+      "strength": 0.7713247336292266,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "三 种 调_PER",
+      "target": "calling ool use_GENERAL",
+      "type": "associated_with",
+      "strength": 0.7705747336292266,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "三 种 调_PER",
+      "target": "闸门 三元组写进 neo4j_GENERAL",
+      "type": "associated_with",
+      "strength": 0.7657147336292266,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "三 种 调_PER",
+      "target": "不应取维度的一半_GENERAL",
+      "type": "associated_with",
+      "strength": 0.7624897336292266,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "三 种 调_PER",
+      "target": "扩展和管理数千个_GENERAL",
+      "type": "associated_with",
+      "strength": 0.7567447336292266,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "三 种 调_PER",
+      "target": "效果边界完全不同_GENERAL",
+      "type": "associated_with",
+      "strength": 0.7547197336292266,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "三 种 调_PER",
+      "target": "action json_GENERAL",
+      "type": "associated_with",
+      "strength": 0.7537597336292265,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "三 种 调_PER",
+      "target": "cpython_GENERAL",
+      "type": "associated_with",
+      "strength": 0.7502947336292266,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "三 种 调_PER",
+      "target": "他们彼此 对话_GENERAL",
+      "type": "associated_with",
+      "strength": 0.7423897336292266,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "三 种 调_PER",
+      "target": "分类_DOMAIN",
+      "type": "associated_with",
+      "strength": 0.8695597336292266,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "三 种 调_PER",
+      "target": "过拟合_DOMAIN",
+      "type": "associated_with",
+      "strength": 0.8695597336292266,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "三 种 调_PER",
+      "target": "准确率_DOMAIN",
+      "type": "associated_with",
+      "strength": 0.8695597336292266,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "三 种 调_PER",
+      "target": "召回率_DOMAIN",
+      "type": "associated_with",
+      "strength": 0.8695597336292266,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "三 种 调_PER",
+      "target": "损失函数_DOMAIN",
+      "type": "associated_with",
+      "strength": 0.8695597336292266,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "三 种 调_PER",
+      "target": "迭代_DOMAIN",
+      "type": "associated_with",
+      "strength": 0.8695597336292266,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "三 种 调_PER",
+      "target": "优化器_DOMAIN",
+      "type": "associated_with",
+      "strength": 0.8695597336292266,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "三 种 调_PER",
+      "target": "神经网络_DOMAIN",
+      "type": "associated_with",
+      "strength": 0.8695597336292266,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "三 种 调_PER",
+      "target": "前馈神经网络_DOMAIN",
+      "type": "associated_with",
+      "strength": 0.8695597336292266,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "三 种 调_PER",
+      "target": "GPT_DOMAIN",
+      "type": "associated_with",
+      "strength": 0.8695597336292266,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "三 种 调_PER",
+      "target": "梯度爆炸_DOMAIN",
+      "type": "associated_with",
+      "strength": 0.8695597336292266,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "三 种 调_PER",
+      "target": "层归一化_DOMAIN",
+      "type": "associated_with",
+      "strength": 0.8695597336292266,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "三 种 调_PER",
+      "target": "残差连接_DOMAIN",
+      "type": "associated_with",
+      "strength": 0.8695597336292266,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "三 种 调_PER",
+      "target": "位置编码_DOMAIN",
+      "type": "associated_with",
+      "strength": 0.8695597336292266,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "三 种 调_PER",
+      "target": "预训练模型_DOMAIN",
+      "type": "associated_with",
+      "strength": 0.8695597336292266,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "三 种 调_PER",
+      "target": "微调_DOMAIN",
+      "type": "associated_with",
+      "strength": 0.8695597336292266,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "三 种 调_PER",
+      "target": "知识图谱_DOMAIN",
+      "type": "associated_with",
+      "strength": 0.8695597336292266,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "三 种 调_PER",
+      "target": "Python_DOMAIN",
+      "type": "associated_with",
+      "strength": 0.8695597336292266,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "三 种 调_PER",
+      "target": "Docker_DOMAIN",
+      "type": "associated_with",
+      "strength": 0.8695597336292266,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "三 种 调_PER",
+      "target": "Kubernetes_DOMAIN",
+      "type": "associated_with",
+      "strength": 0.8695597336292266,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "度 模_ORG",
+      "target": "管 理_PER",
+      "type": "work_for",
+      "strength": 0.7685613644123077,
+      "context": "一、 transformer 架构"
+    },
+    {
+      "source": "度 模_ORG",
+      "target": "器 模 式_ORG",
+      "type": "cooperate_with",
+      "strength": 0.7441632179021835,
+      "context": "一、 transformer 架构"
+    },
+    {
+      "source": "管 理_PER",
+      "target": "器 模 式_ORG",
+      "type": "work_for",
+      "strength": 0.8543185487985611,
+      "context": "一、 transformer 架构"
+    },
+    {
+      "source": "聊 管 理_PER",
+      "target": "驱 动_ORG",
+      "type": "work_for",
+      "strength": 0.8156658585071563,
+      "context": "1 、 a t t e n t i o n 原 理"
+    },
+    {
+      "source": "流 程_ORG",
+      "target": "及 agent 智_PER",
+      "type": "work_for",
+      "strength": 0.8589498386383057,
+      "context": "把输入向量化后，先 线性映射也就是乘模型参数矩阵，得到 QKV , 把 Q 乘以 K 的转置算相似度， 除"
+    },
+    {
+      "source": "流 程_ORG",
+      "target": "心 组 成 模_PER",
+      "type": "work_for",
+      "strength": 0.770282276391983,
+      "context": "把输入向量化后，先 线性映射也就是乘模型参数矩阵，得到 QKV , 把 Q 乘以 K 的转置算相似度， 除"
+    },
+    {
+      "source": "及 agent 智_PER",
+      "target": "心 组 成 模_PER",
+      "type": "related_to",
+      "strength": 0.7887623164653778,
+      "context": "把输入向量化后，先 线性映射也就是乘模型参数矩阵，得到 QKV , 把 Q 乘以 K 的转置算相似度， 除"
+    },
+    {
+      "source": "生 成 式_ORG",
+      "target": "技 术_ORG",
+      "type": "cooperate_with",
+      "strength": 0.8286429623365401,
+      "context": "以  √d _ k 缩放 , 防止梯度爆炸，再经  softmax 归一化成权重，最后乘以 V 加权求和得到摘要，使序"
+    },
+    {
+      "source": "生 成 式_ORG",
+      "target": "说 明_PER",
+      "type": "work_for",
+      "strength": 0.8067296433448792,
+      "context": "以  √d _ k 缩放 , 防止梯度爆炸，再经  softmax 归一化成权重，最后乘以 V 加权求和得到摘要，使序"
+    },
+    {
+      "source": "生 成 式_ORG",
+      "target": "方 案_ORG",
+      "type": "cooperate_with",
+      "strength": 0.766223262667656,
+      "context": "以  √d _ k 缩放 , 防止梯度爆炸，再经  softmax 归一化成权重，最后乘以 V 加权求和得到摘要，使序"
+    },
+    {
+      "source": "技 术_ORG",
+      "target": "说 明_PER",
+      "type": "work_for",
+      "strength": 0.862392098546028,
+      "context": "以  √d _ k 缩放 , 防止梯度爆炸，再经  softmax 归一化成权重，最后乘以 V 加权求和得到摘要，使序"
+    },
+    {
+      "source": "技 术_ORG",
+      "target": "方 案_ORG",
+      "type": "cooperate_with",
+      "strength": 0.8218857178688048,
+      "context": "以  √d _ k 缩放 , 防止梯度爆炸，再经  softmax 归一化成权重，最后乘以 V 加权求和得到摘要，使序"
+    },
+    {
+      "source": "说 明_PER",
+      "target": "方 案_ORG",
+      "type": "work_for",
+      "strength": 0.8419723988771438,
+      "context": "以  √d _ k 缩放 , 防止梯度爆炸，再经  softmax 归一化成权重，最后乘以 V 加权求和得到摘要，使序"
+    },
+    {
+      "source": "模 化 多_ORG",
+      "target": "agent 协 同 处 理 复_PER",
+      "type": "work_for",
+      "strength": 0.8435885907411574,
+      "context": "列中的每一个位置都能在一步扫视整个句子并提取最相关的信息；"
+    },
+    {
+      "source": "模 化 多_ORG",
+      "target": "IDP_PER",
+      "type": "work_for",
+      "strength": 0.7425058541297912,
+      "context": "列中的每一个位置都能在一步扫视整个句子并提取最相关的信息；"
+    },
+    {
+      "source": "agent 协 同 处 理 复_PER",
+      "target": "IDP_PER",
+      "type": "related_to",
+      "strength": 0.7749638553857803,
+      "context": "列中的每一个位置都能在一步扫视整个句子并提取最相关的信息；"
+    },
+    {
+      "source": "涵 盖_PER",
+      "target": "agent 分 工 机 制_PER",
+      "type": "related_to",
+      "strength": 0.847659281015396,
+      "context": "多头并行重复这一过程，捕获"
+    },
+    {
+      "source": "RAG_PER",
+      "target": "心 作 用 解 决 大 模_PER",
+      "type": "related_to",
+      "strength": 0.8411592179536819,
+      "context": "先向量化 - 线性映射即乘以矩阵得到 QKV ， -QK 获取分数  - 再取权重 - 对 v 加权"
+    },
+    {
+      "source": "RAG_PER",
+      "target": "知 识 滞 后 与 幻 觉 问 题 （ 当 然 也 会 问 sql_PER",
+      "type": "related_to",
+      "strength": 0.7928050603866577,
+      "context": "先向量化 - 线性映射即乘以矩阵得到 QKV ， -QK 获取分数  - 再取权重 - 对 v 加权"
+    },
+    {
+      "source": "RAG_PER",
+      "target": "句 、 python 等 等 ， 可 以 试 着 自 己 答_PER",
+      "type": "related_to",
+      "strength": 0.6370632338523864,
+      "context": "先向量化 - 线性映射即乘以矩阵得到 QKV ， -QK 获取分数  - 再取权重 - 对 v 加权"
+    },
+    {
+      "source": "心 作 用 解 决 大 模_PER",
+      "target": "知 识 滞 后 与 幻 觉 问 题 （ 当 然 也 会 问 sql_PER",
+      "type": "related_to",
+      "strength": 0.8243295522928238,
+      "context": "先向量化 - 线性映射即乘以矩阵得到 QKV ， -QK 获取分数  - 再取权重 - 对 v 加权"
+    },
+    {
+      "source": "心 作 用 解 决 大 模_PER",
+      "target": "句 、 python 等 等 ， 可 以 试 着 自 己 答_PER",
+      "type": "related_to",
+      "strength": 0.6685877257585525,
+      "context": "先向量化 - 线性映射即乘以矩阵得到 QKV ， -QK 获取分数  - 再取权重 - 对 v 加权"
+    },
+    {
+      "source": "知 识 滞 后 与 幻 觉 问 题 （ 当 然 也 会 问 sql_PER",
+      "target": "句 、 python 等 等 ， 可 以 试 着 自 己 答_PER",
+      "type": "related_to",
+      "strength": 0.7322335681915282,
+      "context": "先向量化 - 线性映射即乘以矩阵得到 QKV ， -QK 获取分数  - 再取权重 - 对 v 加权"
+    },
+    {
+      "source": "下 梳 理_PER",
+      "target": "一 遍_ORG",
+      "type": "work_for",
+      "strength": 0.8523504980802535,
+      "context": "编码器自注意力 —— 双向看全源句，做上下文向量；"
+    },
+    {
+      "source": "下 梳 理_PER",
+      "target": "回 答_PER",
+      "type": "related_to",
+      "strength": 0.8593006247282027,
+      "context": "编码器自注意力 —— 双向看全源句，做上下文向量；"
+    },
+    {
+      "source": "下 梳 理_PER",
+      "target": "以 上 仅 是 我 自 己_PER",
+      "type": "related_to",
+      "strength": 0.842541671037674,
+      "context": "编码器自注意力 —— 双向看全源句，做上下文向量；"
+    },
+    {
+      "source": "一 遍_ORG",
+      "target": "回 答_PER",
+      "type": "work_for",
+      "strength": 0.8628196582794189,
+      "context": "编码器自注意力 —— 双向看全源句，做上下文向量；"
+    },
+    {
+      "source": "一 遍_ORG",
+      "target": "以 上 仅 是 我 自 己_PER",
+      "type": "work_for",
+      "strength": 0.8460607045888899,
+      "context": "编码器自注意力 —— 双向看全源句，做上下文向量；"
+    },
+    {
+      "source": "回 答_PER",
+      "target": "以 上 仅 是 我 自 己_PER",
+      "type": "related_to",
+      "strength": 0.8810108312368392,
+      "context": "编码器自注意力 —— 双向看全源句，做上下文向量；"
+    },
+    {
+      "source": "ai 算法问题总结 transformer_TECH",
+      "target": "qkv qk 获取分数再取权重对_GENERAL",
+      "type": "related_to",
+      "strength": 0.8979849999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "ai 算法问题总结 transformer_TECH",
+      "target": "整个句子一次性矩阵乘法完成_GENERAL",
+      "type": "related_to",
+      "strength": 0.897505,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "ai 算法问题总结 transformer_TECH",
+      "target": "静态样例_GENERAL",
+      "type": "related_to",
+      "strength": 0.8796849999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "ai 算法问题总结 transformer_TECH",
+      "target": "prompt 引导模型的推理流程 停止标记_TECH",
+      "type": "related_to",
+      "strength": 0.87811,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "ai 算法问题总结 transformer_TECH",
+      "target": "lightrag 把图谱和向量同层索引_GENERAL",
+      "type": "related_to",
+      "strength": 0.869845,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "ai 算法问题总结 transformer_TECH",
+      "target": "形状虽与 相同 真正可训练_METHOD",
+      "type": "related_to",
+      "strength": 0.8675649999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "ai 算法问题总结 transformer_TECH",
+      "target": "query 扩展 重排_GENERAL",
+      "type": "related_to",
+      "strength": 0.865405,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "ai 算法问题总结 transformer_TECH",
+      "target": "存管理不用加细粒度锁 但让多线程对 cpu_GENERAL",
+      "type": "related_to",
+      "strength": 0.862435,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "ai 算法问题总结 transformer_TECH",
+      "target": "能够自动检查输入数据的格式_CONCEPT",
+      "type": "related_to",
+      "strength": 0.8602749999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "ai 算法问题总结 transformer_TECH",
+      "target": "haystack 测试模型在 200k_TECH",
+      "type": "related_to",
+      "strength": 0.856285,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "ai 算法问题总结 transformer_TECH",
+      "target": "的选择 通常 64_GENERAL",
+      "type": "related_to",
+      "strength": 0.855955,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "ai 算法问题总结 transformer_TECH",
+      "target": "calling ool use_GENERAL",
+      "type": "related_to",
+      "strength": 0.855205,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "ai 算法问题总结 transformer_TECH",
+      "target": "闸门 三元组写进 neo4j_GENERAL",
+      "type": "related_to",
+      "strength": 0.8503449999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "ai 算法问题总结 transformer_TECH",
+      "target": "不应取维度的一半_GENERAL",
+      "type": "related_to",
+      "strength": 0.84712,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "ai 算法问题总结 transformer_TECH",
+      "target": "扩展和管理数千个_GENERAL",
+      "type": "related_to",
+      "strength": 0.841375,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "ai 算法问题总结 transformer_TECH",
+      "target": "效果边界完全不同_GENERAL",
+      "type": "related_to",
+      "strength": 0.8393499999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "ai 算法问题总结 transformer_TECH",
+      "target": "action json_GENERAL",
+      "type": "related_to",
+      "strength": 0.83839,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "ai 算法问题总结 transformer_TECH",
+      "target": "cpython_GENERAL",
+      "type": "related_to",
+      "strength": 0.8349249999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "ai 算法问题总结 transformer_TECH",
+      "target": "他们彼此 对话_GENERAL",
+      "type": "related_to",
+      "strength": 0.82702,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "ai 算法问题总结 transformer_TECH",
+      "target": "分类_DOMAIN",
+      "type": "related_to",
+      "strength": 0.9541899999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "ai 算法问题总结 transformer_TECH",
+      "target": "过拟合_DOMAIN",
+      "type": "related_to",
+      "strength": 0.9541899999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "ai 算法问题总结 transformer_TECH",
+      "target": "准确率_DOMAIN",
+      "type": "related_to",
+      "strength": 0.9541899999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "ai 算法问题总结 transformer_TECH",
+      "target": "召回率_DOMAIN",
+      "type": "related_to",
+      "strength": 0.9541899999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "ai 算法问题总结 transformer_TECH",
+      "target": "损失函数_DOMAIN",
+      "type": "related_to",
+      "strength": 0.9541899999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "ai 算法问题总结 transformer_TECH",
+      "target": "迭代_DOMAIN",
+      "type": "related_to",
+      "strength": 0.9541899999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "ai 算法问题总结 transformer_TECH",
+      "target": "优化器_DOMAIN",
+      "type": "related_to",
+      "strength": 0.9541899999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "ai 算法问题总结 transformer_TECH",
+      "target": "神经网络_DOMAIN",
+      "type": "related_to",
+      "strength": 0.9541899999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "ai 算法问题总结 transformer_TECH",
+      "target": "前馈神经网络_DOMAIN",
+      "type": "related_to",
+      "strength": 0.9541899999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "ai 算法问题总结 transformer_TECH",
+      "target": "GPT_DOMAIN",
+      "type": "related_to",
+      "strength": 0.9541899999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "ai 算法问题总结 transformer_TECH",
+      "target": "梯度爆炸_DOMAIN",
+      "type": "related_to",
+      "strength": 0.9541899999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "ai 算法问题总结 transformer_TECH",
+      "target": "层归一化_DOMAIN",
+      "type": "related_to",
+      "strength": 0.9541899999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "ai 算法问题总结 transformer_TECH",
+      "target": "残差连接_DOMAIN",
+      "type": "related_to",
+      "strength": 0.9541899999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "ai 算法问题总结 transformer_TECH",
+      "target": "位置编码_DOMAIN",
+      "type": "related_to",
+      "strength": 0.9541899999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "ai 算法问题总结 transformer_TECH",
+      "target": "预训练模型_DOMAIN",
+      "type": "related_to",
+      "strength": 0.9541899999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "ai 算法问题总结 transformer_TECH",
+      "target": "微调_DOMAIN",
+      "type": "related_to",
+      "strength": 0.9541899999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "ai 算法问题总结 transformer_TECH",
+      "target": "知识图谱_DOMAIN",
+      "type": "related_to",
+      "strength": 0.9541899999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "ai 算法问题总结 transformer_TECH",
+      "target": "Python_DOMAIN",
+      "type": "related_to",
+      "strength": 0.9541899999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "ai 算法问题总结 transformer_TECH",
+      "target": "Docker_DOMAIN",
+      "type": "related_to",
+      "strength": 0.9541899999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "ai 算法问题总结 transformer_TECH",
+      "target": "Kubernetes_DOMAIN",
+      "type": "related_to",
+      "strength": 0.9541899999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "qkv qk 获取分数再取权重对_GENERAL",
+      "target": "整个句子一次性矩阵乘法完成_GENERAL",
+      "type": "related_to",
+      "strength": 0.8571099999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "qkv qk 获取分数再取权重对_GENERAL",
+      "target": "静态样例_GENERAL",
+      "type": "related_to",
+      "strength": 0.83929,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "qkv qk 获取分数再取权重对_GENERAL",
+      "target": "prompt 引导模型的推理流程 停止标记_TECH",
+      "type": "related_to",
+      "strength": 0.837715,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "qkv qk 获取分数再取权重对_GENERAL",
+      "target": "lightrag 把图谱和向量同层索引_GENERAL",
+      "type": "related_to",
+      "strength": 0.8294499999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "qkv qk 获取分数再取权重对_GENERAL",
+      "target": "形状虽与 相同 真正可训练_METHOD",
+      "type": "related_to",
+      "strength": 0.82717,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "qkv qk 获取分数再取权重对_GENERAL",
+      "target": "query 扩展 重排_GENERAL",
+      "type": "related_to",
+      "strength": 0.8250099999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "qkv qk 获取分数再取权重对_GENERAL",
+      "target": "存管理不用加细粒度锁 但让多线程对 cpu_GENERAL",
+      "type": "related_to",
+      "strength": 0.82204,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "qkv qk 获取分数再取权重对_GENERAL",
+      "target": "能够自动检查输入数据的格式_CONCEPT",
+      "type": "related_to",
+      "strength": 0.8198799999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "qkv qk 获取分数再取权重对_GENERAL",
+      "target": "haystack 测试模型在 200k_TECH",
+      "type": "related_to",
+      "strength": 0.81589,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "qkv qk 获取分数再取权重对_GENERAL",
+      "target": "的选择 通常 64_GENERAL",
+      "type": "related_to",
+      "strength": 0.81556,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "qkv qk 获取分数再取权重对_GENERAL",
+      "target": "calling ool use_GENERAL",
+      "type": "related_to",
+      "strength": 0.8148099999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "qkv qk 获取分数再取权重对_GENERAL",
+      "target": "闸门 三元组写进 neo4j_GENERAL",
+      "type": "related_to",
+      "strength": 0.80995,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "qkv qk 获取分数再取权重对_GENERAL",
+      "target": "不应取维度的一半_GENERAL",
+      "type": "related_to",
+      "strength": 0.8067249999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "qkv qk 获取分数再取权重对_GENERAL",
+      "target": "扩展和管理数千个_GENERAL",
+      "type": "related_to",
+      "strength": 0.8009799999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "qkv qk 获取分数再取权重对_GENERAL",
+      "target": "效果边界完全不同_GENERAL",
+      "type": "related_to",
+      "strength": 0.798955,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "qkv qk 获取分数再取权重对_GENERAL",
+      "target": "action json_GENERAL",
+      "type": "related_to",
+      "strength": 0.797995,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "qkv qk 获取分数再取权重对_GENERAL",
+      "target": "cpython_GENERAL",
+      "type": "related_to",
+      "strength": 0.79453,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "qkv qk 获取分数再取权重对_GENERAL",
+      "target": "他们彼此 对话_GENERAL",
+      "type": "related_to",
+      "strength": 0.7866249999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "qkv qk 获取分数再取权重对_GENERAL",
+      "target": "分类_DOMAIN",
+      "type": "related_to",
+      "strength": 0.9137949999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "qkv qk 获取分数再取权重对_GENERAL",
+      "target": "过拟合_DOMAIN",
+      "type": "related_to",
+      "strength": 0.9137949999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "qkv qk 获取分数再取权重对_GENERAL",
+      "target": "准确率_DOMAIN",
+      "type": "related_to",
+      "strength": 0.9137949999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "qkv qk 获取分数再取权重对_GENERAL",
+      "target": "召回率_DOMAIN",
+      "type": "related_to",
+      "strength": 0.9137949999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "qkv qk 获取分数再取权重对_GENERAL",
+      "target": "损失函数_DOMAIN",
+      "type": "related_to",
+      "strength": 0.9137949999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "qkv qk 获取分数再取权重对_GENERAL",
+      "target": "迭代_DOMAIN",
+      "type": "related_to",
+      "strength": 0.9137949999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "qkv qk 获取分数再取权重对_GENERAL",
+      "target": "优化器_DOMAIN",
+      "type": "related_to",
+      "strength": 0.9137949999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "qkv qk 获取分数再取权重对_GENERAL",
+      "target": "神经网络_DOMAIN",
+      "type": "related_to",
+      "strength": 0.9137949999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "qkv qk 获取分数再取权重对_GENERAL",
+      "target": "前馈神经网络_DOMAIN",
+      "type": "related_to",
+      "strength": 0.9137949999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "qkv qk 获取分数再取权重对_GENERAL",
+      "target": "GPT_DOMAIN",
+      "type": "related_to",
+      "strength": 0.9137949999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "qkv qk 获取分数再取权重对_GENERAL",
+      "target": "梯度爆炸_DOMAIN",
+      "type": "related_to",
+      "strength": 0.9137949999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "qkv qk 获取分数再取权重对_GENERAL",
+      "target": "层归一化_DOMAIN",
+      "type": "related_to",
+      "strength": 0.9137949999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "qkv qk 获取分数再取权重对_GENERAL",
+      "target": "残差连接_DOMAIN",
+      "type": "related_to",
+      "strength": 0.9137949999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "qkv qk 获取分数再取权重对_GENERAL",
+      "target": "位置编码_DOMAIN",
+      "type": "related_to",
+      "strength": 0.9137949999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "qkv qk 获取分数再取权重对_GENERAL",
+      "target": "预训练模型_DOMAIN",
+      "type": "related_to",
+      "strength": 0.9137949999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "qkv qk 获取分数再取权重对_GENERAL",
+      "target": "微调_DOMAIN",
+      "type": "related_to",
+      "strength": 0.9137949999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "qkv qk 获取分数再取权重对_GENERAL",
+      "target": "知识图谱_DOMAIN",
+      "type": "related_to",
+      "strength": 0.9137949999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "qkv qk 获取分数再取权重对_GENERAL",
+      "target": "Python_DOMAIN",
+      "type": "related_to",
+      "strength": 0.9137949999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "qkv qk 获取分数再取权重对_GENERAL",
+      "target": "Docker_DOMAIN",
+      "type": "related_to",
+      "strength": 0.9137949999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "qkv qk 获取分数再取权重对_GENERAL",
+      "target": "Kubernetes_DOMAIN",
+      "type": "related_to",
+      "strength": 0.9137949999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "整个句子一次性矩阵乘法完成_GENERAL",
+      "target": "静态样例_GENERAL",
+      "type": "related_to",
+      "strength": 0.83881,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "整个句子一次性矩阵乘法完成_GENERAL",
+      "target": "prompt 引导模型的推理流程 停止标记_TECH",
+      "type": "related_to",
+      "strength": 0.837235,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "整个句子一次性矩阵乘法完成_GENERAL",
+      "target": "lightrag 把图谱和向量同层索引_GENERAL",
+      "type": "related_to",
+      "strength": 0.82897,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "整个句子一次性矩阵乘法完成_GENERAL",
+      "target": "形状虽与 相同 真正可训练_METHOD",
+      "type": "related_to",
+      "strength": 0.8266899999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "整个句子一次性矩阵乘法完成_GENERAL",
+      "target": "query 扩展 重排_GENERAL",
+      "type": "related_to",
+      "strength": 0.82453,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "整个句子一次性矩阵乘法完成_GENERAL",
+      "target": "存管理不用加细粒度锁 但让多线程对 cpu_GENERAL",
+      "type": "related_to",
+      "strength": 0.82156,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "整个句子一次性矩阵乘法完成_GENERAL",
+      "target": "能够自动检查输入数据的格式_CONCEPT",
+      "type": "related_to",
+      "strength": 0.8193999999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "整个句子一次性矩阵乘法完成_GENERAL",
+      "target": "haystack 测试模型在 200k_TECH",
+      "type": "related_to",
+      "strength": 0.81541,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "整个句子一次性矩阵乘法完成_GENERAL",
+      "target": "的选择 通常 64_GENERAL",
+      "type": "related_to",
+      "strength": 0.8150799999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "整个句子一次性矩阵乘法完成_GENERAL",
+      "target": "calling ool use_GENERAL",
+      "type": "related_to",
+      "strength": 0.81433,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "整个句子一次性矩阵乘法完成_GENERAL",
+      "target": "闸门 三元组写进 neo4j_GENERAL",
+      "type": "related_to",
+      "strength": 0.8094699999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "整个句子一次性矩阵乘法完成_GENERAL",
+      "target": "不应取维度的一半_GENERAL",
+      "type": "related_to",
+      "strength": 0.806245,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "整个句子一次性矩阵乘法完成_GENERAL",
+      "target": "扩展和管理数千个_GENERAL",
+      "type": "related_to",
+      "strength": 0.8005,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "整个句子一次性矩阵乘法完成_GENERAL",
+      "target": "效果边界完全不同_GENERAL",
+      "type": "related_to",
+      "strength": 0.7984749999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "整个句子一次性矩阵乘法完成_GENERAL",
+      "target": "action json_GENERAL",
+      "type": "related_to",
+      "strength": 0.797515,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "整个句子一次性矩阵乘法完成_GENERAL",
+      "target": "cpython_GENERAL",
+      "type": "related_to",
+      "strength": 0.7940499999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "整个句子一次性矩阵乘法完成_GENERAL",
+      "target": "他们彼此 对话_GENERAL",
+      "type": "related_to",
+      "strength": 0.786145,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "整个句子一次性矩阵乘法完成_GENERAL",
+      "target": "分类_DOMAIN",
+      "type": "related_to",
+      "strength": 0.9133149999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "整个句子一次性矩阵乘法完成_GENERAL",
+      "target": "过拟合_DOMAIN",
+      "type": "related_to",
+      "strength": 0.9133149999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "整个句子一次性矩阵乘法完成_GENERAL",
+      "target": "准确率_DOMAIN",
+      "type": "related_to",
+      "strength": 0.9133149999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "整个句子一次性矩阵乘法完成_GENERAL",
+      "target": "召回率_DOMAIN",
+      "type": "related_to",
+      "strength": 0.9133149999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "整个句子一次性矩阵乘法完成_GENERAL",
+      "target": "损失函数_DOMAIN",
+      "type": "related_to",
+      "strength": 0.9133149999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "整个句子一次性矩阵乘法完成_GENERAL",
+      "target": "迭代_DOMAIN",
+      "type": "related_to",
+      "strength": 0.9133149999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "整个句子一次性矩阵乘法完成_GENERAL",
+      "target": "优化器_DOMAIN",
+      "type": "related_to",
+      "strength": 0.9133149999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "整个句子一次性矩阵乘法完成_GENERAL",
+      "target": "神经网络_DOMAIN",
+      "type": "related_to",
+      "strength": 0.9133149999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "整个句子一次性矩阵乘法完成_GENERAL",
+      "target": "前馈神经网络_DOMAIN",
+      "type": "related_to",
+      "strength": 0.9133149999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "整个句子一次性矩阵乘法完成_GENERAL",
+      "target": "GPT_DOMAIN",
+      "type": "related_to",
+      "strength": 0.9133149999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "整个句子一次性矩阵乘法完成_GENERAL",
+      "target": "梯度爆炸_DOMAIN",
+      "type": "related_to",
+      "strength": 0.9133149999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "整个句子一次性矩阵乘法完成_GENERAL",
+      "target": "层归一化_DOMAIN",
+      "type": "related_to",
+      "strength": 0.9133149999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "整个句子一次性矩阵乘法完成_GENERAL",
+      "target": "残差连接_DOMAIN",
+      "type": "related_to",
+      "strength": 0.9133149999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "整个句子一次性矩阵乘法完成_GENERAL",
+      "target": "位置编码_DOMAIN",
+      "type": "related_to",
+      "strength": 0.9133149999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "整个句子一次性矩阵乘法完成_GENERAL",
+      "target": "预训练模型_DOMAIN",
+      "type": "related_to",
+      "strength": 0.9133149999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "整个句子一次性矩阵乘法完成_GENERAL",
+      "target": "微调_DOMAIN",
+      "type": "related_to",
+      "strength": 0.9133149999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "整个句子一次性矩阵乘法完成_GENERAL",
+      "target": "知识图谱_DOMAIN",
+      "type": "related_to",
+      "strength": 0.9133149999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "整个句子一次性矩阵乘法完成_GENERAL",
+      "target": "Python_DOMAIN",
+      "type": "related_to",
+      "strength": 0.9133149999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "整个句子一次性矩阵乘法完成_GENERAL",
+      "target": "Docker_DOMAIN",
+      "type": "related_to",
+      "strength": 0.9133149999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "整个句子一次性矩阵乘法完成_GENERAL",
+      "target": "Kubernetes_DOMAIN",
+      "type": "related_to",
+      "strength": 0.9133149999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "静态样例_GENERAL",
+      "target": "prompt 引导模型的推理流程 停止标记_TECH",
+      "type": "related_to",
+      "strength": 0.819415,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "静态样例_GENERAL",
+      "target": "lightrag 把图谱和向量同层索引_GENERAL",
+      "type": "related_to",
+      "strength": 0.8111499999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "静态样例_GENERAL",
+      "target": "形状虽与 相同 真正可训练_METHOD",
+      "type": "related_to",
+      "strength": 0.80887,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "静态样例_GENERAL",
+      "target": "query 扩展 重排_GENERAL",
+      "type": "related_to",
+      "strength": 0.8067099999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "静态样例_GENERAL",
+      "target": "存管理不用加细粒度锁 但让多线程对 cpu_GENERAL",
+      "type": "related_to",
+      "strength": 0.8037399999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "静态样例_GENERAL",
+      "target": "能够自动检查输入数据的格式_CONCEPT",
+      "type": "related_to",
+      "strength": 0.80158,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "静态样例_GENERAL",
+      "target": "haystack 测试模型在 200k_TECH",
+      "type": "related_to",
+      "strength": 0.7975899999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "静态样例_GENERAL",
+      "target": "的选择 通常 64_GENERAL",
+      "type": "related_to",
+      "strength": 0.79726,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "静态样例_GENERAL",
+      "target": "calling ool use_GENERAL",
+      "type": "related_to",
+      "strength": 0.7965099999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "静态样例_GENERAL",
+      "target": "闸门 三元组写进 neo4j_GENERAL",
+      "type": "related_to",
+      "strength": 0.79165,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "静态样例_GENERAL",
+      "target": "不应取维度的一半_GENERAL",
+      "type": "related_to",
+      "strength": 0.7884249999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "静态样例_GENERAL",
+      "target": "扩展和管理数千个_GENERAL",
+      "type": "related_to",
+      "strength": 0.7826799999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "静态样例_GENERAL",
+      "target": "效果边界完全不同_GENERAL",
+      "type": "related_to",
+      "strength": 0.780655,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "静态样例_GENERAL",
+      "target": "action json_GENERAL",
+      "type": "related_to",
+      "strength": 0.7796949999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "静态样例_GENERAL",
+      "target": "cpython_GENERAL",
+      "type": "related_to",
+      "strength": 0.77623,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "静态样例_GENERAL",
+      "target": "他们彼此 对话_GENERAL",
+      "type": "related_to",
+      "strength": 0.7683249999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "静态样例_GENERAL",
+      "target": "分类_DOMAIN",
+      "type": "related_to",
+      "strength": 0.8954949999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "静态样例_GENERAL",
+      "target": "过拟合_DOMAIN",
+      "type": "related_to",
+      "strength": 0.8954949999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "静态样例_GENERAL",
+      "target": "准确率_DOMAIN",
+      "type": "related_to",
+      "strength": 0.8954949999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "静态样例_GENERAL",
+      "target": "召回率_DOMAIN",
+      "type": "related_to",
+      "strength": 0.8954949999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "静态样例_GENERAL",
+      "target": "损失函数_DOMAIN",
+      "type": "related_to",
+      "strength": 0.8954949999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "静态样例_GENERAL",
+      "target": "迭代_DOMAIN",
+      "type": "related_to",
+      "strength": 0.8954949999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "静态样例_GENERAL",
+      "target": "优化器_DOMAIN",
+      "type": "related_to",
+      "strength": 0.8954949999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "静态样例_GENERAL",
+      "target": "神经网络_DOMAIN",
+      "type": "related_to",
+      "strength": 0.8954949999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "静态样例_GENERAL",
+      "target": "前馈神经网络_DOMAIN",
+      "type": "related_to",
+      "strength": 0.8954949999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "静态样例_GENERAL",
+      "target": "GPT_DOMAIN",
+      "type": "related_to",
+      "strength": 0.8954949999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "静态样例_GENERAL",
+      "target": "梯度爆炸_DOMAIN",
+      "type": "related_to",
+      "strength": 0.8954949999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "静态样例_GENERAL",
+      "target": "层归一化_DOMAIN",
+      "type": "related_to",
+      "strength": 0.8954949999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "静态样例_GENERAL",
+      "target": "残差连接_DOMAIN",
+      "type": "related_to",
+      "strength": 0.8954949999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "静态样例_GENERAL",
+      "target": "位置编码_DOMAIN",
+      "type": "related_to",
+      "strength": 0.8954949999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "静态样例_GENERAL",
+      "target": "预训练模型_DOMAIN",
+      "type": "related_to",
+      "strength": 0.8954949999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "静态样例_GENERAL",
+      "target": "微调_DOMAIN",
+      "type": "related_to",
+      "strength": 0.8954949999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "静态样例_GENERAL",
+      "target": "知识图谱_DOMAIN",
+      "type": "related_to",
+      "strength": 0.8954949999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "静态样例_GENERAL",
+      "target": "Python_DOMAIN",
+      "type": "related_to",
+      "strength": 0.8954949999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "静态样例_GENERAL",
+      "target": "Docker_DOMAIN",
+      "type": "related_to",
+      "strength": 0.8954949999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "静态样例_GENERAL",
+      "target": "Kubernetes_DOMAIN",
+      "type": "related_to",
+      "strength": 0.8954949999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "prompt 引导模型的推理流程 停止标记_TECH",
+      "target": "lightrag 把图谱和向量同层索引_GENERAL",
+      "type": "related_to",
+      "strength": 0.8095749999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "prompt 引导模型的推理流程 停止标记_TECH",
+      "target": "形状虽与 相同 真正可训练_METHOD",
+      "type": "related_to",
+      "strength": 0.807295,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "prompt 引导模型的推理流程 停止标记_TECH",
+      "target": "query 扩展 重排_GENERAL",
+      "type": "related_to",
+      "strength": 0.8051349999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "prompt 引导模型的推理流程 停止标记_TECH",
+      "target": "存管理不用加细粒度锁 但让多线程对 cpu_GENERAL",
+      "type": "related_to",
+      "strength": 0.802165,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "prompt 引导模型的推理流程 停止标记_TECH",
+      "target": "能够自动检查输入数据的格式_CONCEPT",
+      "type": "related_to",
+      "strength": 0.800005,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "prompt 引导模型的推理流程 停止标记_TECH",
+      "target": "haystack 测试模型在 200k_TECH",
+      "type": "related_to",
+      "strength": 0.7960149999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "prompt 引导模型的推理流程 停止标记_TECH",
+      "target": "的选择 通常 64_GENERAL",
+      "type": "related_to",
+      "strength": 0.795685,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "prompt 引导模型的推理流程 停止标记_TECH",
+      "target": "calling ool use_GENERAL",
+      "type": "related_to",
+      "strength": 0.794935,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "prompt 引导模型的推理流程 停止标记_TECH",
+      "target": "闸门 三元组写进 neo4j_GENERAL",
+      "type": "related_to",
+      "strength": 0.790075,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "prompt 引导模型的推理流程 停止标记_TECH",
+      "target": "不应取维度的一半_GENERAL",
+      "type": "related_to",
+      "strength": 0.7868499999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "prompt 引导模型的推理流程 停止标记_TECH",
+      "target": "扩展和管理数千个_GENERAL",
+      "type": "related_to",
+      "strength": 0.7811049999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "prompt 引导模型的推理流程 停止标记_TECH",
+      "target": "效果边界完全不同_GENERAL",
+      "type": "related_to",
+      "strength": 0.77908,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "prompt 引导模型的推理流程 停止标记_TECH",
+      "target": "action json_GENERAL",
+      "type": "related_to",
+      "strength": 0.7781199999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "prompt 引导模型的推理流程 停止标记_TECH",
+      "target": "cpython_GENERAL",
+      "type": "related_to",
+      "strength": 0.774655,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "prompt 引导模型的推理流程 停止标记_TECH",
+      "target": "他们彼此 对话_GENERAL",
+      "type": "related_to",
+      "strength": 0.7667499999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "prompt 引导模型的推理流程 停止标记_TECH",
+      "target": "分类_DOMAIN",
+      "type": "related_to",
+      "strength": 0.8939199999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "prompt 引导模型的推理流程 停止标记_TECH",
+      "target": "过拟合_DOMAIN",
+      "type": "related_to",
+      "strength": 0.8939199999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "prompt 引导模型的推理流程 停止标记_TECH",
+      "target": "准确率_DOMAIN",
+      "type": "related_to",
+      "strength": 0.8939199999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "prompt 引导模型的推理流程 停止标记_TECH",
+      "target": "召回率_DOMAIN",
+      "type": "related_to",
+      "strength": 0.8939199999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "prompt 引导模型的推理流程 停止标记_TECH",
+      "target": "损失函数_DOMAIN",
+      "type": "related_to",
+      "strength": 0.8939199999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "prompt 引导模型的推理流程 停止标记_TECH",
+      "target": "迭代_DOMAIN",
+      "type": "related_to",
+      "strength": 0.8939199999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "prompt 引导模型的推理流程 停止标记_TECH",
+      "target": "优化器_DOMAIN",
+      "type": "related_to",
+      "strength": 0.8939199999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "prompt 引导模型的推理流程 停止标记_TECH",
+      "target": "神经网络_DOMAIN",
+      "type": "related_to",
+      "strength": 0.8939199999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "prompt 引导模型的推理流程 停止标记_TECH",
+      "target": "前馈神经网络_DOMAIN",
+      "type": "related_to",
+      "strength": 0.8939199999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "prompt 引导模型的推理流程 停止标记_TECH",
+      "target": "GPT_DOMAIN",
+      "type": "related_to",
+      "strength": 0.8939199999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "prompt 引导模型的推理流程 停止标记_TECH",
+      "target": "梯度爆炸_DOMAIN",
+      "type": "related_to",
+      "strength": 0.8939199999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "prompt 引导模型的推理流程 停止标记_TECH",
+      "target": "层归一化_DOMAIN",
+      "type": "related_to",
+      "strength": 0.8939199999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "prompt 引导模型的推理流程 停止标记_TECH",
+      "target": "残差连接_DOMAIN",
+      "type": "related_to",
+      "strength": 0.8939199999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "prompt 引导模型的推理流程 停止标记_TECH",
+      "target": "位置编码_DOMAIN",
+      "type": "related_to",
+      "strength": 0.8939199999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "prompt 引导模型的推理流程 停止标记_TECH",
+      "target": "预训练模型_DOMAIN",
+      "type": "related_to",
+      "strength": 0.8939199999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "prompt 引导模型的推理流程 停止标记_TECH",
+      "target": "微调_DOMAIN",
+      "type": "related_to",
+      "strength": 0.8939199999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "prompt 引导模型的推理流程 停止标记_TECH",
+      "target": "知识图谱_DOMAIN",
+      "type": "related_to",
+      "strength": 0.8939199999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "prompt 引导模型的推理流程 停止标记_TECH",
+      "target": "Python_DOMAIN",
+      "type": "related_to",
+      "strength": 0.8939199999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "prompt 引导模型的推理流程 停止标记_TECH",
+      "target": "Docker_DOMAIN",
+      "type": "related_to",
+      "strength": 0.8939199999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "prompt 引导模型的推理流程 停止标记_TECH",
+      "target": "Kubernetes_DOMAIN",
+      "type": "related_to",
+      "strength": 0.8939199999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "lightrag 把图谱和向量同层索引_GENERAL",
+      "target": "形状虽与 相同 真正可训练_METHOD",
+      "type": "related_to",
+      "strength": 0.7990299999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "lightrag 把图谱和向量同层索引_GENERAL",
+      "target": "query 扩展 重排_GENERAL",
+      "type": "related_to",
+      "strength": 0.79687,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "lightrag 把图谱和向量同层索引_GENERAL",
+      "target": "存管理不用加细粒度锁 但让多线程对 cpu_GENERAL",
+      "type": "related_to",
+      "strength": 0.7938999999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "lightrag 把图谱和向量同层索引_GENERAL",
+      "target": "能够自动检查输入数据的格式_CONCEPT",
+      "type": "related_to",
+      "strength": 0.7917399999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "lightrag 把图谱和向量同层索引_GENERAL",
+      "target": "haystack 测试模型在 200k_TECH",
+      "type": "related_to",
+      "strength": 0.78775,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "lightrag 把图谱和向量同层索引_GENERAL",
+      "target": "的选择 通常 64_GENERAL",
+      "type": "related_to",
+      "strength": 0.78742,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "lightrag 把图谱和向量同层索引_GENERAL",
+      "target": "calling ool use_GENERAL",
+      "type": "related_to",
+      "strength": 0.78667,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "lightrag 把图谱和向量同层索引_GENERAL",
+      "target": "闸门 三元组写进 neo4j_GENERAL",
+      "type": "related_to",
+      "strength": 0.7818099999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "lightrag 把图谱和向量同层索引_GENERAL",
+      "target": "不应取维度的一半_GENERAL",
+      "type": "related_to",
+      "strength": 0.778585,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "lightrag 把图谱和向量同层索引_GENERAL",
+      "target": "扩展和管理数千个_GENERAL",
+      "type": "related_to",
+      "strength": 0.77284,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "lightrag 把图谱和向量同层索引_GENERAL",
+      "target": "效果边界完全不同_GENERAL",
+      "type": "related_to",
+      "strength": 0.7708149999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "lightrag 把图谱和向量同层索引_GENERAL",
+      "target": "action json_GENERAL",
+      "type": "related_to",
+      "strength": 0.769855,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "lightrag 把图谱和向量同层索引_GENERAL",
+      "target": "cpython_GENERAL",
+      "type": "related_to",
+      "strength": 0.7663899999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "lightrag 把图谱和向量同层索引_GENERAL",
+      "target": "他们彼此 对话_GENERAL",
+      "type": "related_to",
+      "strength": 0.758485,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "lightrag 把图谱和向量同层索引_GENERAL",
+      "target": "分类_DOMAIN",
+      "type": "related_to",
+      "strength": 0.885655,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "lightrag 把图谱和向量同层索引_GENERAL",
+      "target": "过拟合_DOMAIN",
+      "type": "related_to",
+      "strength": 0.885655,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "lightrag 把图谱和向量同层索引_GENERAL",
+      "target": "准确率_DOMAIN",
+      "type": "related_to",
+      "strength": 0.885655,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "lightrag 把图谱和向量同层索引_GENERAL",
+      "target": "召回率_DOMAIN",
+      "type": "related_to",
+      "strength": 0.885655,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "lightrag 把图谱和向量同层索引_GENERAL",
+      "target": "损失函数_DOMAIN",
+      "type": "related_to",
+      "strength": 0.885655,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "lightrag 把图谱和向量同层索引_GENERAL",
+      "target": "迭代_DOMAIN",
+      "type": "related_to",
+      "strength": 0.885655,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "lightrag 把图谱和向量同层索引_GENERAL",
+      "target": "优化器_DOMAIN",
+      "type": "related_to",
+      "strength": 0.885655,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "lightrag 把图谱和向量同层索引_GENERAL",
+      "target": "神经网络_DOMAIN",
+      "type": "related_to",
+      "strength": 0.885655,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "lightrag 把图谱和向量同层索引_GENERAL",
+      "target": "前馈神经网络_DOMAIN",
+      "type": "related_to",
+      "strength": 0.885655,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "lightrag 把图谱和向量同层索引_GENERAL",
+      "target": "GPT_DOMAIN",
+      "type": "related_to",
+      "strength": 0.885655,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "lightrag 把图谱和向量同层索引_GENERAL",
+      "target": "梯度爆炸_DOMAIN",
+      "type": "related_to",
+      "strength": 0.885655,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "lightrag 把图谱和向量同层索引_GENERAL",
+      "target": "层归一化_DOMAIN",
+      "type": "related_to",
+      "strength": 0.885655,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "lightrag 把图谱和向量同层索引_GENERAL",
+      "target": "残差连接_DOMAIN",
+      "type": "related_to",
+      "strength": 0.885655,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "lightrag 把图谱和向量同层索引_GENERAL",
+      "target": "位置编码_DOMAIN",
+      "type": "related_to",
+      "strength": 0.885655,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "lightrag 把图谱和向量同层索引_GENERAL",
+      "target": "预训练模型_DOMAIN",
+      "type": "related_to",
+      "strength": 0.885655,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "lightrag 把图谱和向量同层索引_GENERAL",
+      "target": "微调_DOMAIN",
+      "type": "related_to",
+      "strength": 0.885655,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "lightrag 把图谱和向量同层索引_GENERAL",
+      "target": "知识图谱_DOMAIN",
+      "type": "related_to",
+      "strength": 0.885655,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "lightrag 把图谱和向量同层索引_GENERAL",
+      "target": "Python_DOMAIN",
+      "type": "related_to",
+      "strength": 0.885655,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "lightrag 把图谱和向量同层索引_GENERAL",
+      "target": "Docker_DOMAIN",
+      "type": "related_to",
+      "strength": 0.885655,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "lightrag 把图谱和向量同层索引_GENERAL",
+      "target": "Kubernetes_DOMAIN",
+      "type": "related_to",
+      "strength": 0.885655,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "形状虽与 相同 真正可训练_METHOD",
+      "target": "query 扩展 重排_GENERAL",
+      "type": "related_to",
+      "strength": 0.7945899999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "形状虽与 相同 真正可训练_METHOD",
+      "target": "存管理不用加细粒度锁 但让多线程对 cpu_GENERAL",
+      "type": "related_to",
+      "strength": 0.79162,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "形状虽与 相同 真正可训练_METHOD",
+      "target": "能够自动检查输入数据的格式_CONCEPT",
+      "type": "related_to",
+      "strength": 0.7894599999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "形状虽与 相同 真正可训练_METHOD",
+      "target": "haystack 测试模型在 200k_TECH",
+      "type": "related_to",
+      "strength": 0.7854699999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "形状虽与 相同 真正可训练_METHOD",
+      "target": "的选择 通常 64_GENERAL",
+      "type": "related_to",
+      "strength": 0.78514,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "形状虽与 相同 真正可训练_METHOD",
+      "target": "calling ool use_GENERAL",
+      "type": "related_to",
+      "strength": 0.7843899999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "形状虽与 相同 真正可训练_METHOD",
+      "target": "闸门 三元组写进 neo4j_GENERAL",
+      "type": "related_to",
+      "strength": 0.77953,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "形状虽与 相同 真正可训练_METHOD",
+      "target": "不应取维度的一半_GENERAL",
+      "type": "related_to",
+      "strength": 0.7763049999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "形状虽与 相同 真正可训练_METHOD",
+      "target": "扩展和管理数千个_GENERAL",
+      "type": "related_to",
+      "strength": 0.7705599999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "形状虽与 相同 真正可训练_METHOD",
+      "target": "效果边界完全不同_GENERAL",
+      "type": "related_to",
+      "strength": 0.768535,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "形状虽与 相同 真正可训练_METHOD",
+      "target": "action json_GENERAL",
+      "type": "related_to",
+      "strength": 0.7675749999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "形状虽与 相同 真正可训练_METHOD",
+      "target": "cpython_GENERAL",
+      "type": "related_to",
+      "strength": 0.76411,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "形状虽与 相同 真正可训练_METHOD",
+      "target": "他们彼此 对话_GENERAL",
+      "type": "related_to",
+      "strength": 0.756205,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "形状虽与 相同 真正可训练_METHOD",
+      "target": "分类_DOMAIN",
+      "type": "related_to",
+      "strength": 0.883375,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "形状虽与 相同 真正可训练_METHOD",
+      "target": "过拟合_DOMAIN",
+      "type": "related_to",
+      "strength": 0.883375,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "形状虽与 相同 真正可训练_METHOD",
+      "target": "准确率_DOMAIN",
+      "type": "related_to",
+      "strength": 0.883375,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "形状虽与 相同 真正可训练_METHOD",
+      "target": "召回率_DOMAIN",
+      "type": "related_to",
+      "strength": 0.883375,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "形状虽与 相同 真正可训练_METHOD",
+      "target": "损失函数_DOMAIN",
+      "type": "related_to",
+      "strength": 0.883375,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "形状虽与 相同 真正可训练_METHOD",
+      "target": "迭代_DOMAIN",
+      "type": "related_to",
+      "strength": 0.883375,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "形状虽与 相同 真正可训练_METHOD",
+      "target": "优化器_DOMAIN",
+      "type": "related_to",
+      "strength": 0.883375,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "形状虽与 相同 真正可训练_METHOD",
+      "target": "神经网络_DOMAIN",
+      "type": "related_to",
+      "strength": 0.883375,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "形状虽与 相同 真正可训练_METHOD",
+      "target": "前馈神经网络_DOMAIN",
+      "type": "related_to",
+      "strength": 0.883375,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "形状虽与 相同 真正可训练_METHOD",
+      "target": "GPT_DOMAIN",
+      "type": "related_to",
+      "strength": 0.883375,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "形状虽与 相同 真正可训练_METHOD",
+      "target": "梯度爆炸_DOMAIN",
+      "type": "related_to",
+      "strength": 0.883375,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "形状虽与 相同 真正可训练_METHOD",
+      "target": "层归一化_DOMAIN",
+      "type": "related_to",
+      "strength": 0.883375,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "形状虽与 相同 真正可训练_METHOD",
+      "target": "残差连接_DOMAIN",
+      "type": "related_to",
+      "strength": 0.883375,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "形状虽与 相同 真正可训练_METHOD",
+      "target": "位置编码_DOMAIN",
+      "type": "related_to",
+      "strength": 0.883375,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "形状虽与 相同 真正可训练_METHOD",
+      "target": "预训练模型_DOMAIN",
+      "type": "related_to",
+      "strength": 0.883375,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "形状虽与 相同 真正可训练_METHOD",
+      "target": "微调_DOMAIN",
+      "type": "related_to",
+      "strength": 0.883375,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "形状虽与 相同 真正可训练_METHOD",
+      "target": "知识图谱_DOMAIN",
+      "type": "related_to",
+      "strength": 0.883375,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "形状虽与 相同 真正可训练_METHOD",
+      "target": "Python_DOMAIN",
+      "type": "related_to",
+      "strength": 0.883375,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "形状虽与 相同 真正可训练_METHOD",
+      "target": "Docker_DOMAIN",
+      "type": "related_to",
+      "strength": 0.883375,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "形状虽与 相同 真正可训练_METHOD",
+      "target": "Kubernetes_DOMAIN",
+      "type": "related_to",
+      "strength": 0.883375,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "query 扩展 重排_GENERAL",
+      "target": "存管理不用加细粒度锁 但让多线程对 cpu_GENERAL",
+      "type": "related_to",
+      "strength": 0.7894599999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "query 扩展 重排_GENERAL",
+      "target": "能够自动检查输入数据的格式_CONCEPT",
+      "type": "related_to",
+      "strength": 0.7872999999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "query 扩展 重排_GENERAL",
+      "target": "haystack 测试模型在 200k_TECH",
+      "type": "related_to",
+      "strength": 0.78331,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "query 扩展 重排_GENERAL",
+      "target": "的选择 通常 64_GENERAL",
+      "type": "related_to",
+      "strength": 0.78298,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "query 扩展 重排_GENERAL",
+      "target": "calling ool use_GENERAL",
+      "type": "related_to",
+      "strength": 0.78223,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "query 扩展 重排_GENERAL",
+      "target": "闸门 三元组写进 neo4j_GENERAL",
+      "type": "related_to",
+      "strength": 0.77737,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "query 扩展 重排_GENERAL",
+      "target": "不应取维度的一半_GENERAL",
+      "type": "related_to",
+      "strength": 0.774145,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "query 扩展 重排_GENERAL",
+      "target": "扩展和管理数千个_GENERAL",
+      "type": "related_to",
+      "strength": 0.7684,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "query 扩展 重排_GENERAL",
+      "target": "效果边界完全不同_GENERAL",
+      "type": "related_to",
+      "strength": 0.7663749999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "query 扩展 重排_GENERAL",
+      "target": "action json_GENERAL",
+      "type": "related_to",
+      "strength": 0.765415,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "query 扩展 重排_GENERAL",
+      "target": "cpython_GENERAL",
+      "type": "related_to",
+      "strength": 0.7619499999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "query 扩展 重排_GENERAL",
+      "target": "他们彼此 对话_GENERAL",
+      "type": "related_to",
+      "strength": 0.754045,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "query 扩展 重排_GENERAL",
+      "target": "分类_DOMAIN",
+      "type": "related_to",
+      "strength": 0.881215,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "query 扩展 重排_GENERAL",
+      "target": "过拟合_DOMAIN",
+      "type": "related_to",
+      "strength": 0.881215,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "query 扩展 重排_GENERAL",
+      "target": "准确率_DOMAIN",
+      "type": "related_to",
+      "strength": 0.881215,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "query 扩展 重排_GENERAL",
+      "target": "召回率_DOMAIN",
+      "type": "related_to",
+      "strength": 0.881215,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "query 扩展 重排_GENERAL",
+      "target": "损失函数_DOMAIN",
+      "type": "related_to",
+      "strength": 0.881215,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "query 扩展 重排_GENERAL",
+      "target": "迭代_DOMAIN",
+      "type": "related_to",
+      "strength": 0.881215,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "query 扩展 重排_GENERAL",
+      "target": "优化器_DOMAIN",
+      "type": "related_to",
+      "strength": 0.881215,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "query 扩展 重排_GENERAL",
+      "target": "神经网络_DOMAIN",
+      "type": "related_to",
+      "strength": 0.881215,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "query 扩展 重排_GENERAL",
+      "target": "前馈神经网络_DOMAIN",
+      "type": "related_to",
+      "strength": 0.881215,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "query 扩展 重排_GENERAL",
+      "target": "GPT_DOMAIN",
+      "type": "related_to",
+      "strength": 0.881215,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "query 扩展 重排_GENERAL",
+      "target": "梯度爆炸_DOMAIN",
+      "type": "related_to",
+      "strength": 0.881215,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "query 扩展 重排_GENERAL",
+      "target": "层归一化_DOMAIN",
+      "type": "related_to",
+      "strength": 0.881215,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "query 扩展 重排_GENERAL",
+      "target": "残差连接_DOMAIN",
+      "type": "related_to",
+      "strength": 0.881215,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "query 扩展 重排_GENERAL",
+      "target": "位置编码_DOMAIN",
+      "type": "related_to",
+      "strength": 0.881215,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "query 扩展 重排_GENERAL",
+      "target": "预训练模型_DOMAIN",
+      "type": "related_to",
+      "strength": 0.881215,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "query 扩展 重排_GENERAL",
+      "target": "微调_DOMAIN",
+      "type": "related_to",
+      "strength": 0.881215,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "query 扩展 重排_GENERAL",
+      "target": "知识图谱_DOMAIN",
+      "type": "related_to",
+      "strength": 0.881215,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "query 扩展 重排_GENERAL",
+      "target": "Python_DOMAIN",
+      "type": "related_to",
+      "strength": 0.881215,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "query 扩展 重排_GENERAL",
+      "target": "Docker_DOMAIN",
+      "type": "related_to",
+      "strength": 0.881215,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "query 扩展 重排_GENERAL",
+      "target": "Kubernetes_DOMAIN",
+      "type": "related_to",
+      "strength": 0.881215,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "存管理不用加细粒度锁 但让多线程对 cpu_GENERAL",
+      "target": "能够自动检查输入数据的格式_CONCEPT",
+      "type": "related_to",
+      "strength": 0.78433,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "存管理不用加细粒度锁 但让多线程对 cpu_GENERAL",
+      "target": "haystack 测试模型在 200k_TECH",
+      "type": "related_to",
+      "strength": 0.7803399999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "存管理不用加细粒度锁 但让多线程对 cpu_GENERAL",
+      "target": "的选择 通常 64_GENERAL",
+      "type": "related_to",
+      "strength": 0.78001,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "存管理不用加细粒度锁 但让多线程对 cpu_GENERAL",
+      "target": "calling ool use_GENERAL",
+      "type": "related_to",
+      "strength": 0.77926,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "存管理不用加细粒度锁 但让多线程对 cpu_GENERAL",
+      "target": "闸门 三元组写进 neo4j_GENERAL",
+      "type": "related_to",
+      "strength": 0.7744,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "存管理不用加细粒度锁 但让多线程对 cpu_GENERAL",
+      "target": "不应取维度的一半_GENERAL",
+      "type": "related_to",
+      "strength": 0.7711749999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "存管理不用加细粒度锁 但让多线程对 cpu_GENERAL",
+      "target": "扩展和管理数千个_GENERAL",
+      "type": "related_to",
+      "strength": 0.7654299999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "存管理不用加细粒度锁 但让多线程对 cpu_GENERAL",
+      "target": "效果边界完全不同_GENERAL",
+      "type": "related_to",
+      "strength": 0.7634049999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "存管理不用加细粒度锁 但让多线程对 cpu_GENERAL",
+      "target": "action json_GENERAL",
+      "type": "related_to",
+      "strength": 0.7624449999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "存管理不用加细粒度锁 但让多线程对 cpu_GENERAL",
+      "target": "cpython_GENERAL",
+      "type": "related_to",
+      "strength": 0.75898,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "存管理不用加细粒度锁 但让多线程对 cpu_GENERAL",
+      "target": "他们彼此 对话_GENERAL",
+      "type": "related_to",
+      "strength": 0.7510749999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "存管理不用加细粒度锁 但让多线程对 cpu_GENERAL",
+      "target": "分类_DOMAIN",
+      "type": "related_to",
+      "strength": 0.8782449999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "存管理不用加细粒度锁 但让多线程对 cpu_GENERAL",
+      "target": "过拟合_DOMAIN",
+      "type": "related_to",
+      "strength": 0.8782449999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "存管理不用加细粒度锁 但让多线程对 cpu_GENERAL",
+      "target": "准确率_DOMAIN",
+      "type": "related_to",
+      "strength": 0.8782449999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "存管理不用加细粒度锁 但让多线程对 cpu_GENERAL",
+      "target": "召回率_DOMAIN",
+      "type": "related_to",
+      "strength": 0.8782449999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "存管理不用加细粒度锁 但让多线程对 cpu_GENERAL",
+      "target": "损失函数_DOMAIN",
+      "type": "related_to",
+      "strength": 0.8782449999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "存管理不用加细粒度锁 但让多线程对 cpu_GENERAL",
+      "target": "迭代_DOMAIN",
+      "type": "related_to",
+      "strength": 0.8782449999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "存管理不用加细粒度锁 但让多线程对 cpu_GENERAL",
+      "target": "优化器_DOMAIN",
+      "type": "related_to",
+      "strength": 0.8782449999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "存管理不用加细粒度锁 但让多线程对 cpu_GENERAL",
+      "target": "神经网络_DOMAIN",
+      "type": "related_to",
+      "strength": 0.8782449999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "存管理不用加细粒度锁 但让多线程对 cpu_GENERAL",
+      "target": "前馈神经网络_DOMAIN",
+      "type": "related_to",
+      "strength": 0.8782449999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "存管理不用加细粒度锁 但让多线程对 cpu_GENERAL",
+      "target": "GPT_DOMAIN",
+      "type": "related_to",
+      "strength": 0.8782449999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "存管理不用加细粒度锁 但让多线程对 cpu_GENERAL",
+      "target": "梯度爆炸_DOMAIN",
+      "type": "related_to",
+      "strength": 0.8782449999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "存管理不用加细粒度锁 但让多线程对 cpu_GENERAL",
+      "target": "层归一化_DOMAIN",
+      "type": "related_to",
+      "strength": 0.8782449999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "存管理不用加细粒度锁 但让多线程对 cpu_GENERAL",
+      "target": "残差连接_DOMAIN",
+      "type": "related_to",
+      "strength": 0.8782449999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "存管理不用加细粒度锁 但让多线程对 cpu_GENERAL",
+      "target": "位置编码_DOMAIN",
+      "type": "related_to",
+      "strength": 0.8782449999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "存管理不用加细粒度锁 但让多线程对 cpu_GENERAL",
+      "target": "预训练模型_DOMAIN",
+      "type": "related_to",
+      "strength": 0.8782449999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "存管理不用加细粒度锁 但让多线程对 cpu_GENERAL",
+      "target": "微调_DOMAIN",
+      "type": "related_to",
+      "strength": 0.8782449999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "存管理不用加细粒度锁 但让多线程对 cpu_GENERAL",
+      "target": "知识图谱_DOMAIN",
+      "type": "related_to",
+      "strength": 0.8782449999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "存管理不用加细粒度锁 但让多线程对 cpu_GENERAL",
+      "target": "Python_DOMAIN",
+      "type": "related_to",
+      "strength": 0.8782449999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "存管理不用加细粒度锁 但让多线程对 cpu_GENERAL",
+      "target": "Docker_DOMAIN",
+      "type": "related_to",
+      "strength": 0.8782449999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "存管理不用加细粒度锁 但让多线程对 cpu_GENERAL",
+      "target": "Kubernetes_DOMAIN",
+      "type": "related_to",
+      "strength": 0.8782449999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "能够自动检查输入数据的格式_CONCEPT",
+      "target": "haystack 测试模型在 200k_TECH",
+      "type": "related_to",
+      "strength": 0.77818,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "能够自动检查输入数据的格式_CONCEPT",
+      "target": "的选择 通常 64_GENERAL",
+      "type": "related_to",
+      "strength": 0.7778499999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "能够自动检查输入数据的格式_CONCEPT",
+      "target": "calling ool use_GENERAL",
+      "type": "related_to",
+      "strength": 0.7770999999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "能够自动检查输入数据的格式_CONCEPT",
+      "target": "闸门 三元组写进 neo4j_GENERAL",
+      "type": "related_to",
+      "strength": 0.7722399999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "能够自动检查输入数据的格式_CONCEPT",
+      "target": "不应取维度的一半_GENERAL",
+      "type": "related_to",
+      "strength": 0.769015,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "能够自动检查输入数据的格式_CONCEPT",
+      "target": "扩展和管理数千个_GENERAL",
+      "type": "related_to",
+      "strength": 0.7632699999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "能够自动检查输入数据的格式_CONCEPT",
+      "target": "效果边界完全不同_GENERAL",
+      "type": "related_to",
+      "strength": 0.761245,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "能够自动检查输入数据的格式_CONCEPT",
+      "target": "action json_GENERAL",
+      "type": "related_to",
+      "strength": 0.760285,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "能够自动检查输入数据的格式_CONCEPT",
+      "target": "cpython_GENERAL",
+      "type": "related_to",
+      "strength": 0.7568199999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "能够自动检查输入数据的格式_CONCEPT",
+      "target": "他们彼此 对话_GENERAL",
+      "type": "related_to",
+      "strength": 0.748915,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "能够自动检查输入数据的格式_CONCEPT",
+      "target": "分类_DOMAIN",
+      "type": "related_to",
+      "strength": 0.876085,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "能够自动检查输入数据的格式_CONCEPT",
+      "target": "过拟合_DOMAIN",
+      "type": "related_to",
+      "strength": 0.876085,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "能够自动检查输入数据的格式_CONCEPT",
+      "target": "准确率_DOMAIN",
+      "type": "related_to",
+      "strength": 0.876085,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "能够自动检查输入数据的格式_CONCEPT",
+      "target": "召回率_DOMAIN",
+      "type": "related_to",
+      "strength": 0.876085,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "能够自动检查输入数据的格式_CONCEPT",
+      "target": "损失函数_DOMAIN",
+      "type": "related_to",
+      "strength": 0.876085,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "能够自动检查输入数据的格式_CONCEPT",
+      "target": "迭代_DOMAIN",
+      "type": "related_to",
+      "strength": 0.876085,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "能够自动检查输入数据的格式_CONCEPT",
+      "target": "优化器_DOMAIN",
+      "type": "related_to",
+      "strength": 0.876085,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "能够自动检查输入数据的格式_CONCEPT",
+      "target": "神经网络_DOMAIN",
+      "type": "related_to",
+      "strength": 0.876085,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "能够自动检查输入数据的格式_CONCEPT",
+      "target": "前馈神经网络_DOMAIN",
+      "type": "related_to",
+      "strength": 0.876085,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "能够自动检查输入数据的格式_CONCEPT",
+      "target": "GPT_DOMAIN",
+      "type": "related_to",
+      "strength": 0.876085,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "能够自动检查输入数据的格式_CONCEPT",
+      "target": "梯度爆炸_DOMAIN",
+      "type": "related_to",
+      "strength": 0.876085,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "能够自动检查输入数据的格式_CONCEPT",
+      "target": "层归一化_DOMAIN",
+      "type": "related_to",
+      "strength": 0.876085,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "能够自动检查输入数据的格式_CONCEPT",
+      "target": "残差连接_DOMAIN",
+      "type": "related_to",
+      "strength": 0.876085,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "能够自动检查输入数据的格式_CONCEPT",
+      "target": "位置编码_DOMAIN",
+      "type": "related_to",
+      "strength": 0.876085,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "能够自动检查输入数据的格式_CONCEPT",
+      "target": "预训练模型_DOMAIN",
+      "type": "related_to",
+      "strength": 0.876085,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "能够自动检查输入数据的格式_CONCEPT",
+      "target": "微调_DOMAIN",
+      "type": "related_to",
+      "strength": 0.876085,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "能够自动检查输入数据的格式_CONCEPT",
+      "target": "知识图谱_DOMAIN",
+      "type": "related_to",
+      "strength": 0.876085,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "能够自动检查输入数据的格式_CONCEPT",
+      "target": "Python_DOMAIN",
+      "type": "related_to",
+      "strength": 0.876085,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "能够自动检查输入数据的格式_CONCEPT",
+      "target": "Docker_DOMAIN",
+      "type": "related_to",
+      "strength": 0.876085,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "能够自动检查输入数据的格式_CONCEPT",
+      "target": "Kubernetes_DOMAIN",
+      "type": "related_to",
+      "strength": 0.876085,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "haystack 测试模型在 200k_TECH",
+      "target": "的选择 通常 64_GENERAL",
+      "type": "related_to",
+      "strength": 0.77386,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "haystack 测试模型在 200k_TECH",
+      "target": "calling ool use_GENERAL",
+      "type": "related_to",
+      "strength": 0.77311,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "haystack 测试模型在 200k_TECH",
+      "target": "闸门 三元组写进 neo4j_GENERAL",
+      "type": "related_to",
+      "strength": 0.76825,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "haystack 测试模型在 200k_TECH",
+      "target": "不应取维度的一半_GENERAL",
+      "type": "related_to",
+      "strength": 0.765025,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "haystack 测试模型在 200k_TECH",
+      "target": "扩展和管理数千个_GENERAL",
+      "type": "related_to",
+      "strength": 0.75928,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "haystack 测试模型在 200k_TECH",
+      "target": "效果边界完全不同_GENERAL",
+      "type": "related_to",
+      "strength": 0.7572549999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "haystack 测试模型在 200k_TECH",
+      "target": "action json_GENERAL",
+      "type": "related_to",
+      "strength": 0.7562949999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "haystack 测试模型在 200k_TECH",
+      "target": "cpython_GENERAL",
+      "type": "related_to",
+      "strength": 0.75283,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "haystack 测试模型在 200k_TECH",
+      "target": "他们彼此 对话_GENERAL",
+      "type": "related_to",
+      "strength": 0.744925,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "haystack 测试模型在 200k_TECH",
+      "target": "分类_DOMAIN",
+      "type": "related_to",
+      "strength": 0.872095,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "haystack 测试模型在 200k_TECH",
+      "target": "过拟合_DOMAIN",
+      "type": "related_to",
+      "strength": 0.872095,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "haystack 测试模型在 200k_TECH",
+      "target": "准确率_DOMAIN",
+      "type": "related_to",
+      "strength": 0.872095,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "haystack 测试模型在 200k_TECH",
+      "target": "召回率_DOMAIN",
+      "type": "related_to",
+      "strength": 0.872095,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "haystack 测试模型在 200k_TECH",
+      "target": "损失函数_DOMAIN",
+      "type": "related_to",
+      "strength": 0.872095,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "haystack 测试模型在 200k_TECH",
+      "target": "迭代_DOMAIN",
+      "type": "related_to",
+      "strength": 0.872095,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "haystack 测试模型在 200k_TECH",
+      "target": "优化器_DOMAIN",
+      "type": "related_to",
+      "strength": 0.872095,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "haystack 测试模型在 200k_TECH",
+      "target": "神经网络_DOMAIN",
+      "type": "related_to",
+      "strength": 0.872095,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "haystack 测试模型在 200k_TECH",
+      "target": "前馈神经网络_DOMAIN",
+      "type": "related_to",
+      "strength": 0.872095,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "haystack 测试模型在 200k_TECH",
+      "target": "GPT_DOMAIN",
+      "type": "related_to",
+      "strength": 0.872095,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "haystack 测试模型在 200k_TECH",
+      "target": "梯度爆炸_DOMAIN",
+      "type": "related_to",
+      "strength": 0.872095,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "haystack 测试模型在 200k_TECH",
+      "target": "层归一化_DOMAIN",
+      "type": "related_to",
+      "strength": 0.872095,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "haystack 测试模型在 200k_TECH",
+      "target": "残差连接_DOMAIN",
+      "type": "related_to",
+      "strength": 0.872095,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "haystack 测试模型在 200k_TECH",
+      "target": "位置编码_DOMAIN",
+      "type": "related_to",
+      "strength": 0.872095,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "haystack 测试模型在 200k_TECH",
+      "target": "预训练模型_DOMAIN",
+      "type": "related_to",
+      "strength": 0.872095,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "haystack 测试模型在 200k_TECH",
+      "target": "微调_DOMAIN",
+      "type": "related_to",
+      "strength": 0.872095,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "haystack 测试模型在 200k_TECH",
+      "target": "知识图谱_DOMAIN",
+      "type": "related_to",
+      "strength": 0.872095,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "haystack 测试模型在 200k_TECH",
+      "target": "Python_DOMAIN",
+      "type": "related_to",
+      "strength": 0.872095,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "haystack 测试模型在 200k_TECH",
+      "target": "Docker_DOMAIN",
+      "type": "related_to",
+      "strength": 0.872095,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "haystack 测试模型在 200k_TECH",
+      "target": "Kubernetes_DOMAIN",
+      "type": "related_to",
+      "strength": 0.872095,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "的选择 通常 64_GENERAL",
+      "target": "calling ool use_GENERAL",
+      "type": "related_to",
+      "strength": 0.7727799999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "的选择 通常 64_GENERAL",
+      "target": "闸门 三元组写进 neo4j_GENERAL",
+      "type": "related_to",
+      "strength": 0.7679199999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "的选择 通常 64_GENERAL",
+      "target": "不应取维度的一半_GENERAL",
+      "type": "related_to",
+      "strength": 0.7646949999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "的选择 通常 64_GENERAL",
+      "target": "扩展和管理数千个_GENERAL",
+      "type": "related_to",
+      "strength": 0.75895,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "的选择 通常 64_GENERAL",
+      "target": "效果边界完全不同_GENERAL",
+      "type": "related_to",
+      "strength": 0.756925,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "的选择 通常 64_GENERAL",
+      "target": "action json_GENERAL",
+      "type": "related_to",
+      "strength": 0.755965,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "的选择 通常 64_GENERAL",
+      "target": "cpython_GENERAL",
+      "type": "related_to",
+      "strength": 0.7525,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "的选择 通常 64_GENERAL",
+      "target": "他们彼此 对话_GENERAL",
+      "type": "related_to",
+      "strength": 0.744595,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "的选择 通常 64_GENERAL",
+      "target": "分类_DOMAIN",
+      "type": "related_to",
+      "strength": 0.8717649999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "的选择 通常 64_GENERAL",
+      "target": "过拟合_DOMAIN",
+      "type": "related_to",
+      "strength": 0.8717649999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "的选择 通常 64_GENERAL",
+      "target": "准确率_DOMAIN",
+      "type": "related_to",
+      "strength": 0.8717649999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "的选择 通常 64_GENERAL",
+      "target": "召回率_DOMAIN",
+      "type": "related_to",
+      "strength": 0.8717649999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "的选择 通常 64_GENERAL",
+      "target": "损失函数_DOMAIN",
+      "type": "related_to",
+      "strength": 0.8717649999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "的选择 通常 64_GENERAL",
+      "target": "迭代_DOMAIN",
+      "type": "related_to",
+      "strength": 0.8717649999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "的选择 通常 64_GENERAL",
+      "target": "优化器_DOMAIN",
+      "type": "related_to",
+      "strength": 0.8717649999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "的选择 通常 64_GENERAL",
+      "target": "神经网络_DOMAIN",
+      "type": "related_to",
+      "strength": 0.8717649999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "的选择 通常 64_GENERAL",
+      "target": "前馈神经网络_DOMAIN",
+      "type": "related_to",
+      "strength": 0.8717649999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "的选择 通常 64_GENERAL",
+      "target": "GPT_DOMAIN",
+      "type": "related_to",
+      "strength": 0.8717649999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "的选择 通常 64_GENERAL",
+      "target": "梯度爆炸_DOMAIN",
+      "type": "related_to",
+      "strength": 0.8717649999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "的选择 通常 64_GENERAL",
+      "target": "层归一化_DOMAIN",
+      "type": "related_to",
+      "strength": 0.8717649999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "的选择 通常 64_GENERAL",
+      "target": "残差连接_DOMAIN",
+      "type": "related_to",
+      "strength": 0.8717649999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "的选择 通常 64_GENERAL",
+      "target": "位置编码_DOMAIN",
+      "type": "related_to",
+      "strength": 0.8717649999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "的选择 通常 64_GENERAL",
+      "target": "预训练模型_DOMAIN",
+      "type": "related_to",
+      "strength": 0.8717649999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "的选择 通常 64_GENERAL",
+      "target": "微调_DOMAIN",
+      "type": "related_to",
+      "strength": 0.8717649999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "的选择 通常 64_GENERAL",
+      "target": "知识图谱_DOMAIN",
+      "type": "related_to",
+      "strength": 0.8717649999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "的选择 通常 64_GENERAL",
+      "target": "Python_DOMAIN",
+      "type": "related_to",
+      "strength": 0.8717649999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "的选择 通常 64_GENERAL",
+      "target": "Docker_DOMAIN",
+      "type": "related_to",
+      "strength": 0.8717649999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "的选择 通常 64_GENERAL",
+      "target": "Kubernetes_DOMAIN",
+      "type": "related_to",
+      "strength": 0.8717649999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "calling ool use_GENERAL",
+      "target": "闸门 三元组写进 neo4j_GENERAL",
+      "type": "related_to",
+      "strength": 0.7671699999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "calling ool use_GENERAL",
+      "target": "不应取维度的一半_GENERAL",
+      "type": "related_to",
+      "strength": 0.763945,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "calling ool use_GENERAL",
+      "target": "扩展和管理数千个_GENERAL",
+      "type": "related_to",
+      "strength": 0.7582,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "calling ool use_GENERAL",
+      "target": "效果边界完全不同_GENERAL",
+      "type": "related_to",
+      "strength": 0.7561749999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "calling ool use_GENERAL",
+      "target": "action json_GENERAL",
+      "type": "related_to",
+      "strength": 0.755215,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "calling ool use_GENERAL",
+      "target": "cpython_GENERAL",
+      "type": "related_to",
+      "strength": 0.7517499999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "calling ool use_GENERAL",
+      "target": "他们彼此 对话_GENERAL",
+      "type": "related_to",
+      "strength": 0.743845,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "calling ool use_GENERAL",
+      "target": "分类_DOMAIN",
+      "type": "related_to",
+      "strength": 0.871015,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "calling ool use_GENERAL",
+      "target": "过拟合_DOMAIN",
+      "type": "related_to",
+      "strength": 0.871015,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "calling ool use_GENERAL",
+      "target": "准确率_DOMAIN",
+      "type": "related_to",
+      "strength": 0.871015,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "calling ool use_GENERAL",
+      "target": "召回率_DOMAIN",
+      "type": "related_to",
+      "strength": 0.871015,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "calling ool use_GENERAL",
+      "target": "损失函数_DOMAIN",
+      "type": "related_to",
+      "strength": 0.871015,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "calling ool use_GENERAL",
+      "target": "迭代_DOMAIN",
+      "type": "related_to",
+      "strength": 0.871015,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "calling ool use_GENERAL",
+      "target": "优化器_DOMAIN",
+      "type": "related_to",
+      "strength": 0.871015,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "calling ool use_GENERAL",
+      "target": "神经网络_DOMAIN",
+      "type": "related_to",
+      "strength": 0.871015,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "calling ool use_GENERAL",
+      "target": "前馈神经网络_DOMAIN",
+      "type": "related_to",
+      "strength": 0.871015,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "calling ool use_GENERAL",
+      "target": "GPT_DOMAIN",
+      "type": "related_to",
+      "strength": 0.871015,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "calling ool use_GENERAL",
+      "target": "梯度爆炸_DOMAIN",
+      "type": "related_to",
+      "strength": 0.871015,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "calling ool use_GENERAL",
+      "target": "层归一化_DOMAIN",
+      "type": "related_to",
+      "strength": 0.871015,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "calling ool use_GENERAL",
+      "target": "残差连接_DOMAIN",
+      "type": "related_to",
+      "strength": 0.871015,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "calling ool use_GENERAL",
+      "target": "位置编码_DOMAIN",
+      "type": "related_to",
+      "strength": 0.871015,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "calling ool use_GENERAL",
+      "target": "预训练模型_DOMAIN",
+      "type": "related_to",
+      "strength": 0.871015,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "calling ool use_GENERAL",
+      "target": "微调_DOMAIN",
+      "type": "related_to",
+      "strength": 0.871015,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "calling ool use_GENERAL",
+      "target": "知识图谱_DOMAIN",
+      "type": "related_to",
+      "strength": 0.871015,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "calling ool use_GENERAL",
+      "target": "Python_DOMAIN",
+      "type": "related_to",
+      "strength": 0.871015,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "calling ool use_GENERAL",
+      "target": "Docker_DOMAIN",
+      "type": "related_to",
+      "strength": 0.871015,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "calling ool use_GENERAL",
+      "target": "Kubernetes_DOMAIN",
+      "type": "related_to",
+      "strength": 0.871015,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "闸门 三元组写进 neo4j_GENERAL",
+      "target": "不应取维度的一半_GENERAL",
+      "type": "related_to",
+      "strength": 0.759085,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "闸门 三元组写进 neo4j_GENERAL",
+      "target": "扩展和管理数千个_GENERAL",
+      "type": "related_to",
+      "strength": 0.75334,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "闸门 三元组写进 neo4j_GENERAL",
+      "target": "效果边界完全不同_GENERAL",
+      "type": "related_to",
+      "strength": 0.751315,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "闸门 三元组写进 neo4j_GENERAL",
+      "target": "action json_GENERAL",
+      "type": "related_to",
+      "strength": 0.750355,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "闸门 三元组写进 neo4j_GENERAL",
+      "target": "cpython_GENERAL",
+      "type": "related_to",
+      "strength": 0.7468899999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "闸门 三元组写进 neo4j_GENERAL",
+      "target": "他们彼此 对话_GENERAL",
+      "type": "related_to",
+      "strength": 0.738985,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "闸门 三元组写进 neo4j_GENERAL",
+      "target": "分类_DOMAIN",
+      "type": "related_to",
+      "strength": 0.8661549999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "闸门 三元组写进 neo4j_GENERAL",
+      "target": "过拟合_DOMAIN",
+      "type": "related_to",
+      "strength": 0.8661549999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "闸门 三元组写进 neo4j_GENERAL",
+      "target": "准确率_DOMAIN",
+      "type": "related_to",
+      "strength": 0.8661549999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "闸门 三元组写进 neo4j_GENERAL",
+      "target": "召回率_DOMAIN",
+      "type": "related_to",
+      "strength": 0.8661549999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "闸门 三元组写进 neo4j_GENERAL",
+      "target": "损失函数_DOMAIN",
+      "type": "related_to",
+      "strength": 0.8661549999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "闸门 三元组写进 neo4j_GENERAL",
+      "target": "迭代_DOMAIN",
+      "type": "related_to",
+      "strength": 0.8661549999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "闸门 三元组写进 neo4j_GENERAL",
+      "target": "优化器_DOMAIN",
+      "type": "related_to",
+      "strength": 0.8661549999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "闸门 三元组写进 neo4j_GENERAL",
+      "target": "神经网络_DOMAIN",
+      "type": "related_to",
+      "strength": 0.8661549999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "闸门 三元组写进 neo4j_GENERAL",
+      "target": "前馈神经网络_DOMAIN",
+      "type": "related_to",
+      "strength": 0.8661549999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "闸门 三元组写进 neo4j_GENERAL",
+      "target": "GPT_DOMAIN",
+      "type": "related_to",
+      "strength": 0.8661549999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "闸门 三元组写进 neo4j_GENERAL",
+      "target": "梯度爆炸_DOMAIN",
+      "type": "related_to",
+      "strength": 0.8661549999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "闸门 三元组写进 neo4j_GENERAL",
+      "target": "层归一化_DOMAIN",
+      "type": "related_to",
+      "strength": 0.8661549999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "闸门 三元组写进 neo4j_GENERAL",
+      "target": "残差连接_DOMAIN",
+      "type": "related_to",
+      "strength": 0.8661549999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "闸门 三元组写进 neo4j_GENERAL",
+      "target": "位置编码_DOMAIN",
+      "type": "related_to",
+      "strength": 0.8661549999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "闸门 三元组写进 neo4j_GENERAL",
+      "target": "预训练模型_DOMAIN",
+      "type": "related_to",
+      "strength": 0.8661549999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "闸门 三元组写进 neo4j_GENERAL",
+      "target": "微调_DOMAIN",
+      "type": "related_to",
+      "strength": 0.8661549999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "闸门 三元组写进 neo4j_GENERAL",
+      "target": "知识图谱_DOMAIN",
+      "type": "related_to",
+      "strength": 0.8661549999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "闸门 三元组写进 neo4j_GENERAL",
+      "target": "Python_DOMAIN",
+      "type": "related_to",
+      "strength": 0.8661549999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "闸门 三元组写进 neo4j_GENERAL",
+      "target": "Docker_DOMAIN",
+      "type": "related_to",
+      "strength": 0.8661549999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "闸门 三元组写进 neo4j_GENERAL",
+      "target": "Kubernetes_DOMAIN",
+      "type": "related_to",
+      "strength": 0.8661549999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "不应取维度的一半_GENERAL",
+      "target": "扩展和管理数千个_GENERAL",
+      "type": "related_to",
+      "strength": 0.750115,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "不应取维度的一半_GENERAL",
+      "target": "效果边界完全不同_GENERAL",
+      "type": "related_to",
+      "strength": 0.7480899999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "不应取维度的一半_GENERAL",
+      "target": "action json_GENERAL",
+      "type": "related_to",
+      "strength": 0.74713,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "不应取维度的一半_GENERAL",
+      "target": "cpython_GENERAL",
+      "type": "related_to",
+      "strength": 0.7436649999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "不应取维度的一半_GENERAL",
+      "target": "他们彼此 对话_GENERAL",
+      "type": "related_to",
+      "strength": 0.73576,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "不应取维度的一半_GENERAL",
+      "target": "分类_DOMAIN",
+      "type": "related_to",
+      "strength": 0.86293,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "不应取维度的一半_GENERAL",
+      "target": "过拟合_DOMAIN",
+      "type": "related_to",
+      "strength": 0.86293,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "不应取维度的一半_GENERAL",
+      "target": "准确率_DOMAIN",
+      "type": "related_to",
+      "strength": 0.86293,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "不应取维度的一半_GENERAL",
+      "target": "召回率_DOMAIN",
+      "type": "related_to",
+      "strength": 0.86293,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "不应取维度的一半_GENERAL",
+      "target": "损失函数_DOMAIN",
+      "type": "related_to",
+      "strength": 0.86293,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "不应取维度的一半_GENERAL",
+      "target": "迭代_DOMAIN",
+      "type": "related_to",
+      "strength": 0.86293,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "不应取维度的一半_GENERAL",
+      "target": "优化器_DOMAIN",
+      "type": "related_to",
+      "strength": 0.86293,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "不应取维度的一半_GENERAL",
+      "target": "神经网络_DOMAIN",
+      "type": "related_to",
+      "strength": 0.86293,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "不应取维度的一半_GENERAL",
+      "target": "前馈神经网络_DOMAIN",
+      "type": "related_to",
+      "strength": 0.86293,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "不应取维度的一半_GENERAL",
+      "target": "GPT_DOMAIN",
+      "type": "related_to",
+      "strength": 0.86293,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "不应取维度的一半_GENERAL",
+      "target": "梯度爆炸_DOMAIN",
+      "type": "related_to",
+      "strength": 0.86293,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "不应取维度的一半_GENERAL",
+      "target": "层归一化_DOMAIN",
+      "type": "related_to",
+      "strength": 0.86293,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "不应取维度的一半_GENERAL",
+      "target": "残差连接_DOMAIN",
+      "type": "related_to",
+      "strength": 0.86293,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "不应取维度的一半_GENERAL",
+      "target": "位置编码_DOMAIN",
+      "type": "related_to",
+      "strength": 0.86293,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "不应取维度的一半_GENERAL",
+      "target": "预训练模型_DOMAIN",
+      "type": "related_to",
+      "strength": 0.86293,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "不应取维度的一半_GENERAL",
+      "target": "微调_DOMAIN",
+      "type": "related_to",
+      "strength": 0.86293,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "不应取维度的一半_GENERAL",
+      "target": "知识图谱_DOMAIN",
+      "type": "related_to",
+      "strength": 0.86293,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "不应取维度的一半_GENERAL",
+      "target": "Python_DOMAIN",
+      "type": "related_to",
+      "strength": 0.86293,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "不应取维度的一半_GENERAL",
+      "target": "Docker_DOMAIN",
+      "type": "related_to",
+      "strength": 0.86293,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "不应取维度的一半_GENERAL",
+      "target": "Kubernetes_DOMAIN",
+      "type": "related_to",
+      "strength": 0.86293,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "扩展和管理数千个_GENERAL",
+      "target": "效果边界完全不同_GENERAL",
+      "type": "related_to",
+      "strength": 0.7423449999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "扩展和管理数千个_GENERAL",
+      "target": "action json_GENERAL",
+      "type": "related_to",
+      "strength": 0.741385,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "扩展和管理数千个_GENERAL",
+      "target": "cpython_GENERAL",
+      "type": "related_to",
+      "strength": 0.7379199999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "扩展和管理数千个_GENERAL",
+      "target": "他们彼此 对话_GENERAL",
+      "type": "related_to",
+      "strength": 0.730015,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "扩展和管理数千个_GENERAL",
+      "target": "分类_DOMAIN",
+      "type": "related_to",
+      "strength": 0.857185,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "扩展和管理数千个_GENERAL",
+      "target": "过拟合_DOMAIN",
+      "type": "related_to",
+      "strength": 0.857185,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "扩展和管理数千个_GENERAL",
+      "target": "准确率_DOMAIN",
+      "type": "related_to",
+      "strength": 0.857185,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "扩展和管理数千个_GENERAL",
+      "target": "召回率_DOMAIN",
+      "type": "related_to",
+      "strength": 0.857185,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "扩展和管理数千个_GENERAL",
+      "target": "损失函数_DOMAIN",
+      "type": "related_to",
+      "strength": 0.857185,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "扩展和管理数千个_GENERAL",
+      "target": "迭代_DOMAIN",
+      "type": "related_to",
+      "strength": 0.857185,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "扩展和管理数千个_GENERAL",
+      "target": "优化器_DOMAIN",
+      "type": "related_to",
+      "strength": 0.857185,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "扩展和管理数千个_GENERAL",
+      "target": "神经网络_DOMAIN",
+      "type": "related_to",
+      "strength": 0.857185,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "扩展和管理数千个_GENERAL",
+      "target": "前馈神经网络_DOMAIN",
+      "type": "related_to",
+      "strength": 0.857185,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "扩展和管理数千个_GENERAL",
+      "target": "GPT_DOMAIN",
+      "type": "related_to",
+      "strength": 0.857185,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "扩展和管理数千个_GENERAL",
+      "target": "梯度爆炸_DOMAIN",
+      "type": "related_to",
+      "strength": 0.857185,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "扩展和管理数千个_GENERAL",
+      "target": "层归一化_DOMAIN",
+      "type": "related_to",
+      "strength": 0.857185,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "扩展和管理数千个_GENERAL",
+      "target": "残差连接_DOMAIN",
+      "type": "related_to",
+      "strength": 0.857185,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "扩展和管理数千个_GENERAL",
+      "target": "位置编码_DOMAIN",
+      "type": "related_to",
+      "strength": 0.857185,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "扩展和管理数千个_GENERAL",
+      "target": "预训练模型_DOMAIN",
+      "type": "related_to",
+      "strength": 0.857185,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "扩展和管理数千个_GENERAL",
+      "target": "微调_DOMAIN",
+      "type": "related_to",
+      "strength": 0.857185,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "扩展和管理数千个_GENERAL",
+      "target": "知识图谱_DOMAIN",
+      "type": "related_to",
+      "strength": 0.857185,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "扩展和管理数千个_GENERAL",
+      "target": "Python_DOMAIN",
+      "type": "related_to",
+      "strength": 0.857185,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "扩展和管理数千个_GENERAL",
+      "target": "Docker_DOMAIN",
+      "type": "related_to",
+      "strength": 0.857185,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "扩展和管理数千个_GENERAL",
+      "target": "Kubernetes_DOMAIN",
+      "type": "related_to",
+      "strength": 0.857185,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "效果边界完全不同_GENERAL",
+      "target": "action json_GENERAL",
+      "type": "related_to",
+      "strength": 0.7393599999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "效果边界完全不同_GENERAL",
+      "target": "cpython_GENERAL",
+      "type": "related_to",
+      "strength": 0.735895,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "效果边界完全不同_GENERAL",
+      "target": "他们彼此 对话_GENERAL",
+      "type": "related_to",
+      "strength": 0.7279899999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "效果边界完全不同_GENERAL",
+      "target": "分类_DOMAIN",
+      "type": "related_to",
+      "strength": 0.8551599999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "效果边界完全不同_GENERAL",
+      "target": "过拟合_DOMAIN",
+      "type": "related_to",
+      "strength": 0.8551599999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "效果边界完全不同_GENERAL",
+      "target": "准确率_DOMAIN",
+      "type": "related_to",
+      "strength": 0.8551599999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "效果边界完全不同_GENERAL",
+      "target": "召回率_DOMAIN",
+      "type": "related_to",
+      "strength": 0.8551599999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "效果边界完全不同_GENERAL",
+      "target": "损失函数_DOMAIN",
+      "type": "related_to",
+      "strength": 0.8551599999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "效果边界完全不同_GENERAL",
+      "target": "迭代_DOMAIN",
+      "type": "related_to",
+      "strength": 0.8551599999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "效果边界完全不同_GENERAL",
+      "target": "优化器_DOMAIN",
+      "type": "related_to",
+      "strength": 0.8551599999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "效果边界完全不同_GENERAL",
+      "target": "神经网络_DOMAIN",
+      "type": "related_to",
+      "strength": 0.8551599999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "效果边界完全不同_GENERAL",
+      "target": "前馈神经网络_DOMAIN",
+      "type": "related_to",
+      "strength": 0.8551599999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "效果边界完全不同_GENERAL",
+      "target": "GPT_DOMAIN",
+      "type": "related_to",
+      "strength": 0.8551599999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "效果边界完全不同_GENERAL",
+      "target": "梯度爆炸_DOMAIN",
+      "type": "related_to",
+      "strength": 0.8551599999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "效果边界完全不同_GENERAL",
+      "target": "层归一化_DOMAIN",
+      "type": "related_to",
+      "strength": 0.8551599999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "效果边界完全不同_GENERAL",
+      "target": "残差连接_DOMAIN",
+      "type": "related_to",
+      "strength": 0.8551599999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "效果边界完全不同_GENERAL",
+      "target": "位置编码_DOMAIN",
+      "type": "related_to",
+      "strength": 0.8551599999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "效果边界完全不同_GENERAL",
+      "target": "预训练模型_DOMAIN",
+      "type": "related_to",
+      "strength": 0.8551599999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "效果边界完全不同_GENERAL",
+      "target": "微调_DOMAIN",
+      "type": "related_to",
+      "strength": 0.8551599999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "效果边界完全不同_GENERAL",
+      "target": "知识图谱_DOMAIN",
+      "type": "related_to",
+      "strength": 0.8551599999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "效果边界完全不同_GENERAL",
+      "target": "Python_DOMAIN",
+      "type": "related_to",
+      "strength": 0.8551599999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "效果边界完全不同_GENERAL",
+      "target": "Docker_DOMAIN",
+      "type": "related_to",
+      "strength": 0.8551599999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "效果边界完全不同_GENERAL",
+      "target": "Kubernetes_DOMAIN",
+      "type": "related_to",
+      "strength": 0.8551599999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "action json_GENERAL",
+      "target": "cpython_GENERAL",
+      "type": "related_to",
+      "strength": 0.734935,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "action json_GENERAL",
+      "target": "他们彼此 对话_GENERAL",
+      "type": "related_to",
+      "strength": 0.72703,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "action json_GENERAL",
+      "target": "分类_DOMAIN",
+      "type": "related_to",
+      "strength": 0.8542,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "action json_GENERAL",
+      "target": "过拟合_DOMAIN",
+      "type": "related_to",
+      "strength": 0.8542,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "action json_GENERAL",
+      "target": "准确率_DOMAIN",
+      "type": "related_to",
+      "strength": 0.8542,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "action json_GENERAL",
+      "target": "召回率_DOMAIN",
+      "type": "related_to",
+      "strength": 0.8542,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "action json_GENERAL",
+      "target": "损失函数_DOMAIN",
+      "type": "related_to",
+      "strength": 0.8542,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "action json_GENERAL",
+      "target": "迭代_DOMAIN",
+      "type": "related_to",
+      "strength": 0.8542,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "action json_GENERAL",
+      "target": "优化器_DOMAIN",
+      "type": "related_to",
+      "strength": 0.8542,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "action json_GENERAL",
+      "target": "神经网络_DOMAIN",
+      "type": "related_to",
+      "strength": 0.8542,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "action json_GENERAL",
+      "target": "前馈神经网络_DOMAIN",
+      "type": "related_to",
+      "strength": 0.8542,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "action json_GENERAL",
+      "target": "GPT_DOMAIN",
+      "type": "related_to",
+      "strength": 0.8542,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "action json_GENERAL",
+      "target": "梯度爆炸_DOMAIN",
+      "type": "related_to",
+      "strength": 0.8542,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "action json_GENERAL",
+      "target": "层归一化_DOMAIN",
+      "type": "related_to",
+      "strength": 0.8542,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "action json_GENERAL",
+      "target": "残差连接_DOMAIN",
+      "type": "related_to",
+      "strength": 0.8542,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "action json_GENERAL",
+      "target": "位置编码_DOMAIN",
+      "type": "related_to",
+      "strength": 0.8542,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "action json_GENERAL",
+      "target": "预训练模型_DOMAIN",
+      "type": "related_to",
+      "strength": 0.8542,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "action json_GENERAL",
+      "target": "微调_DOMAIN",
+      "type": "related_to",
+      "strength": 0.8542,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "action json_GENERAL",
+      "target": "知识图谱_DOMAIN",
+      "type": "related_to",
+      "strength": 0.8542,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "action json_GENERAL",
+      "target": "Python_DOMAIN",
+      "type": "related_to",
+      "strength": 0.8542,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "action json_GENERAL",
+      "target": "Docker_DOMAIN",
+      "type": "related_to",
+      "strength": 0.8542,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "action json_GENERAL",
+      "target": "Kubernetes_DOMAIN",
+      "type": "related_to",
+      "strength": 0.8542,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "cpython_GENERAL",
+      "target": "他们彼此 对话_GENERAL",
+      "type": "related_to",
+      "strength": 0.7235649999999999,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "cpython_GENERAL",
+      "target": "分类_DOMAIN",
+      "type": "related_to",
+      "strength": 0.850735,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "cpython_GENERAL",
+      "target": "过拟合_DOMAIN",
+      "type": "related_to",
+      "strength": 0.850735,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "cpython_GENERAL",
+      "target": "准确率_DOMAIN",
+      "type": "related_to",
+      "strength": 0.850735,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "cpython_GENERAL",
+      "target": "召回率_DOMAIN",
+      "type": "related_to",
+      "strength": 0.850735,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "cpython_GENERAL",
+      "target": "损失函数_DOMAIN",
+      "type": "related_to",
+      "strength": 0.850735,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "cpython_GENERAL",
+      "target": "迭代_DOMAIN",
+      "type": "related_to",
+      "strength": 0.850735,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "cpython_GENERAL",
+      "target": "优化器_DOMAIN",
+      "type": "related_to",
+      "strength": 0.850735,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "cpython_GENERAL",
+      "target": "神经网络_DOMAIN",
+      "type": "related_to",
+      "strength": 0.850735,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "cpython_GENERAL",
+      "target": "前馈神经网络_DOMAIN",
+      "type": "related_to",
+      "strength": 0.850735,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "cpython_GENERAL",
+      "target": "GPT_DOMAIN",
+      "type": "related_to",
+      "strength": 0.850735,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "cpython_GENERAL",
+      "target": "梯度爆炸_DOMAIN",
+      "type": "related_to",
+      "strength": 0.850735,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "cpython_GENERAL",
+      "target": "层归一化_DOMAIN",
+      "type": "related_to",
+      "strength": 0.850735,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "cpython_GENERAL",
+      "target": "残差连接_DOMAIN",
+      "type": "related_to",
+      "strength": 0.850735,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "cpython_GENERAL",
+      "target": "位置编码_DOMAIN",
+      "type": "related_to",
+      "strength": 0.850735,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "cpython_GENERAL",
+      "target": "预训练模型_DOMAIN",
+      "type": "related_to",
+      "strength": 0.850735,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "cpython_GENERAL",
+      "target": "微调_DOMAIN",
+      "type": "related_to",
+      "strength": 0.850735,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "cpython_GENERAL",
+      "target": "知识图谱_DOMAIN",
+      "type": "related_to",
+      "strength": 0.850735,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "cpython_GENERAL",
+      "target": "Python_DOMAIN",
+      "type": "related_to",
+      "strength": 0.850735,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "cpython_GENERAL",
+      "target": "Docker_DOMAIN",
+      "type": "related_to",
+      "strength": 0.850735,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "cpython_GENERAL",
+      "target": "Kubernetes_DOMAIN",
+      "type": "related_to",
+      "strength": 0.850735,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "他们彼此 对话_GENERAL",
+      "target": "分类_DOMAIN",
+      "type": "related_to",
+      "strength": 0.84283,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "他们彼此 对话_GENERAL",
+      "target": "过拟合_DOMAIN",
+      "type": "related_to",
+      "strength": 0.84283,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "他们彼此 对话_GENERAL",
+      "target": "准确率_DOMAIN",
+      "type": "related_to",
+      "strength": 0.84283,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "他们彼此 对话_GENERAL",
+      "target": "召回率_DOMAIN",
+      "type": "related_to",
+      "strength": 0.84283,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "他们彼此 对话_GENERAL",
+      "target": "损失函数_DOMAIN",
+      "type": "related_to",
+      "strength": 0.84283,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "他们彼此 对话_GENERAL",
+      "target": "迭代_DOMAIN",
+      "type": "related_to",
+      "strength": 0.84283,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "他们彼此 对话_GENERAL",
+      "target": "优化器_DOMAIN",
+      "type": "related_to",
+      "strength": 0.84283,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "他们彼此 对话_GENERAL",
+      "target": "神经网络_DOMAIN",
+      "type": "related_to",
+      "strength": 0.84283,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "他们彼此 对话_GENERAL",
+      "target": "前馈神经网络_DOMAIN",
+      "type": "related_to",
+      "strength": 0.84283,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "他们彼此 对话_GENERAL",
+      "target": "GPT_DOMAIN",
+      "type": "related_to",
+      "strength": 0.84283,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "他们彼此 对话_GENERAL",
+      "target": "梯度爆炸_DOMAIN",
+      "type": "related_to",
+      "strength": 0.84283,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "他们彼此 对话_GENERAL",
+      "target": "层归一化_DOMAIN",
+      "type": "related_to",
+      "strength": 0.84283,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "他们彼此 对话_GENERAL",
+      "target": "残差连接_DOMAIN",
+      "type": "related_to",
+      "strength": 0.84283,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "他们彼此 对话_GENERAL",
+      "target": "位置编码_DOMAIN",
+      "type": "related_to",
+      "strength": 0.84283,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "他们彼此 对话_GENERAL",
+      "target": "预训练模型_DOMAIN",
+      "type": "related_to",
+      "strength": 0.84283,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "他们彼此 对话_GENERAL",
+      "target": "微调_DOMAIN",
+      "type": "related_to",
+      "strength": 0.84283,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "他们彼此 对话_GENERAL",
+      "target": "知识图谱_DOMAIN",
+      "type": "related_to",
+      "strength": 0.84283,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "他们彼此 对话_GENERAL",
+      "target": "Python_DOMAIN",
+      "type": "related_to",
+      "strength": 0.84283,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "他们彼此 对话_GENERAL",
+      "target": "Docker_DOMAIN",
+      "type": "related_to",
+      "strength": 0.84283,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "他们彼此 对话_GENERAL",
+      "target": "Kubernetes_DOMAIN",
+      "type": "related_to",
+      "strength": 0.84283,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "分类_DOMAIN",
+      "target": "过拟合_DOMAIN",
+      "type": "related_to",
+      "strength": 0.97,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "分类_DOMAIN",
+      "target": "准确率_DOMAIN",
+      "type": "related_to",
+      "strength": 0.97,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "分类_DOMAIN",
+      "target": "召回率_DOMAIN",
+      "type": "related_to",
+      "strength": 0.97,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "分类_DOMAIN",
+      "target": "损失函数_DOMAIN",
+      "type": "related_to",
+      "strength": 0.97,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "分类_DOMAIN",
+      "target": "迭代_DOMAIN",
+      "type": "related_to",
+      "strength": 0.97,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "分类_DOMAIN",
+      "target": "优化器_DOMAIN",
+      "type": "related_to",
+      "strength": 0.97,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "分类_DOMAIN",
+      "target": "神经网络_DOMAIN",
+      "type": "related_to",
+      "strength": 0.97,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "分类_DOMAIN",
+      "target": "前馈神经网络_DOMAIN",
+      "type": "related_to",
+      "strength": 0.97,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "分类_DOMAIN",
+      "target": "GPT_DOMAIN",
+      "type": "related_to",
+      "strength": 0.97,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "分类_DOMAIN",
+      "target": "梯度爆炸_DOMAIN",
+      "type": "related_to",
+      "strength": 0.97,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "分类_DOMAIN",
+      "target": "层归一化_DOMAIN",
+      "type": "related_to",
+      "strength": 0.97,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "分类_DOMAIN",
+      "target": "残差连接_DOMAIN",
+      "type": "related_to",
+      "strength": 0.97,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "分类_DOMAIN",
+      "target": "位置编码_DOMAIN",
+      "type": "related_to",
+      "strength": 0.97,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "分类_DOMAIN",
+      "target": "预训练模型_DOMAIN",
+      "type": "related_to",
+      "strength": 0.97,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "分类_DOMAIN",
+      "target": "微调_DOMAIN",
+      "type": "related_to",
+      "strength": 0.97,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "分类_DOMAIN",
+      "target": "知识图谱_DOMAIN",
+      "type": "related_to",
+      "strength": 0.97,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "分类_DOMAIN",
+      "target": "Python_DOMAIN",
+      "type": "related_to",
+      "strength": 0.97,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "分类_DOMAIN",
+      "target": "Docker_DOMAIN",
+      "type": "related_to",
+      "strength": 0.97,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "分类_DOMAIN",
+      "target": "Kubernetes_DOMAIN",
+      "type": "related_to",
+      "strength": 0.97,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "过拟合_DOMAIN",
+      "target": "准确率_DOMAIN",
+      "type": "related_to",
+      "strength": 0.97,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "过拟合_DOMAIN",
+      "target": "召回率_DOMAIN",
+      "type": "related_to",
+      "strength": 0.97,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "过拟合_DOMAIN",
+      "target": "损失函数_DOMAIN",
+      "type": "related_to",
+      "strength": 0.97,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "过拟合_DOMAIN",
+      "target": "迭代_DOMAIN",
+      "type": "related_to",
+      "strength": 0.97,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "过拟合_DOMAIN",
+      "target": "优化器_DOMAIN",
+      "type": "related_to",
+      "strength": 0.97,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "过拟合_DOMAIN",
+      "target": "神经网络_DOMAIN",
+      "type": "related_to",
+      "strength": 0.97,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "过拟合_DOMAIN",
+      "target": "前馈神经网络_DOMAIN",
+      "type": "related_to",
+      "strength": 0.97,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "过拟合_DOMAIN",
+      "target": "GPT_DOMAIN",
+      "type": "related_to",
+      "strength": 0.97,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "过拟合_DOMAIN",
+      "target": "梯度爆炸_DOMAIN",
+      "type": "related_to",
+      "strength": 0.97,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "过拟合_DOMAIN",
+      "target": "层归一化_DOMAIN",
+      "type": "related_to",
+      "strength": 0.97,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "过拟合_DOMAIN",
+      "target": "残差连接_DOMAIN",
+      "type": "related_to",
+      "strength": 0.97,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "过拟合_DOMAIN",
+      "target": "位置编码_DOMAIN",
+      "type": "related_to",
+      "strength": 0.97,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "过拟合_DOMAIN",
+      "target": "预训练模型_DOMAIN",
+      "type": "related_to",
+      "strength": 0.97,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "过拟合_DOMAIN",
+      "target": "微调_DOMAIN",
+      "type": "related_to",
+      "strength": 0.97,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "过拟合_DOMAIN",
+      "target": "知识图谱_DOMAIN",
+      "type": "related_to",
+      "strength": 0.97,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "过拟合_DOMAIN",
+      "target": "Python_DOMAIN",
+      "type": "related_to",
+      "strength": 0.97,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "过拟合_DOMAIN",
+      "target": "Docker_DOMAIN",
+      "type": "related_to",
+      "strength": 0.97,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "过拟合_DOMAIN",
+      "target": "Kubernetes_DOMAIN",
+      "type": "related_to",
+      "strength": 0.97,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "准确率_DOMAIN",
+      "target": "召回率_DOMAIN",
+      "type": "related_to",
+      "strength": 0.97,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "准确率_DOMAIN",
+      "target": "损失函数_DOMAIN",
+      "type": "related_to",
+      "strength": 0.97,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "准确率_DOMAIN",
+      "target": "迭代_DOMAIN",
+      "type": "related_to",
+      "strength": 0.97,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "准确率_DOMAIN",
+      "target": "优化器_DOMAIN",
+      "type": "related_to",
+      "strength": 0.97,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "准确率_DOMAIN",
+      "target": "神经网络_DOMAIN",
+      "type": "related_to",
+      "strength": 0.97,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "准确率_DOMAIN",
+      "target": "前馈神经网络_DOMAIN",
+      "type": "related_to",
+      "strength": 0.97,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "准确率_DOMAIN",
+      "target": "GPT_DOMAIN",
+      "type": "related_to",
+      "strength": 0.97,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "准确率_DOMAIN",
+      "target": "梯度爆炸_DOMAIN",
+      "type": "related_to",
+      "strength": 0.97,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "准确率_DOMAIN",
+      "target": "层归一化_DOMAIN",
+      "type": "related_to",
+      "strength": 0.97,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "准确率_DOMAIN",
+      "target": "残差连接_DOMAIN",
+      "type": "related_to",
+      "strength": 0.97,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "准确率_DOMAIN",
+      "target": "位置编码_DOMAIN",
+      "type": "related_to",
+      "strength": 0.97,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "准确率_DOMAIN",
+      "target": "预训练模型_DOMAIN",
+      "type": "related_to",
+      "strength": 0.97,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "准确率_DOMAIN",
+      "target": "微调_DOMAIN",
+      "type": "related_to",
+      "strength": 0.97,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "准确率_DOMAIN",
+      "target": "知识图谱_DOMAIN",
+      "type": "related_to",
+      "strength": 0.97,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "准确率_DOMAIN",
+      "target": "Python_DOMAIN",
+      "type": "related_to",
+      "strength": 0.97,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "准确率_DOMAIN",
+      "target": "Docker_DOMAIN",
+      "type": "related_to",
+      "strength": 0.97,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "准确率_DOMAIN",
+      "target": "Kubernetes_DOMAIN",
+      "type": "related_to",
+      "strength": 0.97,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "召回率_DOMAIN",
+      "target": "损失函数_DOMAIN",
+      "type": "related_to",
+      "strength": 0.97,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "召回率_DOMAIN",
+      "target": "迭代_DOMAIN",
+      "type": "related_to",
+      "strength": 0.97,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "召回率_DOMAIN",
+      "target": "优化器_DOMAIN",
+      "type": "related_to",
+      "strength": 0.97,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "召回率_DOMAIN",
+      "target": "神经网络_DOMAIN",
+      "type": "related_to",
+      "strength": 0.97,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "召回率_DOMAIN",
+      "target": "前馈神经网络_DOMAIN",
+      "type": "related_to",
+      "strength": 0.97,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "召回率_DOMAIN",
+      "target": "GPT_DOMAIN",
+      "type": "related_to",
+      "strength": 0.97,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "召回率_DOMAIN",
+      "target": "梯度爆炸_DOMAIN",
+      "type": "related_to",
+      "strength": 0.97,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "召回率_DOMAIN",
+      "target": "层归一化_DOMAIN",
+      "type": "related_to",
+      "strength": 0.97,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "召回率_DOMAIN",
+      "target": "残差连接_DOMAIN",
+      "type": "related_to",
+      "strength": 0.97,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "召回率_DOMAIN",
+      "target": "位置编码_DOMAIN",
+      "type": "related_to",
+      "strength": 0.97,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "召回率_DOMAIN",
+      "target": "预训练模型_DOMAIN",
+      "type": "related_to",
+      "strength": 0.97,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "召回率_DOMAIN",
+      "target": "微调_DOMAIN",
+      "type": "related_to",
+      "strength": 0.97,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "召回率_DOMAIN",
+      "target": "知识图谱_DOMAIN",
+      "type": "related_to",
+      "strength": 0.97,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "召回率_DOMAIN",
+      "target": "Python_DOMAIN",
+      "type": "related_to",
+      "strength": 0.97,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "召回率_DOMAIN",
+      "target": "Docker_DOMAIN",
+      "type": "related_to",
+      "strength": 0.97,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "召回率_DOMAIN",
+      "target": "Kubernetes_DOMAIN",
+      "type": "related_to",
+      "strength": 0.97,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "损失函数_DOMAIN",
+      "target": "迭代_DOMAIN",
+      "type": "related_to",
+      "strength": 0.97,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "损失函数_DOMAIN",
+      "target": "优化器_DOMAIN",
+      "type": "related_to",
+      "strength": 0.97,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "损失函数_DOMAIN",
+      "target": "神经网络_DOMAIN",
+      "type": "related_to",
+      "strength": 0.97,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "损失函数_DOMAIN",
+      "target": "前馈神经网络_DOMAIN",
+      "type": "related_to",
+      "strength": 0.97,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "损失函数_DOMAIN",
+      "target": "GPT_DOMAIN",
+      "type": "related_to",
+      "strength": 0.97,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "损失函数_DOMAIN",
+      "target": "梯度爆炸_DOMAIN",
+      "type": "related_to",
+      "strength": 0.97,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "损失函数_DOMAIN",
+      "target": "层归一化_DOMAIN",
+      "type": "related_to",
+      "strength": 0.97,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "损失函数_DOMAIN",
+      "target": "残差连接_DOMAIN",
+      "type": "related_to",
+      "strength": 0.97,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "损失函数_DOMAIN",
+      "target": "位置编码_DOMAIN",
+      "type": "related_to",
+      "strength": 0.97,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "损失函数_DOMAIN",
+      "target": "预训练模型_DOMAIN",
+      "type": "related_to",
+      "strength": 0.97,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "损失函数_DOMAIN",
+      "target": "微调_DOMAIN",
+      "type": "related_to",
+      "strength": 0.97,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "损失函数_DOMAIN",
+      "target": "知识图谱_DOMAIN",
+      "type": "related_to",
+      "strength": 0.97,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "损失函数_DOMAIN",
+      "target": "Python_DOMAIN",
+      "type": "related_to",
+      "strength": 0.97,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "损失函数_DOMAIN",
+      "target": "Docker_DOMAIN",
+      "type": "related_to",
+      "strength": 0.97,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "损失函数_DOMAIN",
+      "target": "Kubernetes_DOMAIN",
+      "type": "related_to",
+      "strength": 0.97,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "迭代_DOMAIN",
+      "target": "优化器_DOMAIN",
+      "type": "related_to",
+      "strength": 0.97,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "迭代_DOMAIN",
+      "target": "神经网络_DOMAIN",
+      "type": "related_to",
+      "strength": 0.97,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "迭代_DOMAIN",
+      "target": "前馈神经网络_DOMAIN",
+      "type": "related_to",
+      "strength": 0.97,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "迭代_DOMAIN",
+      "target": "GPT_DOMAIN",
+      "type": "related_to",
+      "strength": 0.97,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "迭代_DOMAIN",
+      "target": "梯度爆炸_DOMAIN",
+      "type": "related_to",
+      "strength": 0.97,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "迭代_DOMAIN",
+      "target": "层归一化_DOMAIN",
+      "type": "related_to",
+      "strength": 0.97,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "迭代_DOMAIN",
+      "target": "残差连接_DOMAIN",
+      "type": "related_to",
+      "strength": 0.97,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "迭代_DOMAIN",
+      "target": "位置编码_DOMAIN",
+      "type": "related_to",
+      "strength": 0.97,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "迭代_DOMAIN",
+      "target": "预训练模型_DOMAIN",
+      "type": "related_to",
+      "strength": 0.97,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "迭代_DOMAIN",
+      "target": "微调_DOMAIN",
+      "type": "related_to",
+      "strength": 0.97,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "迭代_DOMAIN",
+      "target": "知识图谱_DOMAIN",
+      "type": "related_to",
+      "strength": 0.97,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "迭代_DOMAIN",
+      "target": "Python_DOMAIN",
+      "type": "related_to",
+      "strength": 0.97,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "迭代_DOMAIN",
+      "target": "Docker_DOMAIN",
+      "type": "related_to",
+      "strength": 0.97,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "迭代_DOMAIN",
+      "target": "Kubernetes_DOMAIN",
+      "type": "related_to",
+      "strength": 0.97,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "优化器_DOMAIN",
+      "target": "神经网络_DOMAIN",
+      "type": "related_to",
+      "strength": 0.97,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "优化器_DOMAIN",
+      "target": "前馈神经网络_DOMAIN",
+      "type": "related_to",
+      "strength": 0.97,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "优化器_DOMAIN",
+      "target": "GPT_DOMAIN",
+      "type": "related_to",
+      "strength": 0.97,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "优化器_DOMAIN",
+      "target": "梯度爆炸_DOMAIN",
+      "type": "related_to",
+      "strength": 0.97,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "优化器_DOMAIN",
+      "target": "层归一化_DOMAIN",
+      "type": "related_to",
+      "strength": 0.97,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "优化器_DOMAIN",
+      "target": "残差连接_DOMAIN",
+      "type": "related_to",
+      "strength": 0.97,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "优化器_DOMAIN",
+      "target": "位置编码_DOMAIN",
+      "type": "related_to",
+      "strength": 0.97,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "优化器_DOMAIN",
+      "target": "预训练模型_DOMAIN",
+      "type": "related_to",
+      "strength": 0.97,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "优化器_DOMAIN",
+      "target": "微调_DOMAIN",
+      "type": "related_to",
+      "strength": 0.97,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "优化器_DOMAIN",
+      "target": "知识图谱_DOMAIN",
+      "type": "related_to",
+      "strength": 0.97,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "优化器_DOMAIN",
+      "target": "Python_DOMAIN",
+      "type": "related_to",
+      "strength": 0.97,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "优化器_DOMAIN",
+      "target": "Docker_DOMAIN",
+      "type": "related_to",
+      "strength": 0.97,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "优化器_DOMAIN",
+      "target": "Kubernetes_DOMAIN",
+      "type": "related_to",
+      "strength": 0.97,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "神经网络_DOMAIN",
+      "target": "前馈神经网络_DOMAIN",
+      "type": "related_to",
+      "strength": 0.97,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "神经网络_DOMAIN",
+      "target": "GPT_DOMAIN",
+      "type": "related_to",
+      "strength": 0.97,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "神经网络_DOMAIN",
+      "target": "梯度爆炸_DOMAIN",
+      "type": "related_to",
+      "strength": 0.97,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "神经网络_DOMAIN",
+      "target": "层归一化_DOMAIN",
+      "type": "related_to",
+      "strength": 0.97,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "神经网络_DOMAIN",
+      "target": "残差连接_DOMAIN",
+      "type": "related_to",
+      "strength": 0.97,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "神经网络_DOMAIN",
+      "target": "位置编码_DOMAIN",
+      "type": "related_to",
+      "strength": 0.97,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "神经网络_DOMAIN",
+      "target": "预训练模型_DOMAIN",
+      "type": "related_to",
+      "strength": 0.97,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "神经网络_DOMAIN",
+      "target": "微调_DOMAIN",
+      "type": "related_to",
+      "strength": 0.97,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "神经网络_DOMAIN",
+      "target": "知识图谱_DOMAIN",
+      "type": "related_to",
+      "strength": 0.97,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "神经网络_DOMAIN",
+      "target": "Python_DOMAIN",
+      "type": "related_to",
+      "strength": 0.97,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "神经网络_DOMAIN",
+      "target": "Docker_DOMAIN",
+      "type": "related_to",
+      "strength": 0.97,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "神经网络_DOMAIN",
+      "target": "Kubernetes_DOMAIN",
+      "type": "related_to",
+      "strength": 0.97,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "前馈神经网络_DOMAIN",
+      "target": "GPT_DOMAIN",
+      "type": "related_to",
+      "strength": 0.97,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "前馈神经网络_DOMAIN",
+      "target": "梯度爆炸_DOMAIN",
+      "type": "related_to",
+      "strength": 0.97,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "前馈神经网络_DOMAIN",
+      "target": "层归一化_DOMAIN",
+      "type": "related_to",
+      "strength": 0.97,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "前馈神经网络_DOMAIN",
+      "target": "残差连接_DOMAIN",
+      "type": "related_to",
+      "strength": 0.97,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "前馈神经网络_DOMAIN",
+      "target": "位置编码_DOMAIN",
+      "type": "related_to",
+      "strength": 0.97,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "前馈神经网络_DOMAIN",
+      "target": "预训练模型_DOMAIN",
+      "type": "related_to",
+      "strength": 0.97,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "前馈神经网络_DOMAIN",
+      "target": "微调_DOMAIN",
+      "type": "related_to",
+      "strength": 0.97,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "前馈神经网络_DOMAIN",
+      "target": "知识图谱_DOMAIN",
+      "type": "related_to",
+      "strength": 0.97,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "前馈神经网络_DOMAIN",
+      "target": "Python_DOMAIN",
+      "type": "related_to",
+      "strength": 0.97,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "前馈神经网络_DOMAIN",
+      "target": "Docker_DOMAIN",
+      "type": "related_to",
+      "strength": 0.97,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "前馈神经网络_DOMAIN",
+      "target": "Kubernetes_DOMAIN",
+      "type": "related_to",
+      "strength": 0.97,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "GPT_DOMAIN",
+      "target": "梯度爆炸_DOMAIN",
+      "type": "related_to",
+      "strength": 0.97,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "GPT_DOMAIN",
+      "target": "层归一化_DOMAIN",
+      "type": "related_to",
+      "strength": 0.97,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "GPT_DOMAIN",
+      "target": "残差连接_DOMAIN",
+      "type": "related_to",
+      "strength": 0.97,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "GPT_DOMAIN",
+      "target": "位置编码_DOMAIN",
+      "type": "related_to",
+      "strength": 0.97,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "GPT_DOMAIN",
+      "target": "预训练模型_DOMAIN",
+      "type": "related_to",
+      "strength": 0.97,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "GPT_DOMAIN",
+      "target": "微调_DOMAIN",
+      "type": "related_to",
+      "strength": 0.97,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "GPT_DOMAIN",
+      "target": "知识图谱_DOMAIN",
+      "type": "related_to",
+      "strength": 0.97,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "GPT_DOMAIN",
+      "target": "Python_DOMAIN",
+      "type": "related_to",
+      "strength": 0.97,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "GPT_DOMAIN",
+      "target": "Docker_DOMAIN",
+      "type": "related_to",
+      "strength": 0.97,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "GPT_DOMAIN",
+      "target": "Kubernetes_DOMAIN",
+      "type": "related_to",
+      "strength": 0.97,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "梯度爆炸_DOMAIN",
+      "target": "层归一化_DOMAIN",
+      "type": "related_to",
+      "strength": 0.97,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "梯度爆炸_DOMAIN",
+      "target": "残差连接_DOMAIN",
+      "type": "related_to",
+      "strength": 0.97,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "梯度爆炸_DOMAIN",
+      "target": "位置编码_DOMAIN",
+      "type": "related_to",
+      "strength": 0.97,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "梯度爆炸_DOMAIN",
+      "target": "预训练模型_DOMAIN",
+      "type": "related_to",
+      "strength": 0.97,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "梯度爆炸_DOMAIN",
+      "target": "微调_DOMAIN",
+      "type": "related_to",
+      "strength": 0.97,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "梯度爆炸_DOMAIN",
+      "target": "知识图谱_DOMAIN",
+      "type": "related_to",
+      "strength": 0.97,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "梯度爆炸_DOMAIN",
+      "target": "Python_DOMAIN",
+      "type": "related_to",
+      "strength": 0.97,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "梯度爆炸_DOMAIN",
+      "target": "Docker_DOMAIN",
+      "type": "related_to",
+      "strength": 0.97,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "梯度爆炸_DOMAIN",
+      "target": "Kubernetes_DOMAIN",
+      "type": "related_to",
+      "strength": 0.97,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "层归一化_DOMAIN",
+      "target": "残差连接_DOMAIN",
+      "type": "related_to",
+      "strength": 0.97,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "层归一化_DOMAIN",
+      "target": "位置编码_DOMAIN",
+      "type": "related_to",
+      "strength": 0.97,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "层归一化_DOMAIN",
+      "target": "预训练模型_DOMAIN",
+      "type": "related_to",
+      "strength": 0.97,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "层归一化_DOMAIN",
+      "target": "微调_DOMAIN",
+      "type": "related_to",
+      "strength": 0.97,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "层归一化_DOMAIN",
+      "target": "知识图谱_DOMAIN",
+      "type": "related_to",
+      "strength": 0.97,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "层归一化_DOMAIN",
+      "target": "Python_DOMAIN",
+      "type": "related_to",
+      "strength": 0.97,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "层归一化_DOMAIN",
+      "target": "Docker_DOMAIN",
+      "type": "related_to",
+      "strength": 0.97,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "层归一化_DOMAIN",
+      "target": "Kubernetes_DOMAIN",
+      "type": "related_to",
+      "strength": 0.97,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "残差连接_DOMAIN",
+      "target": "位置编码_DOMAIN",
+      "type": "related_to",
+      "strength": 0.97,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "残差连接_DOMAIN",
+      "target": "预训练模型_DOMAIN",
+      "type": "related_to",
+      "strength": 0.97,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "残差连接_DOMAIN",
+      "target": "微调_DOMAIN",
+      "type": "related_to",
+      "strength": 0.97,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "残差连接_DOMAIN",
+      "target": "知识图谱_DOMAIN",
+      "type": "related_to",
+      "strength": 0.97,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "残差连接_DOMAIN",
+      "target": "Python_DOMAIN",
+      "type": "related_to",
+      "strength": 0.97,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "残差连接_DOMAIN",
+      "target": "Docker_DOMAIN",
+      "type": "related_to",
+      "strength": 0.97,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "残差连接_DOMAIN",
+      "target": "Kubernetes_DOMAIN",
+      "type": "related_to",
+      "strength": 0.97,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "位置编码_DOMAIN",
+      "target": "预训练模型_DOMAIN",
+      "type": "related_to",
+      "strength": 0.97,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "位置编码_DOMAIN",
+      "target": "微调_DOMAIN",
+      "type": "related_to",
+      "strength": 0.97,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "位置编码_DOMAIN",
+      "target": "知识图谱_DOMAIN",
+      "type": "related_to",
+      "strength": 0.97,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "位置编码_DOMAIN",
+      "target": "Python_DOMAIN",
+      "type": "related_to",
+      "strength": 0.97,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "位置编码_DOMAIN",
+      "target": "Docker_DOMAIN",
+      "type": "related_to",
+      "strength": 0.97,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "位置编码_DOMAIN",
+      "target": "Kubernetes_DOMAIN",
+      "type": "related_to",
+      "strength": 0.97,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "预训练模型_DOMAIN",
+      "target": "微调_DOMAIN",
+      "type": "related_to",
+      "strength": 0.97,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "预训练模型_DOMAIN",
+      "target": "知识图谱_DOMAIN",
+      "type": "related_to",
+      "strength": 0.97,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "预训练模型_DOMAIN",
+      "target": "Python_DOMAIN",
+      "type": "related_to",
+      "strength": 0.97,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "预训练模型_DOMAIN",
+      "target": "Docker_DOMAIN",
+      "type": "related_to",
+      "strength": 0.97,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "预训练模型_DOMAIN",
+      "target": "Kubernetes_DOMAIN",
+      "type": "related_to",
+      "strength": 0.97,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "微调_DOMAIN",
+      "target": "知识图谱_DOMAIN",
+      "type": "related_to",
+      "strength": 0.97,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "微调_DOMAIN",
+      "target": "Python_DOMAIN",
+      "type": "related_to",
+      "strength": 0.97,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "微调_DOMAIN",
+      "target": "Docker_DOMAIN",
+      "type": "related_to",
+      "strength": 0.97,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "微调_DOMAIN",
+      "target": "Kubernetes_DOMAIN",
+      "type": "related_to",
+      "strength": 0.97,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "知识图谱_DOMAIN",
+      "target": "Python_DOMAIN",
+      "type": "related_to",
+      "strength": 0.97,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "知识图谱_DOMAIN",
+      "target": "Docker_DOMAIN",
+      "type": "related_to",
+      "strength": 0.97,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "知识图谱_DOMAIN",
+      "target": "Kubernetes_DOMAIN",
+      "type": "related_to",
+      "strength": 0.97,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "Python_DOMAIN",
+      "target": "Docker_DOMAIN",
+      "type": "related_to",
+      "strength": 0.97,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "Python_DOMAIN",
+      "target": "Kubernetes_DOMAIN",
+      "type": "related_to",
+      "strength": 0.97,
+      "context": "AI 算法问题总结"
+    },
+    {
+      "source": "Docker_DOMAIN",
+      "target": "Kubernetes_DOMAIN",
+      "type": "related_to",
+      "strength": 0.97,
+      "context": "AI 算法问题总结"
+    }
+  ],
+  "metadata": {
+    "model": "bert-base-chinese",
+    "node_count": 68,
+    "edge_count": 932
+  }
+}
