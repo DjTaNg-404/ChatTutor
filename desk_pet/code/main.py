@@ -1,27 +1,73 @@
-# desk_pet/main.py
+# desk_pet/code/main.py
 import sys
 import os
 import signal 
 import json
-from PyQt6.QtWidgets import QApplication, QWidget, QVBoxLayout, QLineEdit, QLabel, QMenu
+from PyQt6.QtWidgets import (QApplication, QWidget, QVBoxLayout, QHBoxLayout, 
+                             QLineEdit, QLabel, QMenu, QPushButton)
 from PyQt6.QtCore import Qt, QPoint, QSize, QEvent
-from PyQt6.QtGui import QMovie, QFont, QAction
+# 引入了 QPainter
+from PyQt6.QtGui import QMovie, QFont, QAction, QPixmap, QPainter
 from PyQt6.QtWebEngineWidgets import QWebEngineView
 
 # 导入封装好的模块
 from config import HTML_TEMPLATE, BASE_DIR
-from worker import AgentWorker
+from text_worker import AgentWorker
+from voice_worker import AudioRecorder, VoiceAgentWorker
+
+# === 导入抽离出来的物理引擎与状态大脑 ===
+from pet_controller import PetController
+
+
+# ================= 新增：支持动态水平翻转的自制画板 =================
+class PetLabel(QLabel):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.is_flipped = False
+
+    def set_flipped(self, flipped):
+        if self.is_flipped != flipped:
+            self.is_flipped = flipped
+            self.update() # 强制通知系统重新绘制这一帧
+
+    def paintEvent(self, event):
+        painter = QPainter(self)
+        pixmap = None
+        
+        # 提取当前的图片帧
+        if self.movie() and self.movie().currentPixmap() and not self.movie().currentPixmap().isNull():
+            pixmap = self.movie().currentPixmap()
+        elif self.pixmap() and not self.pixmap().isNull():
+            pixmap = self.pixmap()
+            
+        if pixmap:
+            x = int((self.width() - pixmap.width()) / 2)
+            y = int((self.height() - pixmap.height()) / 2)
+            
+            # 核心黑科技：镜像翻转整个画笔坐标系！
+            if self.is_flipped:
+                painter.translate(self.width(), 0)
+                painter.scale(-1, 1)
+                
+            painter.drawPixmap(x, y, pixmap)
+# ====================================================================
+
 
 class ChatTutorPet(QWidget):
     def __init__(self):
         super().__init__()
         self.drag_position = QPoint()
-        self.current_theme = "adult"        
-        self.current_pet_state = "sleep"    
+        self._drag_start_pos = QPoint() 
+        self._is_dragging = False       
+        
+        self.gif_size = QSize(150, 150)
+        self.assets = {}
         
         self.init_ui()
+        self.init_assets()      
         self.init_agent()
-        
+        self.init_controller()  
+
     def init_ui(self):
         font = QFont("Microsoft YaHei", 10)
         QApplication.setFont(font)
@@ -32,7 +78,6 @@ class ChatTutorPet(QWidget):
         self.layout.setContentsMargins(15, 15, 15, 15)
         self.layout.setSpacing(12) 
         
-        # 聊天容器
         self.chat_container = QWidget()
         self.chat_container.setFixedHeight(120)
         self.chat_container.setMinimumWidth(340)
@@ -48,69 +93,118 @@ class ChatTutorPet(QWidget):
         container_layout.addWidget(self.web_view)
         self.chat_container.hide()
 
-        # 桌宠动图
-        self.pet_label = QLabel(self)
-        self.gif_size = QSize(150, 150) 
-        self.load_theme_gifs()
+        # 【关键修改】：使用我们自制的 PetLabel 替换掉原本的 QLabel
+        self.pet_label = PetLabel(self)
         self.pet_label.setFixedSize(self.gif_size)
         
-        # 输入框
         self.input_field = QLineEdit()
         self.input_field.setPlaceholderText("想问点什么？按回车发送...")
-        self.input_field.setMinimumWidth(340)
+        self.input_field.setMinimumWidth(290)
         self.input_field.setStyleSheet("background-color: rgba(255, 255, 255, 240); border: 2px solid #E0E0E0; border-radius: 15px; padding: 6px 14px;")
         self.input_field.returnPressed.connect(self.send_message)
-        self.input_field.hide()
+        
+        self.voice_btn = QPushButton("🎤")
+        self.voice_btn.setFixedSize(36, 36)
+        self.voice_btn.setStyleSheet("""
+            QPushButton { background-color: #ffffff; border: 2px solid #E0E0E0; border-radius: 18px; font-size: 16px; } 
+            QPushButton:pressed { background-color: #e0e0e0; }
+        """)
+        self.voice_btn.pressed.connect(self.start_voice_recording)
+        self.voice_btn.released.connect(self.stop_voice_recording)
+        
+        input_layout = QHBoxLayout()
+        input_layout.setContentsMargins(0, 0, 0, 0)
+        input_layout.setSpacing(8)
+        input_layout.addWidget(self.input_field)
+        input_layout.addWidget(self.voice_btn)
+        
+        self.input_container = QWidget()
+        self.input_container.setLayout(input_layout)
+        self.input_container.hide()
         
         self.layout.addWidget(self.chat_container) 
+        self.layout.addWidget(self.input_container) 
         self.layout.addWidget(self.pet_label, alignment=Qt.AlignmentFlag.AlignHCenter) 
-        self.layout.addWidget(self.input_field) 
         
     def init_agent(self):
         self.api_base_url = "http://127.0.0.1:8000/api/v1"
         self.session_id = "pet_session_1"
         self.topic = "General"
 
-    def load_theme_gifs(self):
-        if hasattr(self, 'movie_sleep'): self.movie_sleep.stop()
-        if hasattr(self, 'movie_work'): self.movie_work.stop()
-
-        f_sleep, f_work = ("Work.gif", "Sleep.gif") if self.current_theme == "high_school" else ("Sleep.gif", "Work.gif")
+    def init_assets(self):
+        assets_dir = os.path.normpath(os.path.join(BASE_DIR, "img"))
         
-        # 统一路径逻辑：BASE_DIR (desk_pet) -> Figure -> Theme -> Filename
-        path_sleep = os.path.join(BASE_DIR, "Figure", self.current_theme, f_sleep)
-        path_work = os.path.join(BASE_DIR, "Figure", self.current_theme, f_work)
+        def load_movie(name):
+            path = os.path.join(assets_dir, name)
+            if os.path.exists(path):
+                m = QMovie(path)
+                m.setScaledSize(self.gif_size)
+                return m
+            return None
 
-        self.movie_sleep = QMovie(path_sleep)
-        self.movie_sleep.setScaledSize(self.gif_size)
-        self.movie_work = QMovie(path_work)
-        self.movie_work.setScaledSize(self.gif_size)
+        self.assets = {
+            "stand": load_movie("stand.gif"),
+            "walk1": load_movie("walk1.gif"),
+            "walk2": load_movie("walk2.gif"),
+            "sit": load_movie("sit.gif"),
+            "catching": load_movie("catching.gif"), 
+            "felling": load_movie("felling.gif"),
+            "fell": load_movie("fell.gif"),
+            "say_hi1": load_movie("say_hi1.gif"),
+            "say_hi2": load_movie("say_hi2.gif"),
+            "thinking": load_movie("thinking.gif"),
+            "getup": load_movie("getup.gif"),
+            "jump": load_movie("jump.gif"), 
+            "sitting": load_movie("sitting.gif"),   
+            "standing": load_movie("standing.gif"),
+            "sleep": load_movie("sleep.gif"),
+        }
+
+    def set_appearance(self, asset_key):
+        asset = self.assets.get(asset_key)
+        if self.pet_label.movie() == asset and asset is not None:
+            return
+        if isinstance(asset, QMovie):
+            if self.pet_label.movie():
+                self.pet_label.movie().stop()
+            self.pet_label.setMovie(asset)
+            asset.stop() 
+            asset.jumpToFrame(0) 
+            asset.start()
+
+    def init_controller(self):
+        screen_rect = QApplication.primaryScreen().availableGeometry()
+        self.controller = PetController(
+            screen_rect=screen_rect,
+            pet_width=self.gif_size.width(),
+            pet_height=self.gif_size.height(),
+            win_id=int(self.winId())
+        )
+        self.controller.position_changed.connect(self.update_position)
+        self.controller.appearance_changed.connect(self.set_appearance)
         
-        self.set_pet_state(self.current_pet_state)
+        # 【关键修改】：把大脑的转向信号连接到自制画板上
+        self.controller.direction_changed.connect(self.pet_label.set_flipped)
+        
+        self.controller.drag_to(self.x() + self.pet_label.x(), self.y() + self.pet_label.y())
+        self.controller.change_state("STAND")
 
-    def set_theme(self, new_theme):
-        self.current_theme = new_theme
-        self.load_theme_gifs()
-
-    def set_pet_state(self, state):
-        self.current_pet_state = state
-        self.pet_label.setMovie(self.movie_sleep if state == "sleep" else self.movie_work)
-        (self.movie_work if state == "sleep" else self.movie_sleep).stop()
-        (self.movie_sleep if state == "sleep" else self.movie_work).start()
+    def update_position(self, pet_x, pet_y):
+        win_x = pet_x - self.pet_label.x()
+        win_y = pet_y - self.pet_label.y()
+        self.move(int(win_x), int(win_y))
 
     def eventFilter(self, obj, event):
         if obj == self.chat_container:
             if event.type() == QEvent.Type.Enter:
-                old_center = self.pet_label.mapToGlobal(self.pet_label.rect().center())
                 self.chat_container.setFixedHeight(400) 
                 self.adjustSize()
-                self.move(self.pos() - (self.pet_label.mapToGlobal(self.pet_label.rect().center()) - old_center))
+                self.update_position(self.controller.pet_x, self.controller.pet_y)
                 self.web_view.page().runJavaScript("setHover(true);")
             elif event.type() == QEvent.Type.Leave:
-                old_center = self.pet_label.mapToGlobal(self.pet_label.rect().center())
                 self.chat_container.setFixedHeight(120) 
                 self.adjustSize()
-                self.move(self.pos() - (self.pet_label.mapToGlobal(self.pet_label.rect().center()) - old_center))
+                self.update_position(self.controller.pet_x, self.controller.pet_y)
                 self.web_view.page().runJavaScript("setHover(false);")
         return super().eventFilter(obj, event)
 
@@ -120,45 +214,82 @@ class ChatTutorPet(QWidget):
 
     def mousePressEvent(self, event):
         if event.button() == Qt.MouseButton.LeftButton:
+            self._is_dragging = False 
+            self._drag_start_pos = event.globalPosition().toPoint() 
             self.drag_position = event.globalPosition().toPoint() - self.frameGeometry().topLeft()
         elif event.button() == Qt.MouseButton.RightButton:
             menu = QMenu(self)
-            t_info = {"adult": "大学生", "high_school": "中学生", "elementary_school": "小学生"}
-            for k, v in t_info.items():
-                if k != self.current_theme:
-                    a = QAction(f"切换为{v}形象", self)
-                    a.triggered.connect(lambda checked, tk=k: self.set_theme(tk))
-                    menu.addAction(a)
-            menu.addSeparator()
             menu.addAction("退出", self.close)
             menu.exec(event.globalPosition().toPoint())
 
     def mouseMoveEvent(self, event):
         if event.buttons() == Qt.MouseButton.LeftButton:
-            self.move(event.globalPosition().toPoint() - self.drag_position)
+            current_pos = event.globalPosition().toPoint()
+            if not self._is_dragging:
+                if (current_pos - self._drag_start_pos).manhattanLength() > 5:
+                    self._is_dragging = True
+                    self.controller.start_drag() 
+            
+            if self._is_dragging:
+                new_win_pos = current_pos - self.drag_position
+                self.controller.drag_to(new_win_pos.x() + self.pet_label.x(), new_win_pos.y() + self.pet_label.y()) 
+
+    def mouseReleaseEvent(self, event):
+        if event.button() == Qt.MouseButton.LeftButton:
+            if self._is_dragging:
+                self.controller.end_drag() 
+                self._is_dragging = False  
 
     def mouseDoubleClickEvent(self, event):
-        old_center = self.pet_label.mapToGlobal(self.pet_label.rect().center())
         if self.chat_container.isHidden():
-            self.chat_container.show(); self.input_field.show(); self.input_field.setFocus()
-            self.set_pet_state("work")
+            self.chat_container.show(); self.input_container.show(); self.input_field.setFocus()
+            self.controller.set_chatting(True) 
         else:
-            self.chat_container.hide(); self.input_field.hide()
-            self.set_pet_state("sleep")
+            self.chat_container.hide(); self.input_container.hide()
+            self.controller.set_chatting(False) 
+        
         self.adjustSize()
-        self.move(self.pos() - (self.pet_label.mapToGlobal(self.pet_label.rect().center()) - old_center))
+        self.update_position(self.controller.pet_x, self.controller.pet_y)
+
+    def start_voice_recording(self):
+        self.input_field.setEnabled(False)
+        self.input_field.setPlaceholderText("🎙️ 正在倾听，松开手发送...")
+        self.voice_btn.setText("👄")
+        
+        self.audio_file_path = os.path.join(BASE_DIR, "temp_audio.wav")
+        self.audio_recorder = AudioRecorder(self.audio_file_path)
+        self.audio_recorder.start()
+
+    def stop_voice_recording(self):
+        self.voice_btn.setText("🎤")
+        if hasattr(self, 'audio_recorder'):
+            self.audio_recorder.stop()
+            self.audio_recorder.wait()
+        
+        self.input_field.setPlaceholderText("正在上传语音让 Tutor 思考中... 🧠")
+        self.add_bubble("🎵 [发送了一条语音]", True)
+        
+        self.controller.change_state("THINKING", 9999) 
+        
+        self.worker = VoiceAgentWorker(self.api_base_url, self.session_id, self.topic, self.audio_file_path)
+        self.worker.response_ready.connect(self.handle_response)
+        self.worker.start()
 
     def send_message(self):
         text = self.input_field.text()
         if not text: return
         self.add_bubble(text, True); self.input_field.clear()
         self.input_field.setEnabled(False); self.input_field.setPlaceholderText("Tutor 正在通过 API 思考中... 🧠")
+        
+        self.controller.change_state("THINKING", 9999) 
+        
         self.worker = AgentWorker(self.api_base_url, self.session_id, self.topic, text)
         self.worker.response_ready.connect(self.handle_response); self.worker.start()
 
     def handle_response(self, text, is_concluded):
         self.input_field.setEnabled(True); self.input_field.setPlaceholderText("想问点什么？按回车发送...")
         self.input_field.setFocus(); self.add_bubble(text, False)
+        self.controller.change_state("STAND", 20)
 
 if __name__ == '__main__':
     signal.signal(signal.SIGINT, signal.SIG_DFL)

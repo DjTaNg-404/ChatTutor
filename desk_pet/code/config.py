@@ -9,9 +9,9 @@ HTML_TEMPLATE = r"""
 <html>
 <head>
 <meta charset="utf-8">
-<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
-<script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+<script src="https://cdn.staticfile.net/marked/12.0.1/marked.min.js"></script>
+<link rel="stylesheet" href="https://cdn.staticfile.net/KaTeX/0.16.9/katex.min.css">
+<script src="https://cdn.staticfile.net/KaTeX/0.16.9/katex.min.js"></script>
 <style>
     body { margin: 0; padding: 10px; font-family: "Microsoft YaHei", sans-serif; background-color: transparent !important; display: flex; flex-direction: column; overflow-x: hidden; overflow-y: auto; min-height: calc(100vh - 20px); box-sizing: border-box; }
     ::-webkit-scrollbar { width: 6px; height: 6px; }
@@ -41,14 +41,14 @@ HTML_TEMPLATE = r"""
         function renderMarkdownAndMath(text) {
             let mathBlocks = [];
             
-            // 1. 提取块级公式：支持 $$...$$ 和 \[...\]
+            // 1. 提取块级公式
             let temp = text.replace(/(\$\$[\s\S]+?\$\$|\\\[[\s\S]+?\\\])/g, function(match) {
                 let content = match.startsWith('$$') ? match.slice(2, -2) : match.slice(2, -2);
                 mathBlocks.push({ display: true, math: content });
                 return '@@MATH_TOKEN_' + (mathBlocks.length - 1) + '@@';
             });
             
-            // 2. 提取行内公式：支持 $...$ 和 \(...\)
+            // 2. 提取行内公式
             temp = temp.replace(/(\$[^$\n]+?\$|\\\( [\s\S]+?\\\))/g, function(match) {
                 let content = match.startsWith('$') ? match.slice(1, -1) : match.slice(2, -2);
                 mathBlocks.push({ display: false, math: content });
@@ -71,7 +71,6 @@ HTML_TEMPLATE = r"""
                 }
                 
                 const token = '@@MATH_TOKEN_' + i + '@@';
-                // 处理 Marked 可能为块级公式添加的 <p> 标签
                 if (item.display) {
                     html = html.replace('<p>' + token + '</p>', rendered);
                 }

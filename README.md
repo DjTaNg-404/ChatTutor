@@ -110,6 +110,16 @@ BAIDU_API_KEY=xxxxxxxxxxxx
 
 ## 🚀 运行指南 (Usage)
 
+### 启动后端 FastAPI 服务
+在项目根目录执行：
+```bash
+uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload
+```
+
+启动后可访问：
+- API 根路径: `http://127.0.0.1:8000/`
+- Swagger 文档: `http://127.0.0.1:8000/docs`
+
 ### 运行记忆机制仿真测试
 想亲眼看看它是如何“记住”第1轮的话，并在第20轮“召回”它的吗？运行这个脚本：
 ```bash
