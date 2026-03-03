@@ -110,10 +110,11 @@ def _get_note_path(session_id: str, topic: Optional[str] = None) -> str:
 def save_session(state: AgentState) -> str:
     """
     Persist the current agent state to disk (Full Snapshot).
-    
+
     1. Saves the raw session data (messages, metadata) to JSON.
     2. If a conclusion note exists (summary_output), saves it to Markdown.
-    
+    3. [RAG] Indexes conversation pairs into vector store (if enabled).
+
     Returns:
         The path to the saved JSON session file.
     """
@@ -126,7 +127,7 @@ def save_session(state: AgentState) -> str:
     # 1. Serialize Messages (LangChain -> List[Dict])
     # This handles HumanMessage, AIMessage, ToolMessage, etc. automatically.
     serialized_messages = messages_to_dict(state["messages"])
-    
+
     # 2. Construct Session Storage Object
     session_data = {
         "session_id": session_id,
@@ -137,16 +138,16 @@ def save_session(state: AgentState) -> str:
         "summarized_msg_count": state.get("summarized_msg_count", 0),
         "messages": serialized_messages # The Full Log (A)
     }
-    
+
     # 3. Save Session JSON (Overwrite Mode)
     json_path = _get_session_path(session_id)
     file_io.save_json(session_data, json_path)
-    
+
     # 4. Save Markdown Note (if applicable)
     # Only save note if we are in a concluding state and actually have a note generated
     if state.get("should_exit") and state.get("summary_output"):
         note_content = state["summary_output"]
-        
+
         # Add metadata header to the note
         header = f"""---
 source_session: {session_id}
@@ -156,11 +157,76 @@ topic: {state.get("current_topic", "General")}
 
 """
         full_note = header + note_content
-        
+
         note_path = _get_note_path(session_id, state.get("current_topic"))
         file_io.save_text(full_note, note_path)
-        
+
+    # 5. [RAG] Index conversation into vector store (if enabled)
+    _index_session_for_rag(
+        session_id=session_id,
+        task_id=state.get("task_id"),
+        messages=serialized_messages,
+        topic=state.get("current_topic", "General")
+    )
+
     return json_path
+
+
+def _index_session_for_rag(
+    session_id: str,
+    task_id: Optional[str],
+    messages: List[Dict[str, Any]],
+    topic: str = "General"
+):
+    """
+    Index session messages into vector store for RAG retrieval.
+
+    This is a non-blocking operation that gracefully handles errors.
+    Set RAG_ENABLED=False to disable this feature.
+
+    Args:
+        session_id: Session identifier
+        task_id: Task identifier for vector store isolation
+        messages: Serialized message list
+        topic: Conversation topic
+    """
+    # Check if RAG is enabled via config
+    try:
+        from app.core.config import settings
+        if not settings.RAG_ENABLED:
+            return
+    except ImportError:
+        return
+
+    if not task_id or not messages:
+        return
+
+    try:
+        from app.core.vector_store import index_session
+
+        # Convert serialized messages to simple format
+        simple_messages = []
+        for msg in messages:
+            msg_type = msg.get("type", "")
+            if msg_type == "human":
+                simple_messages.append({"role": "user", "content": msg.get("content", "")})
+            elif msg_type == "ai":
+                simple_messages.append({"role": "assistant", "content": msg.get("content", "")})
+
+        # Index into vector store
+        index_session(
+            session_id=session_id,
+            task_id=task_id,
+            messages=simple_messages,
+            topic=topic
+        )
+
+    except ImportError as e:
+        # RAG dependencies not installed, skip silently
+        print(f"[RAG] Vector store not available: {e}")
+    except Exception as e:
+        # Don't fail the save operation if RAG indexing fails
+        print(f"[RAG] Failed to index session: {e}")
 
 def load_session(session_id: str) -> Optional[Dict[str, Any]]:
     """

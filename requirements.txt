@@ -1,8 +1,9 @@
-# ===== 基础运行依赖 =====
+# ===== Basic Dependencies =====
 streamlit>=1.35.0
 fastapi>=0.100.0
 uvicorn>=0.20.0
 langchain-core>=0.1.30
+langchain-community>=0.0.20
 langchain-deepseek
 langgraph>=0.0.25
 pydantic-settings
@@ -10,10 +11,15 @@ rich
 requests
 openai
 
-# ===== 阶段一：缓存 + 学习画像（无额外依赖，已含在基础包中）=====
-# pymysql  ← 可选，仅当 PROFILE_STORE=mysql 时才需要安装
+# ===== RAG Dependencies (for memory retrieval) =====
+faiss-cpu>=1.7.4
+sentence-transformers>=2.2.0
+# Note: Use faiss-gpu instead of faiss-cpu if GPU is available
 
-# ===== 阶段二：知识图谱（新增）=====
+# ===== Phase 1: Cache + Learning Profile =====
+# pymysql - optional, only needed when PROFILE_STORE=mysql
+
+# ===== Phase 2: Knowledge Graph =====
 networkx>=3.0
 pyvis>=0.3.0
 plotly>=5.18.0
@@ -21,5 +27,5 @@ transformers>=4.36.0
 torch>=2.0.0
 keybert>=0.8.0
 spacy>=3.7.0
-# 安装后需手动下载中文模型：
+# After installation, download Chinese model:
 # python -m spacy download zh_core_web_sm

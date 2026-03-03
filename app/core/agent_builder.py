@@ -10,7 +10,8 @@ from langchain_core.messages import ToolMessage
 
 from app.core.config import settings
 from app.core.models import AgentState, ExecutionPlan
-from app.core import prompts, memory, context
+from app.core import prompts, memory
+from app.core import context_rag as context  # RAG enhanced context module
 from app.core.cache import generation_cache, retrieval_cache
 from app.core import learning_profile
 from app.core import profile_store
