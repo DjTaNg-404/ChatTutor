@@ -2,10 +2,14 @@ import { useParams, useOutletContext } from "react-router";
 import { Send, CheckCircle, PanelRightClose, PanelRightOpen, BookOpen } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link } from "react-router";
+import ReactMarkdown from "react-markdown";
+import remarkMath from "remark-math";
+import rehypeKatex from "rehype-katex";
+import "katex/dist/katex.min.css";
 
 interface Message {
   id: string;
-  role: "user" | "assistant";
+  role: "user" | "assistant" | "divider";
   content: string;
   timestamp: string;
 }
@@ -84,7 +88,7 @@ export function TutorSession() {
   const setIsPanelOpen = context?.setIsPanelOpen ?? (() => {});
 
   const taskTitle = taskId ? taskTitles[taskId] || "学习任务" : "欢迎使用 ChatTutor";
-  const currentTaskId = taskId ? `task_${taskId}` : "task_default";
+  const currentTaskId = taskId ? (taskId.startsWith("task_") ? taskId : `task_${taskId}`) : "task_default";
   const currentDate = new Date().toLocaleDateString("zh-CN", {
     year: "numeric",
     month: "long",
@@ -160,12 +164,12 @@ export function TutorSession() {
     };
   }, [currentTaskId]);
 
-  const sendMessage = async () => {
-    const text = inputText.trim();
-    if (!text || isSending) return;
+  const sendMessage = async (text?: string) => {
+    const messageText = text !== undefined ? text : inputText.trim();
+    if (!messageText || isSending) return;
 
     setErrorText(null);
-    setMessages((prev) => [...prev, makeMessage("user", text)]);
+    setMessages((prev) => [...prev, makeMessage("user", messageText)]);
     setInputText("");
     setIsSending(true);
 
@@ -194,13 +198,56 @@ export function TutorSession() {
         setActiveSessionId(data.session_id);
       }
       setMessages((prev) => [...prev, makeMessage("assistant", replyText)]);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "网络异常，请稍后重试。";
+      setErrorText(message);
+      setMessages((prev) => [
+        ...prev,
+        makeMessage("assistant", `接口调用失败：${message}`),
+      ]);
+    } finally {
+      setIsSending(false);
+    }
+  };
 
-      if (data?.is_concluded) {
-        setMessages((prev) => [
-          ...prev,
-          makeMessage("assistant", "本次学习已结束。你可以继续提问开启下一轮学习。"),
-        ]);
+  const handleEndSession = async () => {
+    setIsSending(true);
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/chat`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          task_id: currentTaskId,
+          session_id: activeSessionId,
+          message: "结束并总结今日学习",
+          topic: taskTitle,
+        }),
+      });
+
+      const data = await response.json();
+      if (!response.ok) {
+        const detail = data?.detail || `请求失败（${response.status}）`;
+        throw new Error(detail);
       }
+
+      // 添加分割线
+      const dividerMessage: Message = {
+        id: `${Date.now()}-divider`,
+        role: "divider",
+        content: "-------------------结束并总结今日学习-------------------",
+        timestamp: formatTime(),
+      };
+      setMessages((prev) => [...prev, dividerMessage]);
+
+      // 添加 AI 的总结回复
+      const replyText = data?.reply || "抱歉，我暂时没有生成有效回复。";
+      if (data?.session_id) {
+        setActiveSessionId(data.session_id);
+      }
+      setMessages((prev) => [...prev, makeMessage("assistant", replyText)]);
     } catch (error) {
       const message = error instanceof Error ? error.message : "网络异常，请稍后重试。";
       setErrorText(message);
@@ -230,7 +277,10 @@ export function TutorSession() {
               <BookOpen className="w-5 h-5" />
               任务笔记
             </Link>
-            <button className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-medium">
+            <button
+              onClick={handleEndSession}
+              className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-medium"
+            >
               <CheckCircle className="w-5 h-5" />
               结束并总结今日学习
             </button>
@@ -263,20 +313,39 @@ export function TutorSession() {
             </div>
           )}
 
-          {messages.map((message) => (
-            <div
-              key={message.id}
-              className={`flex ${
-                message.role === "user" ? "justify-end" : "justify-start"
-              }`}
-            >
+          {messages.map((message) => {
+            // 渲染分割线
+            if (message.role === "divider") {
+              return (
+                <div
+                  key={message.id}
+                  className="flex justify-center items-center py-4"
+                >
+                  <div className="flex items-center gap-4 w-full max-w-2xl">
+                    <div className="flex-1 h-px bg-gradient-to-r from-transparent via-gray-300 to-transparent"></div>
+                    <span className="text-gray-400 text-sm font-medium whitespace-nowrap">
+                      {message.content}
+                    </span>
+                    <div className="flex-1 h-px bg-gradient-to-r from-transparent via-gray-300 to-transparent"></div>
+                  </div>
+                </div>
+              );
+            }
+            
+            return (
               <div
-                className={`max-w-[80%] ${
-                  message.role === "user"
-                    ? "bg-indigo-600 text-white rounded-2xl rounded-tr-sm"
-                    : "bg-white border border-gray-200 rounded-2xl rounded-tl-sm"
-                } px-5 py-3 shadow-sm`}
+                key={message.id}
+                className={`flex ${
+                  message.role === "user" ? "justify-end" : "justify-start"
+                }`}
               >
+                <div
+                  className={`max-w-[80%] ${
+                    message.role === "user"
+                      ? "bg-indigo-600 text-white rounded-2xl rounded-tr-sm"
+                      : "bg-white border border-gray-200 rounded-2xl rounded-tl-sm"
+                  } px-5 py-3 shadow-sm`}
+                >
                 {/* Message Content with Markdown Support */}
                 <div
                   className={`prose prose-sm max-w-none ${
@@ -285,51 +354,38 @@ export function TutorSession() {
                       : "prose-gray"
                   }`}
                 >
-                  {message.content.split('\n\n').map((paragraph, idx) => {
-                    // Handle code blocks
-                    if (paragraph.startsWith('```')) {
-                      const codeMatch = paragraph.match(/```(\w+)?\n([\s\S]*?)```/);
-                      if (codeMatch) {
-                        return (
-                          <pre key={idx} className="bg-gray-900 text-gray-100 rounded-lg p-4 overflow-x-auto my-3">
-                            <code className="text-sm font-mono">{codeMatch[2]}</code>
-                          </pre>
-                        );
-                      }
-                    }
-                    
-                    // Handle headings
-                    if (paragraph.startsWith('## ')) {
-                      return (
-                        <h2 key={idx} className="text-base font-semibold mt-4 mb-2">
-                          {paragraph.replace('## ', '')}
-                        </h2>
-                      );
-                    }
-                    
-                    // Handle lists
-                    if (paragraph.includes('\n   - ') || paragraph.includes('\n1. ')) {
-                      const items = paragraph.split('\n').filter(line => line.trim());
-                      return (
-                        <ul key={idx} className="space-y-1 my-2">
-                          {items.map((item, i) => {
-                            const cleaned = item.replace(/^[\s\-\d.]+/, '').trim();
-                            return cleaned && <li key={i}>{cleaned}</li>;
-                          })}
-                        </ul>
-                      );
-                    }
-                    
-                    // Handle bold text
-                    const parts = paragraph.split(/\*\*(.*?)\*\*/g);
-                    return (
-                      <p key={idx} className="my-2 leading-relaxed">
-                        {parts.map((part, i) =>
-                          i % 2 === 1 ? <strong key={i}>{part}</strong> : part
-                        )}
-                      </p>
-                    );
-                  })}
+                  {message.role === "user" ? (
+                    <p>{message.content}</p>
+                  ) : (
+                    <ReactMarkdown
+                      remarkPlugins={[remarkMath]}
+                      rehypePlugins={[rehypeKatex]}
+                      components={{
+                        code({ node, className, children, ...props }) {
+                          return (
+                            <code
+                              className={className || "bg-gray-200 px-1.5 py-0.5 rounded text-sm"}
+                              {...props}
+                            >
+                              {children}
+                            </code>
+                          );
+                        },
+                        pre({ node, children, ...props }) {
+                          return (
+                            <pre
+                              className="bg-gray-900 text-gray-100 rounded-lg p-4 overflow-x-auto my-3"
+                              {...props}
+                            >
+                              {children}
+                            </pre>
+                          );
+                        }
+                      }}
+                    >
+                      {message.content}
+                    </ReactMarkdown>
+                  )}
                 </div>
                 
                 {/* Timestamp */}
@@ -344,7 +400,8 @@ export function TutorSession() {
                 </div>
               </div>
             </div>
-          ))}
+            );
+          })}
         </div>
       </div>
 

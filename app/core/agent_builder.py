@@ -10,7 +10,8 @@ from langchain_core.messages import ToolMessage
 
 from app.core.config import settings
 from app.core.models import AgentState, ExecutionPlan
-from app.core import prompts, memory, context
+from app.core import prompts, memory
+from app.core import context_rag as context  # RAG enhanced context module
 from app.core.cache import generation_cache, retrieval_cache
 from app.core import learning_profile
 from app.core import profile_store
@@ -141,8 +142,10 @@ def analyzer_node(state: AgentState) -> Dict[str, Any]:
         )
     
     # 返回计划，并重置临时字段，防止污染
+    # 如果计划中包含结束意图，设置 should_exit 信号
     return {
         "plan": plan,
+        "should_exit": plan.is_concluding,
         "tutor_output": None,
         "judge_output": None,
         "inquiry_output": None,
@@ -260,48 +263,6 @@ def inquiry_node(state: AgentState) -> Dict[str, Any]:
     generation_cache.set(cache_key, response.content, session_id=state.get("session_id"))
     return {"inquiry_output": response.content}
 
-def summary_node(state: AgentState) -> Dict[str, Any]:
-    """
-    Worker D: 总结者。兼顾 '临时回顾' 和 '离场笔记'。
-    """
-    plan = state.get("plan")
-    
-    # 场景1：Ending (离场)
-    if plan and plan.is_concluding:
-        prompt_str = _inject_profile(prompts.SUMMARIZER_NOTE_PROMPT, state)
-        cache_key = _gen_cache_key(state, "summary_note", prompt_str)
-        cached = generation_cache.get(cache_key)
-        if cached is not None:
-            _mark_gen_cache(state, "summary_note", True)
-            return {"summary_output": cached, "should_exit": True}
-
-        _mark_gen_cache(state, "summary_note", False)
-        inputs = context.build_context(state, prompt_str)
-        response = model.invoke(inputs)
-        summary_text = response.content
-        generation_cache.set(cache_key, summary_text, session_id=state.get("session_id"))
-        return {
-            "summary_output": summary_text,
-            "should_exit": True
-        }
-
-    # 场景2：Review (临时回顾)
-    elif plan and plan.request_summary:
-        prompt_str = _inject_profile(prompts.SUMMARIZER_REVIEW_PROMPT, state)
-        cache_key = _gen_cache_key(state, "summary_review", prompt_str)
-        cached = generation_cache.get(cache_key)
-        if cached is not None:
-            _mark_gen_cache(state, "summary_review", True)
-            return {"summary_output": cached}
-
-        _mark_gen_cache(state, "summary_review", False)
-        inputs = context.build_context(state, prompt_str)
-        response = model.invoke(inputs)
-        generation_cache.set(cache_key, response.content, session_id=state.get("session_id"))
-        return {"summary_output": response.content}
-
-    return {}
-
 def aggregator_node(state: AgentState) -> Dict[str, Any]:
     """
     汇总者。将所有 Worker 的输出融合成最终回复。
@@ -313,9 +274,51 @@ def aggregator_node(state: AgentState) -> Dict[str, Any]:
     
     final_response = None
 
+
+    # 检查是否需要即时总结（用户在对话中要求总结）
+    plan = state.get("plan")
+    if plan and plan.request_summary and not state.get("should_exit"):
+        # 调用总结生成器生成即时回顾总结
+        from app.core.summary.generator import summary_generator
+
+        # 从状态中提取对话历史
+        messages = state.get("messages", [])
+        conversation_history = []
+        for msg in messages:
+            if isinstance(msg, HumanMessage):
+                conversation_history.append({"role": "user", "content": msg.content or ""})
+            elif isinstance(msg, AIMessage):
+                conversation_history.append({"role": "assistant", "content": msg.content or ""})
+
+        topic = state.get("current_topic", "General")
+        summary_text = summary_generator.generate_review_summary(
+            conversation_history=conversation_history,
+            topic=topic
+        )
+        summary_out = summary_text
+
     # 场景: Ending or Normal
     if state.get("should_exit"):
-        # 如果处于 Concluding 状态，直接使用 Summary Output
+        # 如果处于 Concluding 状态，生成离场学习笔记
+        if not summary_out:  # 如果还没有生成总结
+            from app.core.summary.generator import summary_generator
+
+            # 从状态中提取对话历史
+            messages = state.get("messages", [])
+            conversation_history = []
+            for msg in messages:
+                if isinstance(msg, HumanMessage):
+                    conversation_history.append({"role": "user", "content": msg.content or ""})
+                elif isinstance(msg, AIMessage):
+                    conversation_history.append({"role": "assistant", "content": msg.content or ""})
+
+            topic = state.get("current_topic", "General")
+            summary_text = summary_generator.generate_session_note(
+                conversation_history=conversation_history,
+                topic=topic
+            )
+            summary_out = summary_text
+        
         final_response = AIMessage(content=summary_out)
     elif not any([tutor_out, judge_out, inquiry_out, summary_out]):
         # 闲聊/低信息量场景：走专用闲聊 Prompt，生成自然回复
@@ -449,15 +452,15 @@ def aggregator_node(state: AgentState) -> Dict[str, Any]:
 
 # --- 3. Edge Logic (条件路由) ---
 
-def route_from_analyzer(state: AgentState) -> Literal["tutor", "judge", "inquiry", "summary", "aggregator"]:
+def route_from_analyzer(state: AgentState) -> Literal["tutor", "judge", "inquiry", "aggregator"]:
     plan = state.get("plan")
     if not plan: # Should not happen
         return "aggregator"
-    
-    # 特殊处理：如果需要总结或退出，优先路由到 Summary
-    if plan.request_summary or plan.is_concluding:
-        return "summary"
-        
+
+    # 如果用户要求即时总结，直接路由到 aggregator 处理
+    if plan.request_summary:
+        return "aggregator"
+
     if plan.needs_tutor_answer:
         return "tutor"
     elif plan.needs_judge:
@@ -483,9 +486,6 @@ def route_from_judge(state: AgentState) -> Literal["inquiry", "aggregator"]:
     else:
         return "aggregator"
         
-def route_from_summary(state: AgentState) -> Literal["aggregator"]:
-    return "aggregator"
-
 # --- 4. Graph Construction ---
 
 def build_agent():
@@ -496,7 +496,6 @@ def build_agent():
     builder.add_node("tutor", tutor_node)
     builder.add_node("judge", judge_node)
     builder.add_node("inquiry", inquiry_node)
-    builder.add_node("summary", summary_node)
     builder.add_node("aggregator", aggregator_node)
     
     # Start -> Analyzer
@@ -510,7 +509,6 @@ def build_agent():
             "tutor": "tutor",
             "judge": "judge",
             "inquiry": "inquiry",
-            "summary": "summary",
             "aggregator": "aggregator"
         }
     )
@@ -536,9 +534,7 @@ def build_agent():
         }
     )
     
-    # Summary -> Aggregator (Always)
-    builder.add_edge("summary", "aggregator")
-    
+
     # Inquiry -> Aggregator (Always)
     builder.add_edge("inquiry", "aggregator")
     
