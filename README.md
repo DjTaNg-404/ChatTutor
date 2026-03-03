@@ -110,7 +110,7 @@ BAIDU_API_KEY=xxxxxxxxxxxx
 
 ## 🚀 运行指南 (Usage)
 
-### 启动后端 FastAPI 服务
+### 1) 启动后端 FastAPI 服务
 在项目根目录执行：
 ```bash
 uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload
@@ -120,8 +120,8 @@ uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload
 - API 根路径: `http://127.0.0.1:8000/`
 - Swagger 文档: `http://127.0.0.1:8000/docs`
 
-### 启动 Web Dashboard 前端（React + Vite）
-在新终端中进入前端目录并安装依赖：
+### 2) 启动 Web Dashboard 前端（React + Vite）
+在新终端进入前端目录并安装依赖：
 ```bash
 cd Design_Web_Dashboard
 npm install
@@ -135,7 +135,39 @@ npm run dev -- --host 127.0.0.1 --port 5173
 启动后访问：
 - Dashboard 首页: `http://127.0.0.1:5173`
 
-> 注意：请先确保后端 FastAPI 已启动，否则前端后续联调接口时将无法访问 API。
+> 注意：前端已对接真实后端接口。请先启动后端，再启动前端。
+
+### 3) 快速功能验证（当前版本）
+
+#### A. 聊天接口
+```bash
+curl -X POST "http://127.0.0.1:8000/api/v1/chat" \
+    -H "Content-Type: application/json" \
+    -d '{
+        "task_id": "task_1",
+        "message": "请解释随机森林和决策树的差别",
+        "topic": "掌握随机森林算法"
+    }'
+```
+
+#### B. 历史接口（任务会话 + 会话消息）
+```bash
+curl "http://127.0.0.1:8000/api/v1/history/tasks/task_1/sessions"
+curl "http://127.0.0.1:8000/api/v1/history/tasks/task_1/timeline"
+curl "http://127.0.0.1:8000/api/v1/history/sessions/task_1__20260303__153000/messages"
+```
+
+#### C. 笔记接口（每日 + 任务）
+```bash
+curl "http://127.0.0.1:8000/api/v1/notes/daily?task_id=task_1&date=2026-03-03"
+curl "http://127.0.0.1:8000/api/v1/notes/task?task_id=task_1"
+```
+
+#### D. 前端页面验证路径
+- 任务聊天：`/task/1`
+- 每日笔记：`/daily-note/2026-03-03?task_id=task_1`
+- 任务笔记：`/task-note/1`
+- 历史记录：`/history/2026-03-03?task_id=task_1`
 
 ### 运行记忆机制仿真测试
 想亲眼看看它是如何“记住”第1轮的话，并在第20轮“召回”它的吗？运行这个脚本：
