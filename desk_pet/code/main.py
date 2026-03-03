@@ -158,6 +158,7 @@ class ChatTutorPet(QWidget):
             "sitting": load_movie("sitting.gif"),   
             "standing": load_movie("standing.gif"),
             "sleep": load_movie("sleep.gif"),
+            "reading": load_movie("reading.gif"),
         }
 
     def set_appearance(self, asset_key):
@@ -219,7 +220,9 @@ class ChatTutorPet(QWidget):
             self.drag_position = event.globalPosition().toPoint() - self.frameGeometry().topLeft()
         elif event.button() == Qt.MouseButton.RightButton:
             menu = QMenu(self)
-            menu.addAction("退出", self.close)
+            # ================= 核心修改 =================
+            menu.addAction("退出", QApplication.quit)
+            # ============================================
             menu.exec(event.globalPosition().toPoint())
 
     def mouseMoveEvent(self, event):

@@ -2,7 +2,9 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.chat import router as chat_router
+from app.api.history import router as history_router
 from app.api.kg import router as kg_router
+from app.api.notes import router as notes_router
 
 app = FastAPI(
     title="ChatTutor API",
@@ -21,6 +23,8 @@ app.add_middleware(
 
 # 注册路由
 app.include_router(chat_router, prefix="/api/v1", tags=["Chat"])
+app.include_router(history_router, prefix="/api/v1/history", tags=["History"])
+app.include_router(notes_router, prefix="/api/v1/notes", tags=["Notes"])
 app.include_router(kg_router, prefix="/api/v1/kg", tags=["Knowledge Graph"])
 
 @app.get("/")

@@ -24,6 +24,7 @@ class AgentState(TypedDict):
     messages: Annotated[List[AnyMessage], add_messages]
     
     # 基础元数据
+    task_id: Optional[str]
     current_topic: Optional[str]
     session_id: str
     

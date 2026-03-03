@@ -1,6 +1,7 @@
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from typing import Optional
+from datetime import datetime
 from langchain_core.messages import HumanMessage
 
 from app.core.agent_builder import build_agent
@@ -12,13 +13,32 @@ router = APIRouter()
 agent_graph = build_agent()
 
 class ChatRequest(BaseModel):
-    session_id: str
+    task_id: Optional[str] = None
+    session_id: Optional[str] = None
     message: str
     topic: Optional[str] = "General Knowledge"
 
 class ChatResponse(BaseModel):
+    task_id: str
+    session_id: str
     reply: str
     is_concluded: bool
+
+
+def _normalize_task_id(task_id: Optional[str], session_id: Optional[str]) -> str:
+    if task_id and task_id.strip():
+        return task_id.strip()
+    if session_id and session_id.strip():
+        token = session_id.strip().split("__")[0]
+        return token if token else "task_default"
+    return "task_default"
+
+
+def _build_session_id(task_id: str, session_id: Optional[str]) -> str:
+    if session_id and session_id.strip():
+        return session_id.strip()
+    now = datetime.now().strftime("%Y%m%d__%H%M%S")
+    return f"{task_id}__{now}"
 
 @router.post("/chat", response_model=ChatResponse)
 async def chat_endpoint(request: ChatRequest):
@@ -29,15 +49,19 @@ async def chat_endpoint(request: ChatRequest):
     if not request.message.strip():
         raise HTTPException(status_code=400, detail="Message cannot be empty")
 
+    task_id = _normalize_task_id(request.task_id, request.session_id)
+    session_id = _build_session_id(task_id, request.session_id)
+
     # 1. 尝试从本地加载历史会话状态
-    current_state = memory.load_session(request.session_id)
+    current_state = memory.load_session(session_id)
     
     # 2. 如果没有历史记录，初始化一个新的状态；若有历史记录，补全加载时缺失的字段
     _defaults = {
         "messages": [],
+        "task_id": task_id,
         "current_topic": request.topic,
-        "session_id": request.session_id,
-        "user_id": request.session_id,  # 供 profile_store 识别用户，可后续改为真实用户ID
+        "session_id": session_id,
+        "user_id": "local_user",
         "conversation_summary": "",
         "summarized_msg_count": 0,
         "plan": None,
@@ -54,6 +78,11 @@ async def chat_endpoint(request: ChatRequest):
         # 补全旧会话中因版本迭代而新增但尚未持久化的字段
         for key, default_val in _defaults.items():
             current_state.setdefault(key, default_val)
+        current_state["task_id"] = task_id
+        current_state["session_id"] = session_id
+        current_state.setdefault("user_id", "local_user")
+        if request.topic:
+            current_state["current_topic"] = request.topic
     
     # 3. 将用户的新消息追加到状态中
     user_msg = HumanMessage(content=request.message)
@@ -78,6 +107,8 @@ async def chat_endpoint(request: ChatRequest):
     is_concluded = final_state.get("should_exit", False)
     
     return ChatResponse(
+        task_id=task_id,
+        session_id=session_id,
         reply=reply_content,
         is_concluded=is_concluded
     )

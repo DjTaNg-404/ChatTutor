@@ -1,5 +1,14 @@
+import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router";
 import { ArrowLeft, BookOpen, Calendar, TrendingUp, Target, Clock, Edit3 } from "lucide-react";
+
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8000/api/v1";
+
+interface TaskNoteApiResponse {
+  task_id: string;
+  content: string;
+  updated_at: string;
+}
 
 interface TaskNote {
   taskId: string;
@@ -104,6 +113,77 @@ export function TaskNotePage() {
   const navigate = useNavigate();
 
   const noteData = taskId ? taskNotesData[taskId] : null;
+  const resolvedTaskId = taskId ? `task_${taskId}` : "task_default";
+  const [userNotes, setUserNotes] = useState(noteData?.userNotes || "");
+  const [isLoading, setIsLoading] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveHint, setSaveHint] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadTaskNote = async () => {
+      setIsLoading(true);
+      setSaveHint(null);
+      try {
+        const response = await fetch(
+          `${API_BASE_URL}/notes/task?task_id=${encodeURIComponent(resolvedTaskId)}`
+        );
+        if (!response.ok) {
+          throw new Error(`加载任务笔记失败（${response.status}）`);
+        }
+        const data: TaskNoteApiResponse = await response.json();
+        if (!cancelled) {
+          setUserNotes(data.content || noteData?.userNotes || "");
+        }
+      } catch (error) {
+        if (!cancelled) {
+          const message = error instanceof Error ? error.message : "加载任务笔记失败";
+          setSaveHint(message);
+          setUserNotes(noteData?.userNotes || "");
+        }
+      } finally {
+        if (!cancelled) {
+          setIsLoading(false);
+        }
+      }
+    };
+
+    if (noteData) {
+      void loadTaskNote();
+    }
+
+    return () => {
+      cancelled = true;
+    };
+  }, [resolvedTaskId, taskId]);
+
+  const handleSave = async () => {
+    setIsSaving(true);
+    setSaveHint(null);
+    try {
+      const response = await fetch(`${API_BASE_URL}/notes/task`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          task_id: resolvedTaskId,
+          content: userNotes,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`保存失败（${response.status}）`);
+      }
+      setSaveHint("已保存");
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "保存失败";
+      setSaveHint(message);
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   if (!noteData) {
     return (
@@ -148,9 +228,13 @@ export function TaskNotePage() {
               </div>
             </div>
 
-            <button className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors">
+            <button
+              onClick={() => void handleSave()}
+              disabled={isSaving || isLoading}
+              className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 transition-colors"
+            >
               <Edit3 className="w-4 h-4" />
-              <span className="text-sm font-medium">编辑笔记</span>
+              <span className="text-sm font-medium">{isSaving ? "保存中..." : "保存笔记"}</span>
             </button>
           </div>
         </div>
@@ -312,14 +396,17 @@ export function TaskNotePage() {
           <div className="bg-white rounded-xl border border-gray-200 p-6">
             <h2 className="text-lg font-semibold text-gray-900 mb-4">我的笔记</h2>
             <textarea
-              defaultValue={noteData.userNotes}
+              value={userNotes}
+              onChange={(event) => setUserNotes(event.target.value)}
               rows={14}
+              disabled={isLoading}
               className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-100 focus:border-indigo-400 outline-none resize-none font-mono text-sm text-gray-700"
               placeholder="在这里记录你的学习心得、重点难点、参考资源等..."
             />
             <p className="text-xs text-gray-500 mt-2">
-              支持 Markdown 格式 · 自动保存
+              支持 Markdown 格式 · 手动保存
             </p>
+            {saveHint && <p className="text-xs text-gray-500 mt-1">{saveHint}</p>}
           </div>
         </div>
       </div>

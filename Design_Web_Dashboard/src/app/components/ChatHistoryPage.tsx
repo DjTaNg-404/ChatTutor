@@ -1,4 +1,5 @@
-import { useParams, useNavigate } from "react-router";
+import { useEffect, useState } from "react";
+import { useParams, useNavigate, useSearchParams } from "react-router";
 import { ArrowLeft, Calendar, Clock, Download, Share2 } from "lucide-react";
 
 interface ChatMessage {
@@ -7,6 +8,36 @@ interface ChatMessage {
   content: string;
   timestamp: string;
 }
+
+interface HistorySession {
+  session_id: string;
+  task_id: string;
+  topic: string;
+  last_updated: string;
+  message_count: number;
+}
+
+interface TaskSessionsResponse {
+  task_id: string;
+  sessions: HistorySession[];
+}
+
+interface SessionMessageItem {
+  message_id: string;
+  role: "user" | "assistant";
+  content: string;
+  timestamp: string;
+}
+
+interface SessionMessagesResponse {
+  session_id: string;
+  task_id: string;
+  topic: string;
+  last_updated: string;
+  messages: SessionMessageItem[];
+}
+
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8000/api/v1";
 
 // 模拟不同日期的对话记录
 const chatHistoryData: { [key: string]: ChatMessage[] } = {
@@ -297,9 +328,96 @@ const dateTitles: { [key: string]: string } = {
 export function ChatHistoryPage() {
   const { date } = useParams<{ date: string }>();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const taskIdFromQuery = searchParams.get("task_id") || "task_default";
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [taskTitle, setTaskTitle] = useState("学习记录");
+  const [isLoading, setIsLoading] = useState(false);
+  const [errorText, setErrorText] = useState<string | null>(null);
 
-  const messages = date ? chatHistoryData[date] || [] : [];
-  const taskTitle = date ? dateTitles[date] || "学习记录" : "学习记录";
+  const getDateFromSessionId = (sessionId: string) => {
+    const parts = sessionId.split("__");
+    if (parts.length < 2) return "";
+    const raw = parts[1];
+    if (raw.length !== 8 || !/^\d{8}$/.test(raw)) return "";
+    return `${raw.slice(0, 4)}-${raw.slice(4, 6)}-${raw.slice(6, 8)}`;
+  };
+
+  useEffect(() => {
+    if (!date) {
+      setMessages([]);
+      return;
+    }
+
+    let cancelled = false;
+
+    const loadHistory = async () => {
+      setIsLoading(true);
+      setErrorText(null);
+      try {
+        const sessionsResp = await fetch(`${API_BASE_URL}/history/tasks/${taskIdFromQuery}/sessions`);
+        if (!sessionsResp.ok) {
+          throw new Error(`读取会话列表失败（${sessionsResp.status}）`);
+        }
+
+        const sessionsData: TaskSessionsResponse = await sessionsResp.json();
+        const sameDaySessions = (sessionsData.sessions || []).filter((session) => {
+          const byUpdated = session.last_updated?.startsWith(date);
+          const byIdDate = getDateFromSessionId(session.session_id) === date;
+          return Boolean(byUpdated || byIdDate);
+        });
+
+        if (sameDaySessions.length === 0) {
+          if (!cancelled) {
+            setTaskTitle(dateTitles[date] || "学习记录");
+            setMessages([]);
+          }
+          return;
+        }
+
+        const historyResponses = await Promise.all(
+          sameDaySessions.map(async (session) => {
+            const resp = await fetch(`${API_BASE_URL}/history/sessions/${session.session_id}/messages`);
+            if (!resp.ok) {
+              throw new Error(`读取会话消息失败（${resp.status}）`);
+            }
+            const data: SessionMessagesResponse = await resp.json();
+            return { session, data };
+          })
+        );
+
+        const mergedMessages: ChatMessage[] = historyResponses
+          .flatMap(({ data }) => data.messages || [])
+          .map((item, index) => ({
+            id: item.message_id || `history-${index}`,
+            role: item.role,
+            content: item.content,
+            timestamp: item.timestamp ? item.timestamp.slice(11, 16) : "--:--",
+          }));
+
+        if (!cancelled) {
+          setTaskTitle(historyResponses[0]?.data.topic || dateTitles[date] || "学习记录");
+          setMessages(mergedMessages);
+        }
+      } catch (error) {
+        if (!cancelled) {
+          const message = error instanceof Error ? error.message : "读取历史记录失败";
+          setErrorText(message);
+          setMessages([]);
+          setTaskTitle(dateTitles[date] || "学习记录");
+        }
+      } finally {
+        if (!cancelled) {
+          setIsLoading(false);
+        }
+      }
+    };
+
+    void loadHistory();
+    return () => {
+      cancelled = true;
+    };
+  }, [date, taskIdFromQuery]);
 
   // 格式化日期显示
   const formatDate = (dateStr: string) => {
@@ -334,6 +452,7 @@ export function ChatHistoryPage() {
                   <p className="text-sm text-gray-600 mt-0.5">
                     {date && formatDate(date)} 的学习记录
                   </p>
+                  <p className="text-xs text-gray-500 mt-1">任务：{taskIdFromQuery}</p>
                 </div>
               </div>
             </div>
@@ -356,6 +475,18 @@ export function ChatHistoryPage() {
       {/* Chat History Content */}
       <div className="flex-1 overflow-y-auto p-6">
         <div className="max-w-5xl mx-auto">
+          {isLoading && (
+            <div className="bg-white rounded-xl border border-gray-200 p-4 mb-4 text-sm text-gray-600">
+              正在加载历史记录...
+            </div>
+          )}
+
+          {errorText && (
+            <div className="bg-red-50 rounded-xl border border-red-200 p-4 mb-4 text-sm text-red-700">
+              {errorText}
+            </div>
+          )}
+
           {/* Session Info Card */}
           <div className="bg-white rounded-xl border border-gray-200 p-6 mb-6 shadow-sm">
             <div className="flex items-center justify-between">

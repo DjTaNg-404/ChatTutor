@@ -25,3 +25,15 @@ memory/notes/*
 
 # Logs
 *.log
+
+# Web Dashboard (React/Vite)
+Design_Web_Dashboard/node_modules/
+Design_Web_Dashboard/dist/
+Design_Web_Dashboard/.vite/
+Design_Web_Dashboard/.env
+Design_Web_Dashboard/.env.*
+!Design_Web_Dashboard/.env.example
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*

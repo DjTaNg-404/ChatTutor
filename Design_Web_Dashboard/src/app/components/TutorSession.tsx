@@ -1,6 +1,6 @@
 import { useParams, useOutletContext } from "react-router";
 import { Send, CheckCircle, PanelRightClose, PanelRightOpen, BookOpen } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "react-router";
 
 interface Message {
@@ -15,59 +15,52 @@ interface OutletContext {
   setIsPanelOpen: (open: boolean) => void;
 }
 
-const mockMessages: Message[] = [
-  {
-    id: "1",
-    role: "assistant",
-    content: "你好！我是你的 AI 导师。今天我们继续学习随机森林算法。你准备好了吗？有什么问题想要先了解的？",
-    timestamp: "10:30",
-  },
-  {
-    id: "2",
-    role: "user",
-    content: "我想深入理解随机森林是如何通过集成多个决策树来提高预测准确性的。",
-    timestamp: "10:32",
-  },
-  {
-    id: "3",
-    role: "assistant",
-    content: `很好的问题！随机森林的核心思想是**集成学习（Ensemble Learning）**。让我详细解释：
+interface HistorySession {
+  session_id: string;
+  task_id: string;
+  topic: string;
+  last_updated: string;
+  message_count: number;
+}
 
-## 基本原理
+interface TaskSessionsResponse {
+  task_id: string;
+  sessions: HistorySession[];
+}
 
-1. **Bootstrap 采样**
-   - 从原始数据集中有放回地随机抽取样本
-   - 每棵树使用不同的训练子集
-   
-2. **特征随机性**
-   - 每次分裂节点时，只考虑随机选择的特征子集
-   - 增加树之间的多样性
-   
-3. **投票机制**
-   - 分类问题：多数投票
-   - 回归问题：平均预测值
+interface SessionMessage {
+  message_id: string;
+  role: "user" | "assistant";
+  content: string;
+  timestamp: string;
+}
 
-\`\`\`python
-from sklearn.ensemble import RandomForestClassifier
+interface SessionMessagesResponse {
+  session_id: string;
+  task_id: string;
+  topic: string;
+  last_updated: string;
+  messages: SessionMessage[];
+}
 
-# 创建随机森林模型
-rf = RandomForestClassifier(
-    n_estimators=100,  # 树的数量
-    max_depth=10,
-    min_samples_split=2
-)
-\`\`\`
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8000/api/v1";
 
-这种方法减少了过拟合，提高了泛化能力。你理解了吗？`,
-    timestamp: "10:33",
-  },
-  {
-    id: "4",
-    role: "user",
-    content: "理解了！那么特征重要性是如何计算的呢？",
-    timestamp: "10:35",
-  },
-];
+function formatTime(date = new Date()) {
+  return date.toLocaleTimeString("zh-CN", {
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  });
+}
+
+function makeMessage(role: "user" | "assistant", content: string): Message {
+  return {
+    id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+    role,
+    content,
+    timestamp: formatTime(),
+  };
+}
 
 const taskTitles: { [key: string]: string } = {
   "1": "掌握随机森林算法",
@@ -79,14 +72,146 @@ const taskTitles: { [key: string]: string } = {
 export function TutorSession() {
   const { taskId } = useParams();
   const context = useOutletContext<OutletContext>();
-  const [messages] = useState<Message[]>(mockMessages);
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [inputText, setInputText] = useState("");
+  const [isSending, setIsSending] = useState(false);
+  const [isLoadingHistory, setIsLoadingHistory] = useState(false);
+  const [errorText, setErrorText] = useState<string | null>(null);
+  const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
 
   // Provide default values if context is undefined
   const isPanelOpen = context?.isPanelOpen ?? true;
   const setIsPanelOpen = context?.setIsPanelOpen ?? (() => {});
 
   const taskTitle = taskId ? taskTitles[taskId] || "学习任务" : "欢迎使用 ChatTutor";
-  const currentDate = "2026年3月2日 星期一";
+  const currentTaskId = taskId ? `task_${taskId}` : "task_default";
+  const currentDate = new Date().toLocaleDateString("zh-CN", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+    weekday: "long",
+  });
+  useEffect(() => {
+    let isCancelled = false;
+
+    const loadHistory = async () => {
+      setIsLoadingHistory(true);
+      setErrorText(null);
+
+      try {
+        const sessionsResp = await fetch(`${API_BASE_URL}/history/tasks/${currentTaskId}/sessions`);
+        if (!sessionsResp.ok) {
+          throw new Error(`读取任务会话失败（${sessionsResp.status}）`);
+        }
+
+        const sessionsData: TaskSessionsResponse = await sessionsResp.json();
+        const latestSession = sessionsData.sessions?.[0];
+
+        if (!latestSession) {
+          if (!isCancelled) {
+            setActiveSessionId(null);
+            setMessages([
+              makeMessage("assistant", "你好！我是你的 AI 导师，输入你的问题我们就可以开始学习。"),
+            ]);
+          }
+          return;
+        }
+
+        const messageResp = await fetch(`${API_BASE_URL}/history/sessions/${latestSession.session_id}/messages`);
+        if (!messageResp.ok) {
+          throw new Error(`读取会话消息失败（${messageResp.status}）`);
+        }
+
+        const messageData: SessionMessagesResponse = await messageResp.json();
+        const historyMessages: Message[] = (messageData.messages || []).map((item) => ({
+          id: item.message_id || `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+          role: item.role,
+          content: item.content,
+          timestamp: item.timestamp ? item.timestamp.slice(11, 16) : formatTime(),
+        }));
+
+        if (!isCancelled) {
+          setActiveSessionId(messageData.session_id);
+          setMessages(
+            historyMessages.length > 0
+              ? historyMessages
+              : [makeMessage("assistant", "你好！我是你的 AI 导师，输入你的问题我们就可以开始学习。")]
+          );
+        }
+      } catch (error) {
+        if (!isCancelled) {
+          const message = error instanceof Error ? error.message : "读取历史失败";
+          setErrorText(message);
+          setActiveSessionId(null);
+          setMessages([
+            makeMessage("assistant", "你好！我是你的 AI 导师，输入你的问题我们就可以开始学习。"),
+          ]);
+        }
+      } finally {
+        if (!isCancelled) {
+          setIsLoadingHistory(false);
+        }
+      }
+    };
+
+    void loadHistory();
+    return () => {
+      isCancelled = true;
+    };
+  }, [currentTaskId]);
+
+  const sendMessage = async () => {
+    const text = inputText.trim();
+    if (!text || isSending) return;
+
+    setErrorText(null);
+    setMessages((prev) => [...prev, makeMessage("user", text)]);
+    setInputText("");
+    setIsSending(true);
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/chat`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          task_id: currentTaskId,
+          session_id: activeSessionId,
+          message: text,
+          topic: taskTitle,
+        }),
+      });
+
+      const data = await response.json();
+      if (!response.ok) {
+        const detail = data?.detail || `请求失败（${response.status}）`;
+        throw new Error(detail);
+      }
+
+      const replyText = data?.reply || "抱歉，我暂时没有生成有效回复。";
+      if (data?.session_id) {
+        setActiveSessionId(data.session_id);
+      }
+      setMessages((prev) => [...prev, makeMessage("assistant", replyText)]);
+
+      if (data?.is_concluded) {
+        setMessages((prev) => [
+          ...prev,
+          makeMessage("assistant", "本次学习已结束。你可以继续提问开启下一轮学习。"),
+        ]);
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "网络异常，请稍后重试。";
+      setErrorText(message);
+      setMessages((prev) => [
+        ...prev,
+        makeMessage("assistant", `接口调用失败：${message}`),
+      ]);
+    } finally {
+      setIsSending(false);
+    }
+  };
 
   return (
     <div className="flex flex-col h-full">
@@ -126,6 +251,18 @@ export function TutorSession() {
       {/* Chat Messages Area */}
       <div className="flex-1 overflow-y-auto bg-gray-50 p-6">
         <div className="max-w-4xl mx-auto space-y-6">
+          {isLoadingHistory && (
+            <div className="rounded-lg border border-gray-200 bg-white px-4 py-3 text-sm text-gray-600">
+              正在加载历史对话...
+            </div>
+          )}
+
+          {errorText && (
+            <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+              {errorText}
+            </div>
+          )}
+
           {messages.map((message) => (
             <div
               key={message.id}
@@ -216,12 +353,25 @@ export function TutorSession() {
         <div className="max-w-4xl mx-auto">
           <div className="flex items-end gap-3 bg-gray-50 rounded-2xl border border-gray-200 p-3 focus-within:border-indigo-400 focus-within:ring-2 focus-within:ring-indigo-100 transition-all">
             <textarea
-              placeholder="输入你的问题或想法..."
+              placeholder={isSending ? "Tutor 思考中..." : "输入你的问题或想法..."}
               rows={1}
+              value={inputText}
+              onChange={(event) => setInputText(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === "Enter" && !event.shiftKey) {
+                  event.preventDefault();
+                  void sendMessage();
+                }
+              }}
+              disabled={isSending}
               className="flex-1 bg-transparent border-none outline-none px-2 py-2 text-gray-900 placeholder:text-gray-500 resize-none max-h-32"
               style={{ minHeight: '40px' }}
             />
-            <button className="p-2.5 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition-colors flex-shrink-0">
+            <button
+              onClick={() => void sendMessage()}
+              disabled={isSending || !inputText.trim()}
+              className="p-2.5 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex-shrink-0"
+            >
               <Send className="w-5 h-5" />
             </button>
           </div>

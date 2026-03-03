@@ -76,7 +76,7 @@ def _mark_retrieval_cache(state: AgentState, hit: bool):
 
 
 def _get_user_id(state: AgentState) -> str:
-    return state.get("user_id") or state.get("session_id") or "anonymous"
+    return state.get("user_id") or "local_user"
 
 
 def _inject_profile(prompt_str: str, state: AgentState) -> str:

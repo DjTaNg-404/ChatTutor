@@ -1,5 +1,15 @@
-import { useParams, useNavigate } from "react-router";
+import { useEffect, useState } from "react";
+import { useParams, useNavigate, useSearchParams } from "react-router";
 import { ArrowLeft, Calendar, Edit3, Save, Sparkles } from "lucide-react";
+
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8000/api/v1";
+
+interface DailyNoteApiResponse {
+  task_id: string;
+  date: string;
+  content: string;
+  updated_at: string;
+}
 
 interface DailyNote {
   date: string;
@@ -62,8 +72,79 @@ const dailyNotesData: { [key: string]: DailyNote } = {
 export function DailyNotePage() {
   const { date } = useParams<{ date: string }>();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
 
   const noteData = date ? dailyNotesData[date] : null;
+  const resolvedDate = date || new Date().toISOString().slice(0, 10);
+  const resolvedTaskId = searchParams.get("task_id") || "task_1";
+  const [userNotes, setUserNotes] = useState(noteData?.userNotes || "");
+  const [isLoading, setIsLoading] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveHint, setSaveHint] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadDailyNote = async () => {
+      setIsLoading(true);
+      setSaveHint(null);
+      try {
+        const response = await fetch(
+          `${API_BASE_URL}/notes/daily?task_id=${encodeURIComponent(resolvedTaskId)}&date=${encodeURIComponent(resolvedDate)}`
+        );
+        if (!response.ok) {
+          throw new Error(`加载每日笔记失败（${response.status}）`);
+        }
+        const data: DailyNoteApiResponse = await response.json();
+        if (!cancelled) {
+          setUserNotes(data.content || noteData?.userNotes || "");
+        }
+      } catch (error) {
+        if (!cancelled) {
+          const message = error instanceof Error ? error.message : "加载每日笔记失败";
+          setSaveHint(message);
+          setUserNotes(noteData?.userNotes || "");
+        }
+      } finally {
+        if (!cancelled) {
+          setIsLoading(false);
+        }
+      }
+    };
+
+    void loadDailyNote();
+    return () => {
+      cancelled = true;
+    };
+  }, [resolvedTaskId, resolvedDate]);
+
+  const handleSave = async () => {
+    setIsSaving(true);
+    setSaveHint(null);
+    try {
+      const response = await fetch(`${API_BASE_URL}/notes/daily`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          task_id: resolvedTaskId,
+          date: resolvedDate,
+          content: userNotes,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`保存失败（${response.status}）`);
+      }
+      setSaveHint("已保存");
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "保存失败";
+      setSaveHint(message);
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   // 格式化日期显示
   const formatDate = (dateStr: string) => {
@@ -72,24 +153,16 @@ export function DailyNotePage() {
     return `${year}年${month}月${day}日`;
   };
 
-  if (!noteData) {
-    return (
-      <div className="h-full flex items-center justify-center bg-gray-50">
-        <div className="text-center">
-          <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <Edit3 className="w-8 h-8 text-gray-400" />
-          </div>
-          <p className="text-gray-500">暂无此日期的学习笔记</p>
-          <button
-            onClick={() => navigate(-1)}
-            className="mt-4 text-indigo-600 hover:text-indigo-700 text-sm font-medium"
-          >
-            返回
-          </button>
-        </div>
-      </div>
-    );
-  }
+  const displayData: DailyNote = noteData || {
+    date: resolvedDate,
+    taskTitle: "学习任务",
+    aiSummary: {
+      keyLearnings: [],
+      reviewAreas: [],
+      achievements: [],
+    },
+    userNotes: "",
+  };
 
   return (
     <div className="h-full flex flex-col bg-gray-50">
@@ -112,18 +185,22 @@ export function DailyNotePage() {
                 </div>
                 <div>
                   <h1 className="text-2xl font-semibold text-gray-900">
-                    {noteData.taskTitle} - 学习笔记
+                    {displayData.taskTitle} - 学习笔记
                   </h1>
                   <p className="text-sm text-gray-600 mt-0.5">
-                    {formatDate(noteData.date)}
+                    {formatDate(displayData.date)}
                   </p>
                 </div>
               </div>
             </div>
 
-            <button className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors">
+            <button
+              onClick={() => void handleSave()}
+              disabled={isSaving || isLoading}
+              className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 transition-colors"
+            >
               <Save className="w-4 h-4" />
-              <span className="text-sm font-medium">保存笔记</span>
+              <span className="text-sm font-medium">{isSaving ? "保存中..." : "保存笔记"}</span>
             </button>
           </div>
         </div>
@@ -148,7 +225,7 @@ export function DailyNotePage() {
                 📚 今日学习要点
               </h3>
               <ul className="space-y-2">
-                {noteData.aiSummary.keyLearnings.map((learning, idx) => (
+                {displayData.aiSummary.keyLearnings.map((learning, idx) => (
                   <li
                     key={idx}
                     className="flex items-start gap-2 text-sm text-gray-700 bg-white rounded-lg p-3"
@@ -168,7 +245,7 @@ export function DailyNotePage() {
                 ✨ 学习成果
               </h3>
               <ul className="space-y-2">
-                {noteData.aiSummary.achievements.map((achievement, idx) => (
+                {displayData.aiSummary.achievements.map((achievement, idx) => (
                   <li
                     key={idx}
                     className="flex items-start gap-2 text-sm text-gray-700 bg-white rounded-lg p-3"
@@ -186,7 +263,7 @@ export function DailyNotePage() {
                 🔄 待复习内容
               </h3>
               <ul className="space-y-2">
-                {noteData.aiSummary.reviewAreas.map((area, idx) => (
+                {displayData.aiSummary.reviewAreas.map((area, idx) => (
                   <li
                     key={idx}
                     className="flex items-start gap-2 text-sm text-amber-700 bg-white rounded-lg p-3"
@@ -209,15 +286,18 @@ export function DailyNotePage() {
             </div>
 
             <textarea
-              defaultValue={noteData.userNotes}
+              value={userNotes}
+              onChange={(event) => setUserNotes(event.target.value)}
               rows={12}
+              disabled={isLoading}
               className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-100 focus:border-indigo-400 outline-none resize-none font-mono text-sm text-gray-700"
               placeholder="在这里添加你的个人学习笔记、心得体会或问题..."
             />
 
             <p className="text-xs text-gray-500 mt-2">
-              支持 Markdown 格式 · 自动保存
+              支持 Markdown 格式 · 手动保存
             </p>
+            {saveHint && <p className="text-xs text-gray-500 mt-1">{saveHint}</p>}
           </div>
 
           {/* Quick Actions */}

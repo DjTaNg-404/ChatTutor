@@ -1,5 +1,9 @@
 import { Calendar, Edit3, ExternalLink } from "lucide-react";
 import { Link } from "react-router";
+import { useLocation } from "react-router";
+import { useEffect, useState } from "react";
+
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8000/api/v1";
 
 interface DailySummary {
   id: string;
@@ -7,55 +11,73 @@ interface DailySummary {
   displayDate: string;
   keyLearnings: string[];
   reviewAreas: string[];
+  sessionCount: number;
+  messageCount: number;
 }
 
-const dailySummaries: DailySummary[] = [
-  {
-    id: "1",
-    date: "2026-03-02",
-    displayDate: "3月2日",
-    keyLearnings: [
-      "理解随机森林的集成学习原理",
-      "掌握特征重要性评估方法",
-      "学习决策树的剪枝技术",
-    ],
-    reviewAreas: ["过拟合问题的解决方案", "交叉验证的实践应用"],
-  },
-  {
-    id: "2",
-    date: "2026-03-01",
-    displayDate: "3月1日",
-    keyLearnings: [
-      "复习决策树的基本构建流程",
-      "理解信息增益与基尼系数",
-      "实践 CART 算法实现",
-    ],
-    reviewAreas: ["特征选择的优化策略"],
-  },
-  {
-    id: "3",
-    date: "2026-02-29",
-    displayDate: "2月29日",
-    keyLearnings: [
-      "学习 Bagging 集成方法",
-      "理解 Bootstrap 采样原理",
-      "对比随机森林与 GBDT",
-    ],
-    reviewAreas: ["模型参数调优技巧", "树的深度控制"],
-  },
-  {
-    id: "4",
-    date: "2026-02-28",
-    displayDate: "2月28日",
-    keyLearnings: [
-      "掌握特征工程基础",
-      "实践缺失值处理方法",
-    ],
-    reviewAreas: ["类别特征编码方式"],
-  },
-];
+interface TimelineApiItem {
+  id: string;
+  date: string;
+  display_date: string;
+  key_learnings: string[];
+  review_areas: string[];
+  session_count: number;
+  message_count: number;
+}
+
+interface TimelineApiResponse {
+  task_id: string;
+  timeline: TimelineApiItem[];
+}
 
 export function SummaryPanel() {
+  const location = useLocation();
+  const taskMatch = location.pathname.match(/^\/task\/(\w+)/);
+  const currentTaskId = taskMatch ? `task_${taskMatch[1]}` : "task_default";
+  const [dailySummaries, setDailySummaries] = useState<DailySummary[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadTimeline = async () => {
+      setIsLoading(true);
+      try {
+        const response = await fetch(`${API_BASE_URL}/history/tasks/${currentTaskId}/timeline`);
+        if (!response.ok) {
+          throw new Error(`读取时间线失败（${response.status}）`);
+        }
+        const data: TimelineApiResponse = await response.json();
+        if (!cancelled) {
+          setDailySummaries(
+            (data.timeline || []).map((item) => ({
+              id: item.id,
+              date: item.date,
+              displayDate: item.display_date,
+              keyLearnings: item.key_learnings || [],
+              reviewAreas: item.review_areas || [],
+              sessionCount: item.session_count || 0,
+              messageCount: item.message_count || 0,
+            }))
+          );
+        }
+      } catch {
+        if (!cancelled) {
+          setDailySummaries([]);
+        }
+      } finally {
+        if (!cancelled) {
+          setIsLoading(false);
+        }
+      }
+    };
+
+    void loadTimeline();
+    return () => {
+      cancelled = true;
+    };
+  }, [currentTaskId]);
+
   return (
     <aside className="w-[300px] bg-white border-l border-gray-200 flex flex-col">
       {/* Header */}
@@ -66,6 +88,14 @@ export function SummaryPanel() {
 
       {/* Timeline Body */}
       <div className="flex-1 overflow-y-auto p-4">
+        {isLoading && (
+          <div className="text-sm text-gray-500 px-2 pb-3">时间线加载中...</div>
+        )}
+
+        {!isLoading && dailySummaries.length === 0 && (
+          <div className="text-sm text-gray-500 px-2 pb-3">暂无该任务的时间线数据</div>
+        )}
+
         <div className="relative">
           {/* Vertical Line */}
           <div className="absolute left-4 top-3 bottom-3 w-px bg-gradient-to-b from-indigo-200 via-indigo-200 to-transparent"></div>
@@ -113,6 +143,10 @@ export function SummaryPanel() {
                     )}
                   </div>
 
+                  <div className="text-xs text-gray-500 mb-3">
+                    {summary.sessionCount} 个会话 · {summary.messageCount} 条消息
+                  </div>
+
                   {/* Key Learnings */}
                   <div className="mb-3">
                     <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
@@ -154,7 +188,7 @@ export function SummaryPanel() {
                   {/* View Full Chat Log */}
                   <div className="flex items-center gap-2 mt-2">
                     <Link
-                      to={`/history/${summary.date}`}
+                      to={`/history/${summary.date}?task_id=${currentTaskId}`}
                       className="flex items-center gap-1.5 text-xs text-indigo-600 hover:text-indigo-700 font-medium"
                     >
                       <span>查看完整对话记录</span>
@@ -162,7 +196,7 @@ export function SummaryPanel() {
                     </Link>
                     <span className="text-gray-300">|</span>
                     <Link
-                      to={`/daily-note/${summary.date}`}
+                      to={`/daily-note/${summary.date}?task_id=${currentTaskId}`}
                       className="flex items-center gap-1.5 text-xs text-purple-600 hover:text-purple-700 font-medium"
                     >
                       <Edit3 className="w-3 h-3" />
