@@ -32,7 +32,7 @@ interface TimelineApiResponse {
 
 export function SummaryPanel() {
   const location = useLocation();
-  const taskMatch = location.pathname.match(/^\/task\/(\w+)/);
+  const taskMatch = location.pathname.match(/^\/task\/(.+)$/);
   const currentTaskId = taskMatch ? `task_${taskMatch[1]}` : "task_default";
   const [dailySummaries, setDailySummaries] = useState<DailySummary[]>([]);
   const [isLoading, setIsLoading] = useState(false);

@@ -187,12 +187,21 @@ ChatTutor/
 │   │   ├── memory.py        # 磁盘 I/O 与持久化
 │   │   ├── models.py        # Pydantic 数据模型定义
 │   │   ├── prompts.py       # Prompt 模板管理
-│   │   └── tools.py         # 外部工具 (Search)
+│   │   ├── tools.py         # 外部工具 (Search)
+│   │   └── summary/         # 总结模块 (集成到主服务)
+│   │       ├── __init__.py
+│   │       ├── prompts.py   # 总结专用 Prompt
+│   │       └── generator.py # 总结生成器
+│   ├── api/
+│   │   ├── chat.py          # 对话接口 (内置总结调用)
+│   │   ├── history.py       # 历史记录接口
+│   │   ├── notes.py         # 笔记接口
+│   │   └── kg.py            # 知识图谱接口
 │   └── utils/
-├── memory/                 # 运行时数据存储 (Git Ignored)
-│   ├── sessions/           # 对话 Session JSON
-│   └── notes/              # 生成的 Markdown 学习笔记
-├── tests/                  # 测试套件
+├── memory/                  # 运行时数据存储 (Git Ignored)
+│   ├── sessions/            # 对话 Session JSON
+│   └── notes/               # 生成的 Markdown 学习笔记
+├── tests/                   # 测试套件
 └── requirements.txt
 ```
 

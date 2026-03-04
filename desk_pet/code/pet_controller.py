@@ -1,6 +1,7 @@
 import sys
 import random
 from PyQt6.QtCore import QObject, QTimer, pyqtSignal
+from PyQt6.QtWidgets import QApplication
 
 # ================= 跨平台系统依赖注入 =================
 if sys.platform == "win32":
@@ -168,18 +169,25 @@ class PetController(QObject):
         return None
 
     def game_loop(self):
-        if self.state == "DRAGGED": 
-            return 
-            
+        if self.state == "DRAGGED":
+            return
+
+        # ================= 动态更新屏幕边界 =================
+        screen = QApplication.primaryScreen()
+        if screen:
+            self.screen_rect = screen.availableGeometry()
+            self.floor_y = self.screen_rect.height() - self.pet_height
+        # ==================================================
+
         # ================= 核心冻结逻辑 =================
         if self.is_chatting:
             self.position_changed.emit(int(self.pet_x), int(self.pet_y))
             return
         # ================================================
-            
+
         self.pet_x += self.vx
         self.pet_y += self.vy
-        
+
         active_win = self.get_active_window_rect()
         target_floor_y = self.floor_y
 
@@ -187,8 +195,8 @@ class PetController(QObject):
         if active_win and self.state != "DRAGGED":
             pet_center_x = self.pet_x + self.pet_width / 2
             if active_win.left <= pet_center_x <= active_win.right:
-                window_top_y = active_win.top - self.pet_height + 25 
-                
+                window_top_y = active_win.top - self.pet_height + 25
+
                 if self.vy >= 0:
                     if self.pet_y <= window_top_y + 80:
                         target_floor_y = window_top_y
@@ -198,31 +206,44 @@ class PetController(QObject):
                         target_floor_y = window_top_y
                         on_window = True
 
-        if self.pet_y < target_floor_y - 5:  
-            self.vy += 2.0  
-            if self.state not in ["FALLING", "FELL", "JUMP"]: 
+        if self.pet_y < target_floor_y - 5:
+            self.vy += 2.0
+            if self.state not in ["FALLING", "FELL", "JUMP"]:
                 self.change_state("FALLING")
         elif self.pet_y < target_floor_y:
             self.pet_y = target_floor_y
             self.vy = 0
             if self.state == "FALLING":
                 self.change_state("FELL")
-            elif self.state == "JUMP": 
+            elif self.state == "JUMP":
                 self.change_state("STAND", random.randint(100, 200))
         else:
             self.pet_y = target_floor_y
             self.vy = 0
             if self.state == "FALLING":
                 self.change_state("FELL")
-            elif self.state == "JUMP": 
+            elif self.state == "JUMP":
                 self.change_state("STAND", random.randint(100, 200))
 
-        if self.pet_x < 0: 
+        # ================= 边界检查：确保宠物不会移出屏幕 =================
+        max_x = self.screen_rect.width() - self.pet_width
+        if self.pet_x < 0:
             self.pet_x = 0
-            self.vx = abs(self.vx)  
-        elif self.pet_x > self.screen_rect.width() - self.pet_width: 
-            self.pet_x = self.screen_rect.width() - self.pet_width
-            self.vx = -abs(self.vx) 
+            self.vx = abs(self.vx)
+        elif self.pet_x > max_x:
+            self.pet_x = max_x
+            self.vx = -abs(self.vx)
+
+        # Y 轴边界检查（防止宠物掉出屏幕外）
+        if self.pet_y > self.floor_y:
+            self.pet_y = self.floor_y
+            self.vy = 0
+            if self.state in ["FALLING", "FELL"]:
+                self.change_state("GETUP")
+        elif self.pet_y < 0:
+            self.pet_y = 0
+            self.vy = abs(self.vy)
+        # ================================================================= 
 
         new_flipped = self.is_flipped
         

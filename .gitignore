@@ -9,7 +9,7 @@ __pycache__/
 env/
 venv/
 ENV/
-
+app/core/config.py
 # Mac OS
 .DS_Store
 
@@ -22,7 +22,7 @@ memory/sessions/*
 !memory/sessions/.gitkeep
 memory/notes/*
 !memory/notes/.gitkeep
-
+kg_output
 # Logs
 *.log
 

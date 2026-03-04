@@ -2,10 +2,12 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from typing import Optional
 from datetime import datetime
+import asyncio
 from langchain_core.messages import HumanMessage
 
 from app.core.agent_builder import build_agent
 from app.core import memory
+from app.core.summary.generator import summary_generator
 
 router = APIRouter()
 
@@ -105,10 +107,69 @@ async def chat_endpoint(request: ChatRequest):
     
     # 6. 检查是否结束对话
     is_concluded = final_state.get("should_exit", False)
-    
+
+    # 7. 如果会话结束，异步调用总结生成器保存总结
+    if is_concluded:
+        # 获取 Agent 生成的总结（如果有的话）
+        summary_from_agent = final_state.get("summary_output") or final_state.get("summary_out")
+        asyncio.create_task(_call_summary_agent(session_id, task_id, summary_from_agent))
+
     return ChatResponse(
         task_id=task_id,
         session_id=session_id,
         reply=reply_content,
         is_concluded=is_concluded
     )
+
+
+async def _call_summary_agent(session_id: str, task_id: str, summary_text: str = None):
+    """
+    保存会话总结到笔记文件（异步后台任务）
+
+    Args:
+        session_id: 会话 ID
+        task_id: 任务 ID
+        summary_text: 可选的已生成总结文本，如果为 None 则重新生成
+    """
+    try:
+        # 从 memory 加载会话消息
+        session_data = memory.get_session_messages(session_id)
+        if not session_data:
+            print(f"⚠️ 会话 {session_id} 不存在")
+            return
+
+        # 如果没有传入总结文本，从会话数据生成
+        if not summary_text:
+            messages = session_data.get("messages", [])
+            topic = session_data.get("topic", "General")
+
+            # 生成总结
+            summary_text = summary_generator.generate_session_note(
+                conversation_history=messages,
+                topic=topic
+            )
+
+        # 将总结保存到笔记文件
+        if summary_text:
+            from app.utils import file_io
+            import os
+
+            notes_dir = "memory/notes"
+            os.makedirs(notes_dir, exist_ok=True)
+
+            note_filename = f"{session_id}_summary.md"
+            note_path = os.path.join(notes_dir, note_filename)
+
+            # 添加元数据头
+            header = f"""---
+source_session: {session_id}
+date: {datetime.now().strftime("%Y-%m-%d")}
+topic: {task_id}
+---
+
+"""
+            file_io.save_text(header + summary_text, note_path)
+            print(f"✅ 总结已保存：{note_path}")
+
+    except Exception as e:
+        print(f"⚠️ 生成总结异常：{e}")
