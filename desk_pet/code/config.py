@@ -80,16 +80,48 @@ HTML_TEMPLATE = r"""
             return html;
         }
 
-        function addMessage(text, isUser) {
+        function _createMessageRow(text, isUser, messageId) {
             const container = document.getElementById('chat-container');
             const row = document.createElement('div');
             row.className = 'msg-row ' + (isUser ? 'user' : 'ai');
+            if (messageId) row.setAttribute('data-id', messageId);
             const bubble = document.createElement('div');
             bubble.className = 'bubble';
             if(isUser) bubble.innerText = text; else bubble.innerHTML = renderMarkdownAndMath(text);
-            row.appendChild(bubble); container.appendChild(row);
+            row.appendChild(bubble);
+            container.appendChild(row);
             updateOpacities();
             setTimeout(() => window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' }), 50);
+            return row;
+        }
+
+        function addMessage(text, isUser) {
+            _createMessageRow(text, isUser, null);
+        }
+
+        function startAssistantMessage(messageId) {
+            _createMessageRow('', false, messageId);
+        }
+
+        function appendAssistantDelta(messageId, chunk) {
+            const row = document.querySelector(`.msg-row[data-id="${messageId}"]`);
+            if (!row) return;
+            const bubble = row.querySelector('.bubble');
+            if (!bubble) return;
+            const prevRaw = bubble.getAttribute('data-raw') || '';
+            const nextRaw = prevRaw + (chunk || '');
+            bubble.setAttribute('data-raw', nextRaw);
+            bubble.innerHTML = renderMarkdownAndMath(nextRaw);
+            setTimeout(() => window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' }), 20);
+        }
+
+        function finishAssistantMessage(messageId) {
+            const row = document.querySelector(`.msg-row[data-id="${messageId}"]`);
+            if (!row) return;
+            const bubble = row.querySelector('.bubble');
+            if (!bubble) return;
+            const raw = bubble.getAttribute('data-raw') || '';
+            bubble.innerHTML = renderMarkdownAndMath(raw);
         }
 
         function updateOpacities() {

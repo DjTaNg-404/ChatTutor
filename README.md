@@ -110,7 +110,7 @@ BAIDU_API_KEY=xxxxxxxxxxxx
 
 ## 🚀 运行指南 (Usage)
 
-### 1) 启动后端 FastAPI 服务
+### 启动后端 FastAPI 服务
 在项目根目录执行：
 ```bash
 uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload
@@ -120,8 +120,8 @@ uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload
 - API 根路径: `http://127.0.0.1:8000/`
 - Swagger 文档: `http://127.0.0.1:8000/docs`
 
-### 2) 启动 Web Dashboard 前端（React + Vite）
-在新终端进入前端目录并安装依赖：
+### 启动 Web Dashboard 前端（React + Vite）
+在新终端中进入前端目录并安装依赖：
 ```bash
 cd Design_Web_Dashboard
 npm install
@@ -135,39 +135,7 @@ npm run dev -- --host 127.0.0.1 --port 5173
 启动后访问：
 - Dashboard 首页: `http://127.0.0.1:5173`
 
-> 注意：前端已对接真实后端接口。请先启动后端，再启动前端。
-
-### 3) 快速功能验证（当前版本）
-
-#### A. 聊天接口
-```bash
-curl -X POST "http://127.0.0.1:8000/api/v1/chat" \
-    -H "Content-Type: application/json" \
-    -d '{
-        "task_id": "task_1",
-        "message": "请解释随机森林和决策树的差别",
-        "topic": "掌握随机森林算法"
-    }'
-```
-
-#### B. 历史接口（任务会话 + 会话消息）
-```bash
-curl "http://127.0.0.1:8000/api/v1/history/tasks/task_1/sessions"
-curl "http://127.0.0.1:8000/api/v1/history/tasks/task_1/timeline"
-curl "http://127.0.0.1:8000/api/v1/history/sessions/task_1__20260303__153000/messages"
-```
-
-#### C. 笔记接口（每日 + 任务）
-```bash
-curl "http://127.0.0.1:8000/api/v1/notes/daily?task_id=task_1&date=2026-03-03"
-curl "http://127.0.0.1:8000/api/v1/notes/task?task_id=task_1"
-```
-
-#### D. 前端页面验证路径
-- 任务聊天：`/task/1`
-- 每日笔记：`/daily-note/2026-03-03?task_id=task_1`
-- 任务笔记：`/task-note/1`
-- 历史记录：`/history/2026-03-03?task_id=task_1`
+> 注意：请先确保后端 FastAPI 已启动，否则前端后续联调接口时将无法访问 API。
 
 ### 运行记忆机制仿真测试
 想亲眼看看它是如何“记住”第1轮的话，并在第20轮“召回”它的吗？运行这个脚本：
@@ -187,126 +155,14 @@ ChatTutor/
 │   │   ├── memory.py        # 磁盘 I/O 与持久化
 │   │   ├── models.py        # Pydantic 数据模型定义
 │   │   ├── prompts.py       # Prompt 模板管理
-│   │   ├── tools.py         # 外部工具 (Search)
-│   │   └── summary/         # 总结模块 (集成到主服务)
-│   │       ├── __init__.py
-│   │       ├── prompts.py   # 总结专用 Prompt
-│   │       └── generator.py # 总结生成器
-│   ├── api/
-│   │   ├── chat.py          # 对话接口 (内置总结调用)
-│   │   ├── history.py       # 历史记录接口
-│   │   ├── notes.py         # 笔记接口
-│   │   └── kg.py            # 知识图谱接口
+│   │   └── tools.py         # 外部工具 (Search)
 │   └── utils/
-├── memory/                  # 运行时数据存储 (Git Ignored)
-│   ├── sessions/            # 对话 Session JSON
-│   └── notes/               # 生成的 Markdown 学习笔记
-├── tests/                   # 测试套件
+├── memory/                 # 运行时数据存储 (Git Ignored)
+│   ├── sessions/           # 对话 Session JSON
+│   └── notes/              # 生成的 Markdown 学习笔记
+├── tests/                  # 测试套件
 └── requirements.txt
 ```
-
-## 🧠 Memory 存储规范（v1.1，单机单用户）
-
-本项目当前定位为本地部署、单用户使用，因此本版本规范不要求显式传入 `user_id`，统一以 `task_id` 作为业务主维度。
-
-### 1. 设计原则
-
-- **任务优先**：所有对话与笔记围绕 `task_id` 组织。
-- **会话真相源**：聊天原始记录只在 Session 层保存一份。
-- **笔记派生层**：每日笔记与任务总笔记由会话数据生成/聚合。
-
-### 2. 标识规范（简化）
-
-- `task_id`：任务唯一标识（必填）
-- `session_id`：`{task_id}__{yyyyMMdd}__{HHmmss}`
-- `message_id`：时间戳 + 随机串（或 UUID）
-
-### 3. 存储目录规范
-
-```text
-memory/
-├── sessions/
-│   └── {session_id}.json
-├── task_index/
-│   └── {task_id}.json
-└── notes/
-        ├── daily/
-        │   └── {task_id}/
-        │       └── {yyyy-MM-dd}.md
-        └── task/
-                └── {task_id}.md
-```
-
-### 4. 数据结构规范
-
-#### 4.1 Session 文件：`memory/sessions/{session_id}.json`
-
-建议字段：
-
-- `session_id`
-- `task_id`
-- `topic`
-- `created_at`
-- `updated_at`
-- `is_concluded`
-- `conversation_summary`
-- `summarized_msg_count`
-- `messages[]`
-    - `message_id`
-    - `role` (`user` / `assistant`)
-    - `content`
-    - `timestamp`
-
-#### 4.2 任务索引：`memory/task_index/{task_id}.json`
-
-建议字段：
-
-- `task_id`
-- `title`（可选）
-- `session_ids[]`（按时间倒序）
-- `last_session_id`
-- `updated_at`
-
-#### 4.3 每日笔记：`memory/notes/daily/{task_id}/{yyyy-MM-dd}.md`
-
-- 唯一键：`task_id + date`
-- 内容建议：核心洞察、待复习点、下一步行动、来源会话列表
-
-#### 4.4 任务总笔记：`memory/notes/task/{task_id}.md`
-
-- 唯一键：`task_id`
-- 内容建议：全周期关键结论、里程碑、能力变化、后续计划
-
-### 5. 写入规则
-
-每轮对话成功后：
-
-1. 更新当前 Session 文件
-2. 更新任务索引（追加/去重 `session_id`）
-
-会话结束（`is_concluded = true`）后：
-
-1. 生成或更新当日 Daily Note
-2. 将增量内容合并到 Task Note
-
-> 说明：不强制“一天一个会话”。同一天可有多个 Session，由 Daily Note 统一聚合。
-
-### 6. 查询规则（前端使用）
-
-- 任务页：读取 `task_index/{task_id}.json` 获取会话列表
-- 聊天页：按 `session_id` 读取消息
-- 每日笔记页：按 `task_id + date` 读取
-- 任务笔记页：按 `task_id` 读取
-
-### 7. 最小 API 契约（后续实现建议）
-
-`POST /api/v1/chat`：
-
-- 请求体（建议）：
-    - 必填：`task_id`, `message`
-    - 可选：`session_id`, `topic`
-- 响应体（建议）：
-    - `reply`, `is_concluded`, `task_id`, `session_id`
 
 ## 未来计划与畅想
 

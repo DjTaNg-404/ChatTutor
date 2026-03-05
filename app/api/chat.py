@@ -1,8 +1,12 @@
 from fastapi import APIRouter, HTTPException
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 from typing import Optional
 from datetime import datetime
 import asyncio
+import json
+import os
+import re
 from langchain_core.messages import HumanMessage
 
 from app.core.agent_builder import build_agent
@@ -10,6 +14,8 @@ from app.core import memory
 from app.core.summary.generator import summary_generator
 
 router = APIRouter()
+
+ENABLE_STREAMING = os.getenv("ENABLE_STREAMING", "true").lower() in {"1", "true", "yes", "on"}
 
 # Initialize the agent graph once when the module loads
 agent_graph = build_agent()
@@ -27,6 +33,11 @@ class ChatResponse(BaseModel):
     is_concluded: bool
 
 
+class StreamEvent(BaseModel):
+    event: str
+    data: dict
+
+
 def _normalize_task_id(task_id: Optional[str], session_id: Optional[str]) -> str:
     if task_id and task_id.strip():
         return task_id.strip()
@@ -42,22 +53,9 @@ def _build_session_id(task_id: str, session_id: Optional[str]) -> str:
     now = datetime.now().strftime("%Y%m%d__%H%M%S")
     return f"{task_id}__{now}"
 
-@router.post("/chat", response_model=ChatResponse)
-async def chat_endpoint(request: ChatRequest):
-    """
-    核心对话接口。
-    接收用户的输入，加载历史会话状态，调用 Agent，并返回 AI 的回复。
-    """
-    if not request.message.strip():
-        raise HTTPException(status_code=400, detail="Message cannot be empty")
 
-    task_id = _normalize_task_id(request.task_id, request.session_id)
-    session_id = _build_session_id(task_id, request.session_id)
-
-    # 1. 尝试从本地加载历史会话状态
+def _build_state(request: ChatRequest, task_id: str, session_id: str):
     current_state = memory.load_session(session_id)
-    
-    # 2. 如果没有历史记录，初始化一个新的状态；若有历史记录，补全加载时缺失的字段
     _defaults = {
         "messages": [],
         "task_id": task_id,
@@ -74,10 +72,10 @@ async def chat_endpoint(request: ChatRequest):
         "summary_output": None,
         "last_intent": None,
     }
+
     if not current_state:
         current_state = _defaults
     else:
-        # 补全旧会话中因版本迭代而新增但尚未持久化的字段
         for key, default_val in _defaults.items():
             current_state.setdefault(key, default_val)
         current_state["task_id"] = task_id
@@ -85,28 +83,51 @@ async def chat_endpoint(request: ChatRequest):
         current_state.setdefault("user_id", "local_user")
         if request.topic:
             current_state["current_topic"] = request.topic
-    
-    # 3. 将用户的新消息追加到状态中
-    user_msg = HumanMessage(content=request.message)
-    current_state["messages"].append(user_msg)
-    
-    # 4. 调用 Agent 图执行逻辑
+
+    current_state["messages"].append(HumanMessage(content=request.message))
+    return current_state
+
+
+async def _invoke_agent(current_state):
     try:
-        # invoke 会返回最终的状态字典
-        final_state = agent_graph.invoke(current_state)
+        final_state = await asyncio.to_thread(agent_graph.invoke, current_state)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Agent execution failed: {str(e)}")
-    
-    # 5. 提取 AI 的最新回复
+
     messages = final_state.get("messages", [])
     if not messages:
         raise HTTPException(status_code=500, detail="Agent returned no messages")
-        
+
     last_msg = messages[-1]
     reply_content = last_msg.content if hasattr(last_msg, "content") else str(last_msg)
-    
-    # 6. 检查是否结束对话
     is_concluded = final_state.get("should_exit", False)
+    return final_state, reply_content, is_concluded
+
+
+def _split_for_stream(text: str):
+    parts = [s for s in re.split(r"(?<=[。！？!?\n])", text) if s]
+    if not parts:
+        return [text]
+    return parts
+
+
+def _event_line(event: str, data: dict) -> str:
+    return json.dumps(StreamEvent(event=event, data=data).model_dump(), ensure_ascii=False) + "\n"
+
+@router.post("/chat", response_model=ChatResponse)
+async def chat_endpoint(request: ChatRequest):
+    """
+    核心对话接口。
+    接收用户的输入，加载历史会话状态，调用 Agent，并返回 AI 的回复。
+    """
+    if not request.message.strip():
+        raise HTTPException(status_code=400, detail="Message cannot be empty")
+
+    task_id = _normalize_task_id(request.task_id, request.session_id)
+    session_id = _build_session_id(task_id, request.session_id)
+
+    current_state = _build_state(request, task_id, session_id)
+    final_state, reply_content, is_concluded = await _invoke_agent(current_state)
 
     # 7. 如果会话结束，异步调用总结生成器保存总结
     if is_concluded:
@@ -120,6 +141,45 @@ async def chat_endpoint(request: ChatRequest):
         reply=reply_content,
         is_concluded=is_concluded
     )
+
+
+@router.post("/chat/stream")
+async def chat_stream_endpoint(request: ChatRequest):
+    if not request.message.strip():
+        raise HTTPException(status_code=400, detail="Message cannot be empty")
+
+    task_id = _normalize_task_id(request.task_id, request.session_id)
+    session_id = _build_session_id(task_id, request.session_id)
+
+    async def _gen():
+        try:
+            yield _event_line("start", {"task_id": task_id, "session_id": session_id})
+
+            current_state = _build_state(request, task_id, session_id)
+            final_state, reply_content, is_concluded = await _invoke_agent(current_state)
+
+            if ENABLE_STREAMING:
+                for chunk in _split_for_stream(reply_content):
+                    yield _event_line("delta", {"text": chunk})
+                    await asyncio.sleep(0.02)
+            else:
+                yield _event_line("delta", {"text": reply_content})
+
+            if is_concluded:
+                summary_from_agent = final_state.get("summary_output") or final_state.get("summary_out")
+                asyncio.create_task(_call_summary_agent(session_id, task_id, summary_from_agent))
+
+            yield _event_line("done", {
+                "task_id": task_id,
+                "session_id": session_id,
+                "is_concluded": is_concluded,
+            })
+        except HTTPException as e:
+            yield _event_line("error", {"message": str(e.detail), "status": e.status_code})
+        except Exception as e:
+            yield _event_line("error", {"message": str(e), "status": 500})
+
+    return StreamingResponse(_gen(), media_type="application/x-ndjson")
 
 
 async def _call_summary_agent(session_id: str, task_id: str, summary_text: str = None):
