@@ -5,9 +5,10 @@ import signal
 import json
 from PyQt6.QtWidgets import (QApplication, QWidget, QVBoxLayout, QHBoxLayout, 
                              QLineEdit, QLabel, QMenu, QPushButton)
-from PyQt6.QtCore import Qt, QPoint, QSize, QEvent
-# 引入了 QPainter
-from PyQt6.QtGui import QMovie, QFont, QAction, QPixmap, QPainter
+# 引入了 QUrl
+from PyQt6.QtCore import Qt, QPoint, QSize, QEvent, QUrl
+# 引入了 QPainter 和 QDesktopServices
+from PyQt6.QtGui import QMovie, QFont, QAction, QPixmap, QPainter, QDesktopServices
 from PyQt6.QtWebEngineWidgets import QWebEngineView
 
 # 导入封装好的模块
@@ -158,7 +159,8 @@ class ChatTutorPet(QWidget):
             "sitting": load_movie("sitting.gif"),   
             "standing": load_movie("standing.gif"),
             "sleep": load_movie("sleep.gif"),
-            "reading": load_movie("reading.gif"),
+            "stand_reading": load_movie("stand_reading.gif"),
+            "sit_reading": load_movie("sit_reading.gif"),
         }
 
     def set_appearance(self, asset_key):
@@ -220,9 +222,16 @@ class ChatTutorPet(QWidget):
             self.drag_position = event.globalPosition().toPoint() - self.frameGeometry().topLeft()
         elif event.button() == Qt.MouseButton.RightButton:
             menu = QMenu(self)
-            # ================= 核心修改 =================
-            menu.addAction("退出", QApplication.quit)
-            # ============================================
+            # ================= 新增：打开 Web 面板 =================
+            open_web_action = menu.addAction("🌐 打开 Web 面板")
+            open_web_action.triggered.connect(
+                lambda: QDesktopServices.openUrl(QUrl("http://127.0.0.1:5173"))
+            )
+            menu.addSeparator() # 分割线
+            # =======================================================
+            
+            menu.addAction("❌ 退出", QApplication.quit)
+            
             menu.exec(event.globalPosition().toPoint())
 
     def mouseMoveEvent(self, event):
@@ -295,7 +304,7 @@ class ChatTutorPet(QWidget):
         self.controller.change_state("STAND", 20)
 
 if __name__ == '__main__':
-    signal.signal(signal.SIGINT, signal.SIG_DFL)
+    signal.signal(signal.SIGINT, signal.SIG_DFL) 
     app = QApplication(sys.argv)
     pet = ChatTutorPet()
     pet.show()

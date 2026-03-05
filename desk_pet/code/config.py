@@ -9,9 +9,9 @@ HTML_TEMPLATE = r"""
 <html>
 <head>
 <meta charset="utf-8">
-<script src="https://cdn.jsdelivr.net/npm/marked@12/marked.min.js"></script>
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
-<script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+<script src="https://cdn.staticfile.net/marked/12.0.1/marked.min.js"></script>
+<link rel="stylesheet" href="https://cdn.staticfile.net/KaTeX/0.16.9/katex.min.css">
+<script src="https://cdn.staticfile.net/KaTeX/0.16.9/katex.min.js"></script>
 <style>
     body { margin: 0; padding: 10px; font-family: "Microsoft YaHei", sans-serif; background-color: transparent !important; display: flex; flex-direction: column; overflow-x: hidden; overflow-y: auto; min-height: calc(100vh - 20px); box-sizing: border-box; }
     ::-webkit-scrollbar { width: 6px; height: 6px; }
