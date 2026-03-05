@@ -1,5 +1,6 @@
 from typing import Dict, Any, Literal
 import hashlib
+import asyncio
 
 from langchain_deepseek import ChatDeepSeek
 from langchain_core.messages import SystemMessage, HumanMessage, AIMessage
@@ -38,6 +39,7 @@ analyzer_model_raw = ChatDeepSeek(
 )
 
 PERSIST_MESSAGES_LIMIT = 0  # 0 = 不裁剪，保留全量历史
+WORKER_TIMEOUT_SECONDS = 30
 
 # --- Cache & Profile Helpers ---
 
@@ -103,7 +105,7 @@ def _should_invalidate_cache(messages) -> bool:
 
 # --- 2. Node Functions (节点逻辑) ---
 
-def analyzer_node(state: AgentState) -> Dict[str, Any]:
+async def analyzer_node(state: AgentState) -> Dict[str, Any]:
     """
     大脑节点：分析用户意图并制定执行计划 (ExecutionPlan)。
     同时负责清理上一轮的临时输出。
@@ -130,7 +132,7 @@ def analyzer_node(state: AgentState) -> Dict[str, Any]:
         
         inputs.extend(recent_context)
         
-        plan: ExecutionPlan = planner.invoke(inputs)
+        plan: ExecutionPlan = await planner.ainvoke(inputs)
     except Exception as e:
         # Fallback 策略：如果解析失败，默认当作普通提问
         print(f"Analyzer Error: {e}")
@@ -138,6 +140,8 @@ def analyzer_node(state: AgentState) -> Dict[str, Any]:
             needs_tutor_answer=True,
             needs_judge=False,
             needs_inquiry=False,
+            request_summary=False,
+            is_concluding=False,
             thought_process="Error in planning, defaulting to simple answer."
         )
     
@@ -152,7 +156,7 @@ def analyzer_node(state: AgentState) -> Dict[str, Any]:
         "summary_output": None
     }
 
-def _run_tool_loop(prompt_content, state):
+async def _run_tool_loop(prompt_content, state):
     """
     具体的 ReAct 循环逻辑：
     1. 调用模型 (带工具)
@@ -167,7 +171,7 @@ def _run_tool_loop(prompt_content, state):
 
     # 第一次调用：让模型思考是否需要工具
     # 注意这里使用的是 runnable list，而不是 state["messages"] 全集
-    response = model_with_tools.invoke(current_messages)
+    response = await model_with_tools.ainvoke(current_messages)
 
     # 检查是否有工具调用请求
     if response.tool_calls:
@@ -185,7 +189,7 @@ def _run_tool_loop(prompt_content, state):
                 _mark_retrieval_cache(state, hit)
                 rprint(f"[dim italic]   🔍 Searching Baidu for: [cyan]{query_str}[/cyan] ...[/dim italic]")
                 
-                tool_result = search_tool_v2.invoke(tool_call["args"])
+                tool_result = await search_tool_v2.ainvoke(tool_call["args"])
                 
                 # 构造 ToolMessage 反馈给模型
                 tool_msg = ToolMessage(
@@ -198,13 +202,13 @@ def _run_tool_loop(prompt_content, state):
         
         # 第二次调用：基于工具结果生成回答
         # 注意：这里我们只要最终结果，不再绑定工具，防止它死循环一直搜
-        final_response = model.invoke(current_messages)
+        final_response = await model.ainvoke(current_messages)
         return final_response.content
     else:
         # 没用工具，直接返回
         return response.content
 
-def tutor_node(state: AgentState) -> Dict[str, Any]:
+async def tutor_node(state: AgentState) -> Dict[str, Any]:
     """
     Worker A: 答疑者。支持联网搜索。
     """
@@ -218,11 +222,11 @@ def tutor_node(state: AgentState) -> Dict[str, Any]:
         return {"tutor_output": cached}
 
     _mark_gen_cache(state, "tutor", False)
-    content = _run_tool_loop(prompt_str, state)
+    content = await _run_tool_loop(prompt_str, state)
     generation_cache.set(cache_key, content, session_id=state.get("session_id"))
     return {"tutor_output": content}
 
-def judge_node(state: AgentState) -> Dict[str, Any]:
+async def judge_node(state: AgentState) -> Dict[str, Any]:
     """
     Worker B: 评审员。支持联网搜索。
     """
@@ -236,11 +240,11 @@ def judge_node(state: AgentState) -> Dict[str, Any]:
         return {"judge_output": cached}
 
     _mark_gen_cache(state, "judge", False)
-    content = _run_tool_loop(prompt_str, state)
+    content = await _run_tool_loop(prompt_str, state)
     generation_cache.set(cache_key, content, session_id=state.get("session_id"))
     return {"judge_output": content}
 
-def inquiry_node(state: AgentState) -> Dict[str, Any]:
+async def inquiry_node(state: AgentState) -> Dict[str, Any]:
     """
     Worker C: 探究者。提出启发式问题。
     """
@@ -259,11 +263,94 @@ def inquiry_node(state: AgentState) -> Dict[str, Any]:
     _mark_gen_cache(state, "inquiry", False)
     # 先构建标准上下文 [System, Summary, Recent]
     inputs = context.build_context(state, sys_msg_str)
-    response = model.invoke(inputs)
+    response = await model.ainvoke(inputs)
     generation_cache.set(cache_key, response.content, session_id=state.get("session_id"))
     return {"inquiry_output": response.content}
 
-def aggregator_node(state: AgentState) -> Dict[str, Any]:
+
+def _make_local_worker_state(state: AgentState) -> AgentState:
+    local_state = state.copy()
+    base_trace = state.get("_cache_trace") or {}
+    local_state["_cache_trace"] = {
+        "generation_cache_hit": dict(base_trace.get("generation_cache_hit", {})),
+        "retrieval_cache_hit": bool(base_trace.get("retrieval_cache_hit", False)),
+    }
+    return local_state
+
+
+def _merge_trace(state: AgentState, worker_trace: dict):
+    if not worker_trace:
+        return
+    merged = _ensure_cache_trace(state)
+    merged["retrieval_cache_hit"] = bool(merged.get("retrieval_cache_hit")) or bool(worker_trace.get("retrieval_cache_hit"))
+    worker_gen = worker_trace.get("generation_cache_hit", {})
+    if isinstance(worker_gen, dict):
+        merged["generation_cache_hit"].update(worker_gen)
+
+
+async def _run_worker_safe(worker_name: str, worker_coro, state: AgentState) -> Dict[str, Any]:
+    try:
+        result = await asyncio.wait_for(worker_coro, timeout=WORKER_TIMEOUT_SECONDS)
+        return result if isinstance(result, dict) else {}
+    except Exception as e:
+        print(f"⚠️ Worker {worker_name} failed: {e}")
+        return {}
+
+
+async def parallel_workers_node(state: AgentState) -> Dict[str, Any]:
+    plan = state.get("plan")
+    if not plan:
+        return {}
+
+    updates: Dict[str, Any] = {}
+
+    tutor_task = None
+    judge_task = None
+    tutor_state = None
+    judge_state = None
+
+    if plan.needs_tutor_answer:
+        tutor_state = _make_local_worker_state(state)
+        tutor_task = asyncio.create_task(_run_worker_safe("tutor", tutor_node(tutor_state), state))
+
+    if plan.needs_judge:
+        judge_state = _make_local_worker_state(state)
+        judge_task = asyncio.create_task(_run_worker_safe("judge", judge_node(judge_state), state))
+
+    if tutor_task or judge_task:
+        results = await asyncio.gather(
+            *(task for task in [tutor_task, judge_task] if task is not None),
+            return_exceptions=True,
+        )
+
+        idx = 0
+        if tutor_task is not None:
+            tutor_res = results[idx]
+            idx += 1
+            if isinstance(tutor_res, dict):
+                updates.update(tutor_res)
+            if tutor_state is not None:
+                _merge_trace(state, tutor_state.get("_cache_trace", {}))
+
+        if judge_task is not None:
+            judge_res = results[idx]
+            if isinstance(judge_res, dict):
+                updates.update(judge_res)
+            if judge_state is not None:
+                _merge_trace(state, judge_state.get("_cache_trace", {}))
+
+    if plan.needs_inquiry:
+        inquiry_state = _make_local_worker_state(state)
+        if updates.get("judge_output"):
+            inquiry_state["judge_output"] = updates.get("judge_output")
+        inquiry_res = await _run_worker_safe("inquiry", inquiry_node(inquiry_state), state)
+        if isinstance(inquiry_res, dict):
+            updates.update(inquiry_res)
+        _merge_trace(state, inquiry_state.get("_cache_trace", {}))
+
+    return updates
+
+async def aggregator_node(state: AgentState) -> Dict[str, Any]:
     """
     汇总者。将所有 Worker 的输出融合成最终回复。
     """
@@ -291,7 +378,8 @@ def aggregator_node(state: AgentState) -> Dict[str, Any]:
                 conversation_history.append({"role": "assistant", "content": msg.content or ""})
 
         topic = state.get("current_topic", "General")
-        summary_text = summary_generator.generate_review_summary(
+        summary_text = await asyncio.to_thread(
+            summary_generator.generate_review_summary,
             conversation_history=conversation_history,
             topic=topic
         )
@@ -313,7 +401,8 @@ def aggregator_node(state: AgentState) -> Dict[str, Any]:
                     conversation_history.append({"role": "assistant", "content": msg.content or ""})
 
             topic = state.get("current_topic", "General")
-            summary_text = summary_generator.generate_session_note(
+            summary_text = await asyncio.to_thread(
+                summary_generator.generate_session_note,
                 conversation_history=conversation_history,
                 topic=topic
             )
@@ -323,7 +412,7 @@ def aggregator_node(state: AgentState) -> Dict[str, Any]:
     elif not any([tutor_out, judge_out, inquiry_out, summary_out]):
         # 闲聊/低信息量场景：走专用闲聊 Prompt，生成自然回复
         inputs = context.build_context(state, prompts.CHITCHAT_SYSTEM_PROMPT)
-        final_response = model.invoke(inputs)
+        final_response = await model.ainvoke(inputs)
     else:
         # 构造 Prompt
         prompt = prompts.AGGREGATOR_SYSTEM_PROMPT.format(
@@ -340,7 +429,7 @@ def aggregator_node(state: AgentState) -> Dict[str, Any]:
         if state["messages"]:
             inputs.append(state["messages"][-1])
             
-        final_response = model.invoke(inputs)
+        final_response = await model.ainvoke(inputs)
 
     # ---------------- 存档与压缩逻辑 (Auto-Save & Compress) ----------------
     # 模拟“状态更新之后”的效果：我们需要把最新的 AI 回复合并进去才能存到完整的记录
@@ -452,7 +541,7 @@ def aggregator_node(state: AgentState) -> Dict[str, Any]:
 
 # --- 3. Edge Logic (条件路由) ---
 
-def route_from_analyzer(state: AgentState) -> Literal["tutor", "judge", "inquiry", "aggregator"]:
+def route_from_analyzer(state: AgentState) -> Literal["parallel_workers", "aggregator"]:
     plan = state.get("plan")
     if not plan: # Should not happen
         return "aggregator"
@@ -461,28 +550,8 @@ def route_from_analyzer(state: AgentState) -> Literal["tutor", "judge", "inquiry
     if plan.request_summary:
         return "aggregator"
 
-    if plan.needs_tutor_answer:
-        return "tutor"
-    elif plan.needs_judge:
-        return "judge"
-    elif plan.needs_inquiry:
-        return "inquiry"
-    else:
-        return "aggregator"
-
-def route_from_tutor(state: AgentState) -> Literal["judge", "inquiry", "aggregator"]:
-    plan = state.get("plan")
-    if plan.needs_judge:
-        return "judge"
-    elif plan.needs_inquiry:
-        return "inquiry"
-    else:
-        return "aggregator"
-
-def route_from_judge(state: AgentState) -> Literal["inquiry", "aggregator"]:
-    plan = state.get("plan")
-    if plan.needs_inquiry:
-        return "inquiry"
+    if any([plan.needs_tutor_answer, plan.needs_judge, plan.needs_inquiry]):
+        return "parallel_workers"
     else:
         return "aggregator"
         
@@ -496,6 +565,7 @@ def build_agent():
     builder.add_node("tutor", tutor_node)
     builder.add_node("judge", judge_node)
     builder.add_node("inquiry", inquiry_node)
+    builder.add_node("parallel_workers", parallel_workers_node)
     builder.add_node("aggregator", aggregator_node)
     
     # Start -> Analyzer
@@ -506,37 +576,13 @@ def build_agent():
         "analyzer",
         route_from_analyzer,
         {
-            "tutor": "tutor",
-            "judge": "judge",
-            "inquiry": "inquiry",
+            "parallel_workers": "parallel_workers",
             "aggregator": "aggregator"
         }
     )
-    
-    # Tutor -> ?
-    builder.add_conditional_edges(
-        "tutor",
-        route_from_tutor,
-        {
-            "judge": "judge",
-            "inquiry": "inquiry",
-            "aggregator": "aggregator"
-        }
-    )
-    
-    # Judge -> ?
-    builder.add_conditional_edges(
-        "judge",
-        route_from_judge,
-        {
-            "inquiry": "inquiry",
-            "aggregator": "aggregator"
-        }
-    )
-    
 
-    # Inquiry -> Aggregator (Always)
-    builder.add_edge("inquiry", "aggregator")
+    # Parallel Workers -> Aggregator
+    builder.add_edge("parallel_workers", "aggregator")
     
     # Aggregator -> End
     builder.add_edge("aggregator", END)

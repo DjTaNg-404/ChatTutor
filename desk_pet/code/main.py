@@ -68,6 +68,7 @@ class ChatTutorPet(QWidget):
         self.init_assets()      
         self.init_agent()
         self.init_controller()  
+        self.active_stream_message_id = None
 
     def init_ui(self):
         font = QFont("Microsoft YaHei", 10)
@@ -215,6 +216,20 @@ class ChatTutorPet(QWidget):
         js_code = f"addMessage({json.dumps(text)}, {'true' if is_user else 'false'});"
         self.web_view.page().runJavaScript(js_code)
 
+    def start_stream_bubble(self, message_id):
+        self.active_stream_message_id = message_id
+        js_code = f"startAssistantMessage({json.dumps(message_id)});"
+        self.web_view.page().runJavaScript(js_code)
+
+    def append_stream_bubble(self, message_id, chunk):
+        js_code = f"appendAssistantDelta({json.dumps(message_id)}, {json.dumps(chunk)});"
+        self.web_view.page().runJavaScript(js_code)
+
+    def finish_stream_bubble(self, message_id):
+        js_code = f"finishAssistantMessage({json.dumps(message_id)});"
+        self.web_view.page().runJavaScript(js_code)
+        self.active_stream_message_id = None
+
     def mousePressEvent(self, event):
         if event.button() == Qt.MouseButton.LeftButton:
             self._is_dragging = False 
@@ -296,11 +311,18 @@ class ChatTutorPet(QWidget):
         self.controller.change_state("THINKING", 9999) 
         
         self.worker = AgentWorker(self.api_base_url, self.session_id, self.topic, text)
+        self.worker.stream_started.connect(self.start_stream_bubble)
+        self.worker.chunk_ready.connect(self.append_stream_bubble)
+        self.worker.stream_finished.connect(self.finish_stream_bubble)
         self.worker.response_ready.connect(self.handle_response); self.worker.start()
 
     def handle_response(self, text, is_concluded):
         self.input_field.setEnabled(True); self.input_field.setPlaceholderText("想问点什么？按回车发送...")
-        self.input_field.setFocus(); self.add_bubble(text, False)
+        self.input_field.setFocus()
+        if self.active_stream_message_id:
+            self.finish_stream_bubble(self.active_stream_message_id)
+        elif text:
+            self.add_bubble(text, False)
         self.controller.change_state("STAND", 20)
 
 if __name__ == '__main__':

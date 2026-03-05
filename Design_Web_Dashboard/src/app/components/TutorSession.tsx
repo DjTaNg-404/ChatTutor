@@ -47,7 +47,13 @@ interface SessionMessagesResponse {
   messages: SessionMessage[];
 }
 
+interface StreamEvent {
+  event: "start" | "delta" | "done" | "error";
+  data: Record<string, any>;
+}
+
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8000/api/v1";
+const ENABLE_STREAMING = (import.meta.env.VITE_ENABLE_STREAMING ?? "true").toString().toLowerCase() !== "false";
 
 function formatTime(date = new Date()) {
   return date.toLocaleTimeString("zh-CN", {
@@ -82,6 +88,82 @@ export function TutorSession() {
   const [isLoadingHistory, setIsLoadingHistory] = useState(false);
   const [errorText, setErrorText] = useState<string | null>(null);
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
+
+  const readStreamResponse = async (
+    response: Response,
+    assistantId: string,
+  ): Promise<{ sessionId?: string; isConcluded?: boolean }> => {
+    const reader = response.body?.getReader();
+    if (!reader) {
+      throw new Error("流式响应不可读");
+    }
+
+    const decoder = new TextDecoder("utf-8");
+    let buffer = "";
+    let finalSessionId: string | undefined;
+    let finalConcluded = false;
+
+    while (true) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+
+      let idx = buffer.indexOf("\n");
+      while (idx >= 0) {
+        const line = buffer.slice(0, idx).trim();
+        buffer = buffer.slice(idx + 1);
+        if (line) {
+          const evt = JSON.parse(line) as StreamEvent;
+          if (evt.event === "delta") {
+            const delta = String(evt.data?.text ?? "");
+            if (delta) {
+              setMessages((prev) =>
+                prev.map((m) => (m.id === assistantId ? { ...m, content: m.content + delta } : m)),
+              );
+            }
+          } else if (evt.event === "done") {
+            if (evt.data?.session_id) {
+              finalSessionId = String(evt.data.session_id);
+            }
+            finalConcluded = Boolean(evt.data?.is_concluded);
+          } else if (evt.event === "error") {
+            const err = evt.data?.message || "流式响应失败";
+            throw new Error(String(err));
+          }
+        }
+        idx = buffer.indexOf("\n");
+      }
+    }
+
+    return { sessionId: finalSessionId, isConcluded: finalConcluded };
+  };
+
+  const fallbackSendMessage = async (messageText: string) => {
+    const response = await fetch(`${API_BASE_URL}/chat`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        task_id: currentTaskId,
+        session_id: activeSessionId,
+        message: messageText,
+        topic: taskTitle,
+      }),
+    });
+
+    const data = await response.json();
+    if (!response.ok) {
+      const detail = data?.detail || `请求失败（${response.status}）`;
+      throw new Error(detail);
+    }
+
+    const replyText = data?.reply || "抱歉，我暂时没有生成有效回复。";
+    if (data?.session_id) {
+      setActiveSessionId(data.session_id);
+    }
+    setMessages((prev) => [...prev, makeMessage("assistant", replyText)]);
+  };
 
   // Provide default values if context is undefined
   const isPanelOpen = context?.isPanelOpen ?? true;
@@ -174,7 +256,23 @@ export function TutorSession() {
     setIsSending(true);
 
     try {
-      const response = await fetch(`${API_BASE_URL}/chat`, {
+      if (!ENABLE_STREAMING) {
+        await fallbackSendMessage(messageText);
+        return;
+      }
+
+      const assistantId = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: assistantId,
+          role: "assistant",
+          content: "",
+          timestamp: formatTime(),
+        },
+      ]);
+
+      const response = await fetch(`${API_BASE_URL}/chat/stream`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -182,82 +280,44 @@ export function TutorSession() {
         body: JSON.stringify({
           task_id: currentTaskId,
           session_id: activeSessionId,
-          message: text,
+          message: messageText,
           topic: taskTitle,
         }),
       });
 
-      const data = await response.json();
       if (!response.ok) {
-        const detail = data?.detail || `请求失败（${response.status}）`;
-        throw new Error(detail);
+        throw new Error(`请求失败（${response.status}）`);
       }
 
-      const replyText = data?.reply || "抱歉，我暂时没有生成有效回复。";
-      if (data?.session_id) {
-        setActiveSessionId(data.session_id);
+      const streamResult = await readStreamResponse(response, assistantId);
+      if (streamResult.sessionId) {
+        setActiveSessionId(streamResult.sessionId);
       }
-      setMessages((prev) => [...prev, makeMessage("assistant", replyText)]);
     } catch (error) {
-      const message = error instanceof Error ? error.message : "网络异常，请稍后重试。";
-      setErrorText(message);
-      setMessages((prev) => [
-        ...prev,
-        makeMessage("assistant", `接口调用失败：${message}`),
-      ]);
+      try {
+        await fallbackSendMessage(messageText);
+      } catch (fallbackError) {
+        const message = fallbackError instanceof Error ? fallbackError.message : "网络异常，请稍后重试。";
+        setErrorText(message);
+        setMessages((prev) => [
+          ...prev,
+          makeMessage("assistant", `接口调用失败：${message}`),
+        ]);
+      }
     } finally {
       setIsSending(false);
     }
   };
 
   const handleEndSession = async () => {
-    setIsSending(true);
-
-    try {
-      const response = await fetch(`${API_BASE_URL}/chat`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          task_id: currentTaskId,
-          session_id: activeSessionId,
-          message: "结束并总结今日学习",
-          topic: taskTitle,
-        }),
-      });
-
-      const data = await response.json();
-      if (!response.ok) {
-        const detail = data?.detail || `请求失败（${response.status}）`;
-        throw new Error(detail);
-      }
-
-      // 添加分割线
-      const dividerMessage: Message = {
-        id: `${Date.now()}-divider`,
-        role: "divider",
-        content: "-------------------结束并总结今日学习-------------------",
-        timestamp: formatTime(),
-      };
-      setMessages((prev) => [...prev, dividerMessage]);
-
-      // 添加 AI 的总结回复
-      const replyText = data?.reply || "抱歉，我暂时没有生成有效回复。";
-      if (data?.session_id) {
-        setActiveSessionId(data.session_id);
-      }
-      setMessages((prev) => [...prev, makeMessage("assistant", replyText)]);
-    } catch (error) {
-      const message = error instanceof Error ? error.message : "网络异常，请稍后重试。";
-      setErrorText(message);
-      setMessages((prev) => [
-        ...prev,
-        makeMessage("assistant", `接口调用失败：${message}`),
-      ]);
-    } finally {
-      setIsSending(false);
-    }
+    const dividerMessage: Message = {
+      id: `${Date.now()}-divider`,
+      role: "divider",
+      content: "-------------------结束并总结今日学习-------------------",
+      timestamp: formatTime(),
+    };
+    setMessages((prev) => [...prev, dividerMessage]);
+    await sendMessage("结束并总结今日学习");
   };
 
   return (
