@@ -1,6 +1,6 @@
 {
   "learner_id": "local_user",
-  "updated_at": "2026-03-04T17:41:28",
+  "updated_at": "2026-03-05T17:00:14",
   "cards": [
     {
       "type": "learning_fact",
@@ -50,6 +50,25 @@
       },
       "source": "local_user",
       "ts": "2026-03-04T17:07:13"
+    },
+    {
+      "type": "learning_fact",
+      "fact_type": "skill_state",
+      "fields": {
+        "topic": "因I/O等待而空闲；",
+        "level": "weak"
+      },
+      "source": "local_user",
+      "ts": "2026-03-05T16:57:32"
+    },
+    {
+      "type": "learning_fact",
+      "fact_type": "preference",
+      "fields": {
+        "style": "两句话介绍异步编程的价值"
+      },
+      "source": "local_user",
+      "ts": "2026-03-05T17:00:14"
     }
   ]
 }

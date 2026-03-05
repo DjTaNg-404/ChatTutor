@@ -1,7 +1,7 @@
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
-from typing import Optional
+from typing import Optional, Any
 from datetime import datetime
 import asyncio
 import json
@@ -90,7 +90,7 @@ def _build_state(request: ChatRequest, task_id: str, session_id: str):
 
 async def _invoke_agent(current_state):
     try:
-        final_state = await asyncio.to_thread(agent_graph.invoke, current_state)
+        final_state = await agent_graph.ainvoke(current_state)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Agent execution failed: {str(e)}")
 
@@ -109,6 +109,38 @@ def _split_for_stream(text: str):
     if not parts:
         return [text]
     return parts
+
+
+def _chunk_to_text(chunk: Any) -> str:
+    if chunk is None:
+        return ""
+    content = getattr(chunk, "content", chunk)
+    if isinstance(content, str):
+        return content
+    if isinstance(content, list):
+        texts = []
+        for item in content:
+            if isinstance(item, str):
+                texts.append(item)
+            elif isinstance(item, dict):
+                text_val = item.get("text")
+                if text_val:
+                    texts.append(str(text_val))
+        return "".join(texts)
+    return str(content)
+
+
+def _extract_reply_from_state(final_state: dict) -> str:
+    messages = final_state.get("messages", []) if isinstance(final_state, dict) else []
+    if not messages:
+        return ""
+    last_msg = messages[-1]
+    if isinstance(last_msg, dict):
+        content = last_msg.get("content", "")
+        if isinstance(content, list):
+            return "".join(str(i.get("text", "")) for i in content if isinstance(i, dict))
+        return str(content)
+    return str(getattr(last_msg, "content", ""))
 
 
 def _event_line(event: str, data: dict) -> str:
@@ -156,14 +188,43 @@ async def chat_stream_endpoint(request: ChatRequest):
             yield _event_line("start", {"task_id": task_id, "session_id": session_id})
 
             current_state = _build_state(request, task_id, session_id)
-            final_state, reply_content, is_concluded = await _invoke_agent(current_state)
+            final_state = None
+            streamed_any = False
 
-            if ENABLE_STREAMING:
-                for chunk in _split_for_stream(reply_content):
-                    yield _event_line("delta", {"text": chunk})
-                    await asyncio.sleep(0.02)
-            else:
-                yield _event_line("delta", {"text": reply_content})
+            # 优先使用 LangGraph 事件流（真流式），若上游不支持则自动回退到后处理分片
+            async for event in agent_graph.astream_events(current_state, version="v1"):
+                event_name = event.get("event", "")
+                metadata = event.get("metadata", {}) or {}
+                node_name = metadata.get("langgraph_node")
+
+                if event_name == "on_chat_model_stream" and node_name == "aggregator":
+                    chunk = (event.get("data") or {}).get("chunk")
+                    text_delta = _chunk_to_text(chunk)
+                    if text_delta:
+                        streamed_any = True
+                        yield _event_line("delta", {"text": text_delta})
+
+                if event_name == "on_chain_end" and node_name == "aggregator":
+                    output = (event.get("data") or {}).get("output")
+                    if isinstance(output, dict):
+                        final_state = output
+
+            # 某些运行时不会给到完整 output，这里兜底从持久化会话读取最终状态
+            if not isinstance(final_state, dict):
+                final_state = await asyncio.to_thread(memory.load_session, session_id) or {}
+
+            reply_content = _extract_reply_from_state(final_state)
+
+            # 事件流未产出 token 时，回退到句子分片流
+            if not streamed_any and reply_content:
+                if ENABLE_STREAMING:
+                    for chunk in _split_for_stream(reply_content):
+                        yield _event_line("delta", {"text": chunk})
+                        await asyncio.sleep(0.02)
+                else:
+                    yield _event_line("delta", {"text": reply_content})
+
+            is_concluded = bool(final_state.get("should_exit", False))
 
             if is_concluded:
                 summary_from_agent = final_state.get("summary_output") or final_state.get("summary_out")
@@ -193,7 +254,7 @@ async def _call_summary_agent(session_id: str, task_id: str, summary_text: str =
     """
     try:
         # 从 memory 加载会话消息
-        session_data = memory.get_session_messages(session_id)
+        session_data = await asyncio.to_thread(memory.get_session_messages, session_id)
         if not session_data:
             print(f"⚠️ 会话 {session_id} 不存在")
             return
@@ -204,7 +265,8 @@ async def _call_summary_agent(session_id: str, task_id: str, summary_text: str =
             topic = session_data.get("topic", "General")
 
             # 生成总结
-            summary_text = summary_generator.generate_session_note(
+            summary_text = await asyncio.to_thread(
+                summary_generator.generate_session_note,
                 conversation_history=messages,
                 topic=topic
             )
@@ -228,7 +290,7 @@ topic: {task_id}
 ---
 
 """
-            file_io.save_text(header + summary_text, note_path)
+            await asyncio.to_thread(file_io.save_text, header + summary_text, note_path)
             print(f"✅ 总结已保存：{note_path}")
 
     except Exception as e:
