@@ -30,12 +30,27 @@ interface TimelineApiResponse {
   timeline: TimelineApiItem[];
 }
 
+interface TaskPlan {
+  taskTitle?: string;
+  startDate?: string;
+  totalDays?: number;
+  totalHours?: number;
+  progress?: number;
+  overallSummary?: string;
+  coreKnowledge?: string[];
+  masteryLevel?: { topic: string; level: number }[];
+  milestones?: { date: string; achievement: string }[];
+  nextSteps?: string[] | string;
+}
+
 export function SummaryPanel() {
   const location = useLocation();
   const taskMatch = location.pathname.match(/^\/task\/(.+)$/);
   const currentTaskId = taskMatch ? `task_${taskMatch[1]}` : "task_default";
   const [dailySummaries, setDailySummaries] = useState<DailySummary[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [taskPlan, setTaskPlan] = useState<TaskPlan | null>(null);
+  const [isPlanLoading, setIsPlanLoading] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -72,143 +87,222 @@ export function SummaryPanel() {
       }
     };
 
+    const loadPlan = async () => {
+      setIsPlanLoading(true);
+      try {
+        const response = await fetch(`${API_BASE_URL}/notes/task?task_id=${currentTaskId}`);
+        if (!response.ok) {
+          throw new Error("failed");
+        }
+        const data = await response.json();
+        const hasPlan =
+          Boolean(data.taskTitle) ||
+          Boolean(data.overallSummary) ||
+          Boolean(data.coreKnowledge && data.coreKnowledge.length) ||
+          Boolean(data.masteryLevel && data.masteryLevel.length) ||
+          Boolean(data.milestones && data.milestones.length) ||
+          Boolean(data.nextSteps && data.nextSteps.length);
+        if (!cancelled) {
+          setTaskPlan(hasPlan ? data : null);
+        }
+      } catch {
+        if (!cancelled) {
+          setTaskPlan(null);
+        }
+      } finally {
+        if (!cancelled) {
+          setIsPlanLoading(false);
+        }
+      }
+    };
+
+    const handlePlanUpdated = () => {
+      void loadPlan();
+    };
+
     void loadTimeline();
+    void loadPlan();
+    window.addEventListener("task-plan-updated", handlePlanUpdated);
     return () => {
       cancelled = true;
+      window.removeEventListener("task-plan-updated", handlePlanUpdated);
     };
   }, [currentTaskId]);
 
+  const normalizePlanSteps = (plan: TaskPlan | null): string[] => {
+    if (!plan) return [];
+    const raw = (plan as { nextSteps?: unknown }).nextSteps;
+    if (Array.isArray(raw)) {
+      return raw.map((item) => String(item)).filter((item) => item.trim());
+    }
+    if (typeof raw === "string") {
+      return raw
+        .split(/\r?\n|[；;]+/)
+        .map((item) => item.trim())
+        .filter(Boolean);
+    }
+    if (plan.overallSummary) {
+      return [plan.overallSummary];
+    }
+    return [];
+  };
+
+  const planSteps = normalizePlanSteps(taskPlan);
+
   return (
-    <aside className="w-[300px] bg-white border-l border-gray-200 flex flex-col">
-      {/* Header */}
-      <div className="p-6 border-b border-gray-200">
-        <h2 className="text-lg font-semibold text-gray-900">学习时间线</h2>
-        <p className="text-sm text-gray-600 mt-1">每日学习总结</p>
-      </div>
+    <aside className="w-[300px] bg-white border-l border-gray-200 flex flex-col h-full">
+      <section className="flex-1 min-h-0 flex flex-col">
+        <div className="p-6 border-b border-gray-200">
+          <h2 className="text-lg font-semibold text-gray-900">学习时间线</h2>
+          <p className="text-sm text-gray-600 mt-1">每日学习总结</p>
+        </div>
 
-      {/* Timeline Body */}
-      <div className="flex-1 overflow-y-auto p-4">
-        {isLoading && (
-          <div className="text-sm text-gray-500 px-2 pb-3">时间线加载中...</div>
-        )}
+        <div className="flex-1 overflow-y-auto p-4">
+          {isLoading && (
+            <div className="text-sm text-gray-500 px-2 pb-3">时间线加载中...</div>
+          )}
 
-        {!isLoading && dailySummaries.length === 0 && (
-          <div className="text-sm text-gray-500 px-2 pb-3">暂无该任务的时间线数据</div>
-        )}
+          {!isLoading && dailySummaries.length === 0 && (
+            <div className="text-sm text-gray-500 px-2 pb-3">暂无该任务的时间线数据</div>
+          )}
 
-        <div className="relative">
-          {/* Vertical Line */}
-          <div className="absolute left-4 top-3 bottom-3 w-px bg-gradient-to-b from-indigo-200 via-indigo-200 to-transparent"></div>
+          <div className="relative">
+            <div className="absolute left-4 top-3 bottom-3 w-px bg-gradient-to-b from-indigo-200 via-indigo-200 to-transparent"></div>
 
-          {/* Summary Cards */}
-          <div className="space-y-6">
-            {dailySummaries.map((summary, index) => (
-              <div key={summary.id} className="relative pl-10">
-                {/* Timeline Dot */}
-                <div
-                  className={`absolute left-0 top-1.5 w-8 h-8 rounded-full flex items-center justify-center ${
-                    index === 0
-                      ? "bg-indigo-600 shadow-lg shadow-indigo-200"
-                      : "bg-indigo-100"
-                  }`}
-                >
-                  <Calendar
-                    className={`w-4 h-4 ${
-                      index === 0 ? "text-white" : "text-indigo-600"
+            <div className="space-y-6">
+              {dailySummaries.map((summary, index) => (
+                <div key={summary.id} className="relative pl-10">
+                  <div
+                    className={`absolute left-0 top-1.5 w-8 h-8 rounded-full flex items-center justify-center ${
+                      index === 0
+                        ? "bg-indigo-600 shadow-lg shadow-indigo-200"
+                        : "bg-indigo-100"
                     }`}
-                  />
-                </div>
-
-                {/* Card */}
-                <div
-                  className={`bg-white rounded-xl border p-4 hover:shadow-md transition-all ${
-                    index === 0
-                      ? "border-indigo-200 shadow-sm"
-                      : "border-gray-200"
-                  }`}
-                >
-                  {/* Date Header */}
-                  <div className="flex items-center justify-between mb-3">
-                    <h3
-                      className={`font-semibold ${
-                        index === 0 ? "text-indigo-600" : "text-gray-900"
+                  >
+                    <Calendar
+                      className={`w-4 h-4 ${
+                        index === 0 ? "text-white" : "text-indigo-600"
                       }`}
-                    >
-                      {summary.displayDate}
-                    </h3>
-                    {index === 0 && (
-                      <span className="text-xs px-2 py-0.5 bg-indigo-100 text-indigo-700 rounded-full font-medium">
-                        今天
-                      </span>
-                    )}
+                    />
                   </div>
 
-                  <div className="text-xs text-gray-500 mb-3">
-                    {summary.sessionCount} 个会话 · {summary.messageCount} 条消息
-                  </div>
+                  <div
+                    className={`bg-white rounded-xl border p-4 hover:shadow-md transition-all ${
+                      index === 0
+                        ? "border-indigo-200 shadow-sm"
+                        : "border-gray-200"
+                    }`}
+                  >
+                    <div className="flex items-center justify-between mb-3">
+                      <h3
+                        className={`font-semibold ${
+                          index === 0 ? "text-indigo-600" : "text-gray-900"
+                        }`}
+                      >
+                        {summary.displayDate}
+                      </h3>
+                      {index === 0 && (
+                        <span className="text-xs px-2 py-0.5 bg-indigo-100 text-indigo-700 rounded-full font-medium">
+                          今天
+                        </span>
+                      )}
+                    </div>
 
-                  {/* Key Learnings */}
-                  <div className="mb-3">
-                    <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
-                      关键学习点
-                    </h4>
-                    <ul className="space-y-1.5">
-                      {summary.keyLearnings.map((learning, idx) => (
-                        <li
-                          key={idx}
-                          className="text-sm text-gray-700 flex items-start gap-2"
-                        >
-                          <span className="text-indigo-500 mt-1">•</span>
-                          <span className="flex-1">{learning}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
+                    <div className="text-xs text-gray-500 mb-3">
+                      {summary.sessionCount} 个会话 · {summary.messageCount} 条消息
+                    </div>
 
-                  {/* Review Areas */}
-                  {summary.reviewAreas.length > 0 && (
                     <div className="mb-3">
                       <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
-                        待复习
+                        关键学习点
                       </h4>
                       <ul className="space-y-1.5">
-                        {summary.reviewAreas.map((area, idx) => (
+                        {summary.keyLearnings.map((learning, idx) => (
                           <li
                             key={idx}
-                            className="text-sm text-amber-700 flex items-start gap-2"
+                            className="text-sm text-gray-700 flex items-start gap-2"
                           >
-                            <span className="text-amber-500 mt-1">•</span>
-                            <span className="flex-1">{area}</span>
+                            <span className="text-indigo-500 mt-1">•</span>
+                            <span className="flex-1">{learning}</span>
                           </li>
                         ))}
                       </ul>
                     </div>
-                  )}
 
-                  {/* View Full Chat Log */}
-                  <div className="flex items-center gap-2 mt-2">
-                    <Link
-                      to={`/history/${summary.date}?task_id=${currentTaskId}`}
-                      className="flex items-center gap-1.5 text-xs text-indigo-600 hover:text-indigo-700 font-medium"
-                    >
-                      <span>查看完整对话记录</span>
-                      <ExternalLink className="w-3 h-3" />
-                    </Link>
-                    <span className="text-gray-300">|</span>
-                    <Link
-                      to={`/daily-note/${summary.date}?task_id=${currentTaskId}`}
-                      className="flex items-center gap-1.5 text-xs text-purple-600 hover:text-purple-700 font-medium"
-                    >
-                      <Edit3 className="w-3 h-3" />
-                      <span>笔记</span>
-                    </Link>
+                    {summary.reviewAreas.length > 0 && (
+                      <div className="mb-3">
+                        <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
+                          待复习
+                        </h4>
+                        <ul className="space-y-1.5">
+                          {summary.reviewAreas.map((area, idx) => (
+                            <li
+                              key={idx}
+                              className="text-sm text-amber-700 flex items-start gap-2"
+                            >
+                              <span className="text-amber-500 mt-1">•</span>
+                              <span className="flex-1">{area}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+
+                    <div className="flex items-center gap-2 mt-2">
+                      <Link
+                        to={`/history/${summary.date}?task_id=${currentTaskId}`}
+                        className="flex items-center gap-1.5 text-xs text-indigo-600 hover:text-indigo-700 font-medium"
+                      >
+                        <span>查看完整对话记录</span>
+                        <ExternalLink className="w-3 h-3" />
+                      </Link>
+                      <span className="text-gray-300">|</span>
+                      <Link
+                        to={`/daily-note/${summary.date}?task_id=${currentTaskId}`}
+                        className="flex items-center gap-1.5 text-xs text-purple-600 hover:text-purple-700 font-medium"
+                      >
+                        <Edit3 className="w-3 h-3" />
+                        <span>笔记</span>
+                      </Link>
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
         </div>
-      </div>
+      </section>
+
+      <section className="flex-1 min-h-0 flex flex-col border-t border-gray-200">
+        <div className="p-6 border-b border-gray-200">
+          <h3 className="text-lg font-semibold text-gray-900">详细学习计划</h3>
+          <p className="text-sm text-gray-600 mt-1">展示模型生成的完整计划</p>
+        </div>
+        <div className="flex-1 overflow-y-auto p-4">
+          {isPlanLoading && (
+            <div className="text-xs text-gray-500">计划加载中...</div>
+          )}
+          {!isPlanLoading && !taskPlan && (
+            <div className="text-xs text-gray-500">暂无详细学习计划</div>
+          )}
+          {!isPlanLoading && taskPlan && (
+            <div className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
+              {planSteps.length > 0 ? (
+                <ul className="space-y-2 text-sm text-gray-700">
+                  {planSteps.map((step, idx) => (
+                    <li key={idx} className="flex items-start gap-2">
+                      <span className="text-indigo-500 mt-1">•</span>
+                      <span className="flex-1">{step}</span>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <div className="text-xs text-gray-500">暂无详细学习计划</div>
+              )}
+            </div>
+          )}
+        </div>
+      </section>
     </aside>
   );
 }

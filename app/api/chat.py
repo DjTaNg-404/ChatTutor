@@ -11,6 +11,7 @@ from langchain_core.messages import HumanMessage
 
 from app.core.agent_builder import build_agent
 from app.core import memory
+from app.core import task_plan_agent
 from app.core.summary.generator import summary_generator
 
 router = APIRouter()
@@ -25,12 +26,14 @@ class ChatRequest(BaseModel):
     session_id: Optional[str] = None
     message: str
     topic: Optional[str] = "General Knowledge"
+    plan_hint: Optional[bool] = None
 
 class ChatResponse(BaseModel):
     task_id: str
     session_id: str
     reply: str
     is_concluded: bool
+    plan_proposal: Optional[dict] = None
 
 
 class StreamEvent(BaseModel):
@@ -52,6 +55,86 @@ def _build_session_id(task_id: str, session_id: Optional[str]) -> str:
         return session_id.strip()
     now = datetime.now().strftime("%Y%m%d__%H%M%S")
     return f"{task_id}__{now}"
+
+
+def _collect_recent_user_text(messages, limit: int = 6) -> str:
+    chunks = []
+    for msg in reversed(messages or []):
+        if isinstance(msg, HumanMessage):
+            content = msg.content or ""
+            if content:
+                chunks.append(content.strip())
+            if len(chunks) >= limit:
+                break
+    return " ".join(reversed(chunks)).strip()
+
+
+def _should_update_plan(text: str) -> bool:
+    if not text:
+        return False
+    # Use unicode escapes to avoid encoding issues in some terminals/editors.
+    keywords = [
+        "\u8ba1\u5212",  # 计划
+        "\u76ee\u6807",  # 目标
+        "\u5b89\u6392",  # 安排
+        "\u8fdb\u5ea6",  # 进度
+        "\u65f6\u95f4",  # 时间
+        "\u6bcf\u5929",  # 每天
+        "\u6bcf\u5468",  # 每周
+        "\u6bcf\u6708",  # 每月
+        "\u5b8c\u6210",  # 完成
+        "\u8c03\u6574",  # 调整
+        "\u6539\u6210",  # 改成
+        "\u66f4\u65b0",  # 更新
+    ]
+    time_patterns = [
+        r"\\d+\\s*\\u5929",   # 天
+        r"\\d+\\s*\\u5468",   # 周
+        r"\\d+\\s*\\u6708",   # 月
+        r"\\d+(?:\\.\\d+)?\\s*(?:\\u5c0f\\u65f6|h)",  # 小时/h
+    ]
+    if any(k in text for k in keywords):
+        return True
+    return any(re.search(p, text) for p in time_patterns)
+    return any(k in text for k in keywords)
+
+
+def _plan_sig_from_existing(plan_data: dict) -> str:
+    return plan_data.get("_plan_sig") or task_plan_agent.plan_signature(plan_data) if plan_data else ""
+
+
+async def _build_plan_proposal(
+    task_id: str,
+    state: dict,
+    fallback_text: str = "",
+    plan_hint: Optional[bool] = None,
+    reply_text: str = "",
+) -> Optional[dict]:
+    messages = state.get("messages", []) if isinstance(state, dict) else []
+    base = fallback_text.strip() if fallback_text else _collect_recent_user_text(messages)
+    dialogue = f"{base}\nAI reply: {reply_text}".strip() if reply_text else base
+    if not dialogue:
+        return None
+    should_update = bool(plan_hint) or _should_update_plan(dialogue) or (not memory.has_task_plan(task_id))
+    if not should_update:
+        return None
+    try:
+        existing_plan = memory.get_task_plan_data(task_id)
+    except Exception:
+        existing_plan = None
+    plan_state = {
+        "messages": messages,
+        "conversation_summary": state.get("conversation_summary") if isinstance(state, dict) else "",
+        "task_id": task_id,
+        "session_id": state.get("session_id") if isinstance(state, dict) else "",
+    }
+    plan = await asyncio.to_thread(
+        task_plan_agent.generate_task_plan_from_state,
+        plan_state,
+        dialogue,
+        existing_plan,
+    )
+    return plan
 
 
 def _build_state(request: ChatRequest, task_id: str, session_id: str):
@@ -167,11 +250,24 @@ async def chat_endpoint(request: ChatRequest):
         summary_from_agent = final_state.get("summary_output") or final_state.get("summary_out")
         asyncio.create_task(_call_summary_agent(session_id, task_id, summary_from_agent))
 
+    plan_proposal = None
+    try:
+        plan_proposal = await _build_plan_proposal(
+            task_id,
+            final_state,
+            fallback_text=request.message,
+            plan_hint=request.plan_hint,
+            reply_text=reply_content,
+        )
+    except Exception as e:
+        print(f"[TaskPlan] proposal failed: {e}")
+
     return ChatResponse(
         task_id=task_id,
         session_id=session_id,
         reply=reply_content,
-        is_concluded=is_concluded
+        is_concluded=is_concluded,
+        plan_proposal=plan_proposal,
     )
 
 
@@ -230,10 +326,23 @@ async def chat_stream_endpoint(request: ChatRequest):
                 summary_from_agent = final_state.get("summary_output") or final_state.get("summary_out")
                 asyncio.create_task(_call_summary_agent(session_id, task_id, summary_from_agent))
 
+            plan_proposal = None
+            try:
+                plan_proposal = await _build_plan_proposal(
+                    task_id,
+                    final_state,
+                    fallback_text=request.message,
+                    plan_hint=request.plan_hint,
+                    reply_text=reply_content,
+                )
+            except Exception as e:
+                print(f"[TaskPlan] proposal failed: {e}")
+
             yield _event_line("done", {
                 "task_id": task_id,
                 "session_id": session_id,
                 "is_concluded": is_concluded,
+                "plan_proposal": plan_proposal,
             })
         except HTTPException as e:
             yield _event_line("error", {"message": str(e.detail), "status": e.status_code})

@@ -19,6 +19,9 @@ def _get_daily_note_path(task_id: str, date: str) -> str:
 def _get_task_note_path(task_id: str) -> str:
     return os.path.join(NOTES_DIR, "task", f"{task_id}.md")
 
+def _get_task_plan_path(task_id: str) -> str:
+    return os.path.join(NOTES_DIR, "task", f"{task_id}.json")
+
 
 def _file_updated_at(path: str) -> str:
     if not os.path.exists(path):
@@ -374,30 +377,89 @@ def save_daily_note(task_id: str, date: str, content: str) -> Dict[str, Any]:
         "updated_at": _file_updated_at(path),
     }
 
+def _load_task_plan(task_id: str) -> Dict[str, Any]:
+    path = _get_task_plan_path(task_id)
+    if not os.path.exists(path):
+        return {}
+    try:
+        data = file_io.load_json(path)
+        return data if isinstance(data, dict) else {}
+    except Exception:
+        return {}
+
+
+def _resolve_task_note_updated_at(plan_path: str, note_path: str) -> str:
+    plan_ts = _file_updated_at(plan_path) if os.path.exists(plan_path) else ""
+    note_ts = _file_updated_at(note_path) if os.path.exists(note_path) else ""
+    return max(plan_ts, note_ts)
+
+def get_task_plan_data(task_id: str) -> Dict[str, Any]:
+    return _load_task_plan(task_id)
+
+def has_task_plan(task_id: str) -> bool:
+    plan = _load_task_plan(task_id)
+    if not plan:
+        return False
+    for key in (
+        "taskTitle",
+        "overallSummary",
+        "coreKnowledge",
+        "masteryLevel",
+        "milestones",
+        "nextSteps",
+    ):
+        value = plan.get(key)
+        if isinstance(value, list) and value:
+            return True
+        if isinstance(value, str) and value.strip():
+            return True
+    return False
+
 
 def get_task_note(task_id: str) -> Dict[str, Any]:
-    path = _get_task_note_path(task_id)
-    if not os.path.exists(path):
-        return {
-            "task_id": task_id,
-            "content": "",
-            "updated_at": "",
-        }
-    return {
+    note_path = _get_task_note_path(task_id)
+    plan_path = _get_task_plan_path(task_id)
+    plan_data = _load_task_plan(task_id)
+    content = ""
+    if "userNotes" in plan_data:
+        content = plan_data.get("userNotes") or ""
+    elif os.path.exists(note_path):
+        content = file_io.load_text(note_path)
+
+    response = {
         "task_id": task_id,
-        "content": file_io.load_text(path),
-        "updated_at": _file_updated_at(path),
+        "content": content,
+        "userNotes": content,
+        "updated_at": _resolve_task_note_updated_at(plan_path, note_path),
     }
+    response.update(plan_data)
+    response["task_id"] = task_id
+    return response
 
 
 def save_task_note(task_id: str, content: str) -> Dict[str, Any]:
-    path = _get_task_note_path(task_id)
-    file_io.save_text(content, path)
-    return {
-        "task_id": task_id,
-        "content": content,
-        "updated_at": _file_updated_at(path),
-    }
+    note_path = _get_task_note_path(task_id)
+    plan_path = _get_task_plan_path(task_id)
+    plan_data = _load_task_plan(task_id)
+
+    plan_data["task_id"] = task_id
+    plan_data["userNotes"] = content
+    file_io.save_text(content, note_path)
+    file_io.save_json(plan_data, plan_path)
+    return get_task_note(task_id)
+
+
+def save_task_plan(task_id: str, plan: Dict[str, Any]) -> Dict[str, Any]:
+    note_path = _get_task_note_path(task_id)
+    plan_path = _get_task_plan_path(task_id)
+    plan_data = _load_task_plan(task_id)
+
+    plan_data.update(plan)
+    plan_data["task_id"] = task_id
+    if "userNotes" in plan_data:
+        file_io.save_text(plan_data.get("userNotes") or "", note_path)
+    file_io.save_json(plan_data, plan_path)
+    return get_task_note(task_id)
 
 
 def list_task_timeline(task_id: str) -> List[Dict[str, Any]]:

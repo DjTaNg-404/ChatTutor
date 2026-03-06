@@ -3,6 +3,12 @@ import sys
 import os
 import signal 
 import json
+if sys.platform.startswith("win"):
+    try:
+        # Ensure Windows ICU DLLs take precedence over Anaconda's older ICU.
+        os.add_dll_directory(r"C:\Windows\System32")
+    except Exception:
+        pass
 from PyQt6.QtWidgets import (QApplication, QWidget, QVBoxLayout, QHBoxLayout, 
                              QLineEdit, QLabel, QMenu, QPushButton)
 # 引入了 QUrl

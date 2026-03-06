@@ -12,6 +12,9 @@ interface Message {
   role: "user" | "assistant" | "divider";
   content: string;
   timestamp: string;
+  planProposal?: TaskPlan;
+  planConfirmed?: boolean;
+  planError?: string;
 }
 
 interface OutletContext {
@@ -52,6 +55,21 @@ interface StreamEvent {
   data: Record<string, any>;
 }
 
+interface TaskPlan {
+  task_id?: string;
+  taskTitle?: string;
+  startDate?: string;
+  totalDays?: number;
+  totalHours?: number;
+  progress?: number;
+  overallSummary?: string;
+  coreKnowledge?: string[];
+  masteryLevel?: { topic: string; level: number }[];
+  milestones?: { date: string; achievement: string }[];
+  nextSteps?: string[] | string;
+  _plan_sig?: string;
+}
+
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8000/api/v1";
 const ENABLE_STREAMING = (import.meta.env.VITE_ENABLE_STREAMING ?? "true").toString().toLowerCase() !== "false";
 
@@ -88,11 +106,30 @@ export function TutorSession() {
   const [isLoadingHistory, setIsLoadingHistory] = useState(false);
   const [errorText, setErrorText] = useState<string | null>(null);
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
+  const [confirmingPlanId, setConfirmingPlanId] = useState<string | null>(null);
+
+  const normalizePlanSteps = (plan?: TaskPlan | null): string[] => {
+    if (!plan) return [];
+    const raw = (plan as { nextSteps?: unknown }).nextSteps;
+    if (Array.isArray(raw)) {
+      return raw.map((item) => String(item)).filter((item) => item.trim());
+    }
+    if (typeof raw === "string") {
+      return raw
+        .split(/\r?\n|[；;]+/)
+        .map((item) => item.trim())
+        .filter(Boolean);
+    }
+    if (plan.overallSummary) {
+      return [plan.overallSummary];
+    }
+    return [];
+  };
 
   const readStreamResponse = async (
     response: Response,
     assistantId: string,
-  ): Promise<{ sessionId?: string; isConcluded?: boolean }> => {
+  ): Promise<{ sessionId?: string; isConcluded?: boolean; planProposal?: TaskPlan | null }> => {
     const reader = response.body?.getReader();
     if (!reader) {
       throw new Error("流式响应不可读");
@@ -102,6 +139,7 @@ export function TutorSession() {
     let buffer = "";
     let finalSessionId: string | undefined;
     let finalConcluded = false;
+    let finalPlan: TaskPlan | null = null;
 
     while (true) {
       const { value, done } = await reader.read();
@@ -126,6 +164,9 @@ export function TutorSession() {
               finalSessionId = String(evt.data.session_id);
             }
             finalConcluded = Boolean(evt.data?.is_concluded);
+            if (evt.data?.plan_proposal) {
+              finalPlan = evt.data.plan_proposal as TaskPlan;
+            }
           } else if (evt.event === "error") {
             const err = evt.data?.message || "流式响应失败";
             throw new Error(String(err));
@@ -135,10 +176,13 @@ export function TutorSession() {
       }
     }
 
-    return { sessionId: finalSessionId, isConcluded: finalConcluded };
+    return { sessionId: finalSessionId, isConcluded: finalConcluded, planProposal: finalPlan };
   };
 
   const fallbackSendMessage = async (messageText: string) => {
+    const planHint = /(计划|目标|安排|进度|时间|每天|每周|每月|完成|调整|改成|更新)/.test(
+      messageText
+    );
     const response = await fetch(`${API_BASE_URL}/chat`, {
       method: "POST",
       headers: {
@@ -149,6 +193,7 @@ export function TutorSession() {
         session_id: activeSessionId,
         message: messageText,
         topic: taskTitle,
+        plan_hint: planHint,
       }),
     });
 
@@ -162,7 +207,11 @@ export function TutorSession() {
     if (data?.session_id) {
       setActiveSessionId(data.session_id);
     }
-    setMessages((prev) => [...prev, makeMessage("assistant", replyText)]);
+    const assistantMessage = makeMessage("assistant", replyText);
+    if (data?.plan_proposal) {
+      assistantMessage.planProposal = data.plan_proposal as TaskPlan;
+    }
+    setMessages((prev) => [...prev, assistantMessage]);
   };
 
   // Provide default values if context is undefined
@@ -282,6 +331,9 @@ export function TutorSession() {
           session_id: activeSessionId,
           message: messageText,
           topic: taskTitle,
+          plan_hint: /(计划|目标|安排|进度|时间|每天|每周|每月|完成|调整|改成|更新)/.test(
+            messageText
+          ),
         }),
       });
 
@@ -292,6 +344,13 @@ export function TutorSession() {
       const streamResult = await readStreamResponse(response, assistantId);
       if (streamResult.sessionId) {
         setActiveSessionId(streamResult.sessionId);
+      }
+      if (streamResult.planProposal) {
+        setMessages((prev) =>
+          prev.map((m) =>
+            m.id === assistantId ? { ...m, planProposal: streamResult.planProposal } : m
+          )
+        );
       }
     } catch (error) {
       try {
@@ -318,6 +377,43 @@ export function TutorSession() {
     };
     setMessages((prev) => [...prev, dividerMessage]);
     await sendMessage("结束并总结今日学习");
+  };
+
+  const confirmPlanUpdate = async (messageId: string, plan: TaskPlan) => {
+    setConfirmingPlanId(messageId);
+    setMessages((prev) =>
+      prev.map((m) => (m.id === messageId ? { ...m, planError: undefined } : m))
+    );
+    try {
+      const response = await fetch(`${API_BASE_URL}/agent/task-plan/confirm`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          task_id: currentTaskId,
+          plan,
+        }),
+      });
+      if (!response.ok) {
+        throw new Error(`请求失败（${response.status}）`);
+      }
+      setMessages((prev) =>
+        prev.map((m) =>
+          m.id === messageId ? { ...m, planConfirmed: true } : m
+        )
+      );
+      window.dispatchEvent(new Event("task-plan-updated"));
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "更新失败";
+      setMessages((prev) =>
+        prev.map((m) =>
+          m.id === messageId ? { ...m, planError: message } : m
+        )
+      );
+    } finally {
+      setConfirmingPlanId(null);
+    }
   };
 
   return (
@@ -391,7 +487,7 @@ export function TutorSession() {
                 </div>
               );
             }
-            
+
             return (
               <div
                 key={message.id}
@@ -406,60 +502,108 @@ export function TutorSession() {
                       : "bg-white border border-gray-200 rounded-2xl rounded-tl-sm"
                   } px-5 py-3 shadow-sm`}
                 >
-                {/* Message Content with Markdown Support */}
-                <div
-                  className={`prose prose-sm max-w-none ${
-                    message.role === "user"
-                      ? "prose-invert"
-                      : "prose-gray"
-                  }`}
-                >
-                  {message.role === "user" ? (
-                    <p>{message.content}</p>
-                  ) : (
-                    <ReactMarkdown
-                      remarkPlugins={[remarkMath]}
-                      rehypePlugins={[rehypeKatex]}
-                      components={{
-                        code({ node, className, children, ...props }) {
-                          return (
-                            <code
-                              className={className || "bg-gray-200 px-1.5 py-0.5 rounded text-sm"}
-                              {...props}
-                            >
-                              {children}
-                            </code>
-                          );
-                        },
-                        pre({ node, children, ...props }) {
-                          return (
-                            <pre
-                              className="bg-gray-900 text-gray-100 rounded-lg p-4 overflow-x-auto my-3"
-                              {...props}
-                            >
-                              {children}
-                            </pre>
-                          );
-                        }
-                      }}
-                    >
-                      {message.content}
-                    </ReactMarkdown>
+                  {/* Message Content with Markdown Support */}
+                  <div
+                    className={`prose prose-sm max-w-none ${
+                      message.role === "user"
+                        ? "prose-invert"
+                        : "prose-gray"
+                    }`}
+                  >
+                    {message.role === "user" ? (
+                      <p>{message.content}</p>
+                    ) : (
+                      <ReactMarkdown
+                        remarkPlugins={[remarkMath]}
+                        rehypePlugins={[rehypeKatex]}
+                        components={{
+                          code({ node, className, children, ...props }) {
+                            return (
+                              <code
+                                className={className || "bg-gray-200 px-1.5 py-0.5 rounded text-sm"}
+                                {...props}
+                              >
+                                {children}
+                              </code>
+                            );
+                          },
+                          pre({ node, children, ...props }) {
+                            return (
+                              <pre
+                                className="bg-gray-900 text-gray-100 rounded-lg p-4 overflow-x-auto my-3"
+                                {...props}
+                              >
+                                {children}
+                              </pre>
+                            );
+                          }
+                        }}
+                      >
+                        {message.content}
+                      </ReactMarkdown>
+                    )}
+                  </div>
+
+                  {/* Timestamp */}
+                  <div
+                    className={`text-xs mt-2 ${
+                      message.role === "user"
+                        ? "text-indigo-200"
+                        : "text-gray-400"
+                    }`}
+                  >
+                    {message.timestamp}
+                  </div>
+
+                  {message.role === "assistant" && message.planProposal && (
+                    <div className="mt-3 border-t border-gray-200 pt-3">
+                      <div className="text-xs font-semibold text-gray-500 mb-2">详细学习计划（确认后更新）</div>
+                      <div className="space-y-2 text-sm text-gray-700">
+                        <div className="font-medium text-gray-900">
+                          {message.planProposal.taskTitle || "学习计划"}
+                        </div>
+                        {message.planProposal.overallSummary && (
+                          <div className="text-xs text-gray-600">
+                            {message.planProposal.overallSummary}
+                          </div>
+                        )}
+                        <div className="text-xs text-gray-500">
+                          {(message.planProposal.totalDays ?? 0) > 0 && (
+                            <span>{message.planProposal.totalDays} 天</span>
+                          )}
+                          {(message.planProposal.totalHours ?? 0) > 0 && (
+                            <span> · {message.planProposal.totalHours} 小时</span>
+                          )}
+                        </div>
+                        {normalizePlanSteps(message.planProposal).length > 0 && (
+                          <ul className="text-xs text-gray-700 space-y-1">
+                            {normalizePlanSteps(message.planProposal).map((step, idx) => (
+                              <li key={idx}>• {step}</li>
+                            ))}
+                          </ul>
+                        )}
+                      </div>
+                      <div className="mt-3 flex items-center gap-3">
+                        <button
+                          onClick={() =>
+                            void confirmPlanUpdate(message.id, message.planProposal as TaskPlan)
+                          }
+                          disabled={message.planConfirmed || confirmingPlanId === message.id}
+                          className="px-3 py-1.5 text-xs font-medium bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50"
+                        >
+                          {confirmingPlanId === message.id ? "更新中..." : "确认更新学习计划"}
+                        </button>
+                        {message.planConfirmed && (
+                          <span className="text-xs text-emerald-600">已更新</span>
+                        )}
+                        {message.planError && (
+                          <span className="text-xs text-red-600">{message.planError}</span>
+                        )}
+                      </div>
+                    </div>
                   )}
                 </div>
-                
-                {/* Timestamp */}
-                <div
-                  className={`text-xs mt-2 ${
-                    message.role === "user"
-                      ? "text-indigo-200"
-                      : "text-gray-400"
-                  }`}
-                >
-                  {message.timestamp}
-                </div>
               </div>
-            </div>
             );
           })}
         </div>

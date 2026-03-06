@@ -6,8 +6,26 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8000
 
 interface TaskNoteApiResponse {
   task_id: string;
-  content: string;
-  updated_at: string;
+  content?: string;
+  userNotes?: string;
+  taskTitle?: string;
+  taskIcon?: string;
+  startDate?: string;
+  totalDays?: number;
+  totalHours?: number;
+  progress?: number;
+  overallSummary?: string;
+  coreKnowledge?: string[];
+  masteryLevel?: {
+    topic: string;
+    level: number;
+  }[];
+  milestones?: {
+    date: string;
+    achievement: string;
+  }[];
+  nextSteps?: string[] | string;
+  updated_at?: string;
 }
 
 interface TaskNote {
@@ -108,13 +126,56 @@ const taskNotesData: { [key: string]: TaskNote } = {
   },
 };
 
+function mergeTaskNote(
+  fallback: TaskNote | null,
+  api: TaskNoteApiResponse | null,
+  taskId: string | undefined
+): TaskNote | null {
+  if (!fallback && !api) {
+    return null;
+  }
+
+  return {
+    taskId: api?.task_id || fallback?.taskId || taskId || "task_default",
+    taskTitle: api?.taskTitle || fallback?.taskTitle || "Task Plan",
+    taskIcon: api?.taskIcon || fallback?.taskIcon || "*",
+    startDate: api?.startDate || fallback?.startDate || "",
+    totalDays: api?.totalDays ?? fallback?.totalDays ?? 0,
+    totalHours: api?.totalHours ?? fallback?.totalHours ?? 0,
+    progress: api?.progress ?? fallback?.progress ?? 0,
+    overallSummary: api?.overallSummary || fallback?.overallSummary || "",
+    coreKnowledge: api?.coreKnowledge || fallback?.coreKnowledge || [],
+    masteryLevel: api?.masteryLevel || fallback?.masteryLevel || [],
+    milestones: api?.milestones || fallback?.milestones || [],
+  nextSteps: api?.nextSteps || fallback?.nextSteps || [],
+    userNotes: api?.userNotes || api?.content || fallback?.userNotes || "",
+  };
+}
+
 export function TaskNotePage() {
   const { taskId } = useParams<{ taskId: string }>();
   const navigate = useNavigate();
 
   const noteData = taskId ? taskNotesData[taskId] : null;
   const resolvedTaskId = taskId ? `task_${taskId}` : "task_default";
-  const [userNotes, setUserNotes] = useState(noteData?.userNotes || "");
+  const [taskNote, setTaskNote] = useState<TaskNote | null>(
+    mergeTaskNote(noteData, null, taskId)
+  );
+  const [userNotes, setUserNotes] = useState(taskNote?.userNotes || "");
+
+  const normalizePlanSteps = (steps?: TaskNoteResponse["nextSteps"]): string[] => {
+    if (!steps) return [];
+    if (Array.isArray(steps)) {
+      return steps.map((item) => String(item)).filter((item) => item.trim());
+    }
+    if (typeof steps === "string") {
+      return steps
+        .split(/\r?\n|[；;]+/)
+        .map((item) => item.trim())
+        .filter(Boolean);
+    }
+    return [];
+  };
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [saveHint, setSaveHint] = useState<string | null>(null);
@@ -134,13 +195,18 @@ export function TaskNotePage() {
         }
         const data: TaskNoteApiResponse = await response.json();
         if (!cancelled) {
-          setUserNotes(data.content || noteData?.userNotes || "");
+          const merged = mergeTaskNote(noteData, data, taskId);
+          setTaskNote(merged);
+          setUserNotes(merged?.userNotes || "");
+
         }
       } catch (error) {
         if (!cancelled) {
           const message = error instanceof Error ? error.message : "加载任务笔记失败";
           setSaveHint(message);
-          setUserNotes(noteData?.userNotes || "");
+          const merged = mergeTaskNote(noteData, null, taskId);
+          setTaskNote(merged);
+          setUserNotes(merged?.userNotes || "");
         }
       } finally {
         if (!cancelled) {
@@ -149,9 +215,7 @@ export function TaskNotePage() {
       }
     };
 
-    if (noteData) {
-      void loadTaskNote();
-    }
+    void loadTaskNote();
 
     return () => {
       cancelled = true;
@@ -185,7 +249,7 @@ export function TaskNotePage() {
     }
   };
 
-  if (!noteData) {
+  if (!taskNote) {
     return (
       <div className="h-full flex items-center justify-center bg-gray-50">
         <div className="text-center">
@@ -219,10 +283,10 @@ export function TaskNotePage() {
 
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <span className="text-4xl">{noteData.taskIcon}</span>
+              <span className="text-4xl">{taskNote.taskIcon}</span>
               <div>
                 <h1 className="text-2xl font-semibold text-gray-900">
-                  {noteData.taskTitle}
+                  {taskNote.taskTitle}
                 </h1>
                 <p className="text-sm text-gray-600 mt-0.5">任务总览与学习笔记</p>
               </div>
@@ -253,7 +317,7 @@ export function TaskNotePage() {
                 <div>
                   <p className="text-xs text-gray-500">学习天数</p>
                   <p className="text-xl font-semibold text-gray-900">
-                    {noteData.totalDays} 天
+                    {taskNote.totalDays} 天
                   </p>
                 </div>
               </div>
@@ -267,7 +331,7 @@ export function TaskNotePage() {
                 <div>
                   <p className="text-xs text-gray-500">累计时长</p>
                   <p className="text-xl font-semibold text-gray-900">
-                    {noteData.totalHours} 小时
+                    {taskNote.totalHours} 小时
                   </p>
                 </div>
               </div>
@@ -281,7 +345,7 @@ export function TaskNotePage() {
                 <div>
                   <p className="text-xs text-gray-500">完成进度</p>
                   <p className="text-xl font-semibold text-gray-900">
-                    {noteData.progress}%
+                    {taskNote.progress}%
                   </p>
                 </div>
               </div>
@@ -295,7 +359,7 @@ export function TaskNotePage() {
                 <div>
                   <p className="text-xs text-gray-500">里程碑</p>
                   <p className="text-xl font-semibold text-gray-900">
-                    {noteData.milestones.length}
+                    {taskNote.milestones.length}
                   </p>
                 </div>
               </div>
@@ -305,7 +369,7 @@ export function TaskNotePage() {
           {/* Overall Summary */}
           <div className="bg-white rounded-xl border border-gray-200 p-6">
             <h2 className="text-lg font-semibold text-gray-900 mb-3">任务概述</h2>
-            <p className="text-gray-700 leading-relaxed">{noteData.overallSummary}</p>
+            <p className="text-gray-700 leading-relaxed">{taskNote.overallSummary}</p>
           </div>
 
           <div className="grid grid-cols-2 gap-6">
@@ -315,7 +379,7 @@ export function TaskNotePage() {
                 核心知识点
               </h2>
               <ul className="space-y-2">
-                {noteData.coreKnowledge.map((knowledge, idx) => (
+                {taskNote.coreKnowledge.map((knowledge, idx) => (
                   <li
                     key={idx}
                     className="flex items-start gap-2 text-sm text-gray-700"
@@ -333,7 +397,7 @@ export function TaskNotePage() {
                 掌握程度
               </h2>
               <div className="space-y-3">
-                {noteData.masteryLevel.map((item, idx) => (
+                {taskNote.masteryLevel.map((item, idx) => (
                   <div key={idx}>
                     <div className="flex items-center justify-between text-sm mb-1">
                       <span className="text-gray-700 font-medium">{item.topic}</span>
@@ -357,7 +421,7 @@ export function TaskNotePage() {
           <div className="bg-white rounded-xl border border-gray-200 p-6">
             <h2 className="text-lg font-semibold text-gray-900 mb-4">学习里程碑</h2>
             <div className="space-y-3">
-              {noteData.milestones.map((milestone, idx) => (
+              {taskNote.milestones.map((milestone, idx) => (
                 <div key={idx} className="flex items-start gap-3">
                   <div className="p-1.5 bg-indigo-100 rounded-full mt-0.5">
                     <div className="w-2 h-2 bg-indigo-600 rounded-full" />
@@ -375,9 +439,9 @@ export function TaskNotePage() {
 
           {/* Next Steps */}
           <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl border border-blue-200 p-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">下一步计划</h2>
+            <h2 className="text-lg font-semibold text-gray-900 mb-4">详细学习计划</h2>
             <ul className="space-y-2">
-              {noteData.nextSteps.map((step, idx) => (
+              {normalizePlanSteps(taskNote.nextSteps).map((step, idx) => (
                 <li
                   key={idx}
                   className="flex items-start gap-3 text-sm text-gray-700 bg-white rounded-lg p-3"

@@ -17,9 +17,15 @@ class AgentWorker(QThread):
         self.user_input = user_input
 
     def _fallback_chat(self):
+        plan_hint = any(k in self.user_input for k in ["计划", "目标", "安排", "进度", "时间", "每天", "每周", "每月", "完成", "调整", "改成", "更新"])
         response = requests.post(
             f"{self.api_base_url}/chat",
-            json={"session_id": self.session_id, "message": self.user_input, "topic": self.topic},
+            json={
+                "session_id": self.session_id,
+                "message": self.user_input,
+                "topic": self.topic,
+                "plan_hint": plan_hint,
+            },
             timeout=120,
         )
         if response.status_code != 200:
@@ -30,9 +36,15 @@ class AgentWorker(QThread):
 
     def run(self):
         try:
+            plan_hint = any(k in self.user_input for k in ["计划", "目标", "安排", "进度", "时间", "每天", "每周", "每月", "完成", "调整", "改成", "更新"])
             response = requests.post(
                 f"{self.api_base_url}/chat/stream",
-                json={"session_id": self.session_id, "message": self.user_input, "topic": self.topic},
+                json={
+                    "session_id": self.session_id,
+                    "message": self.user_input,
+                    "topic": self.topic,
+                    "plan_hint": plan_hint,
+                },
                 timeout=120,
                 stream=True,
             )

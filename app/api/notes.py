@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Query
 from pydantic import BaseModel
+from typing import List, Optional
 
 from app.core import memory
 
@@ -22,6 +23,18 @@ class DailyNoteUpsertRequest(BaseModel):
 class TaskNoteResponse(BaseModel):
     task_id: str
     content: str
+    userNotes: Optional[str] = None
+    taskTitle: Optional[str] = None
+    taskIcon: Optional[str] = None
+    startDate: Optional[str] = None
+    totalDays: Optional[int] = None
+    totalHours: Optional[float] = None
+    progress: Optional[int] = None
+    overallSummary: Optional[str] = None
+    coreKnowledge: Optional[List[str]] = None
+    masteryLevel: Optional[List[dict]] = None
+    milestones: Optional[List[dict]] = None
+    nextSteps: Optional[List[str]] = None
     updated_at: str
 
 
