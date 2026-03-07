@@ -107,6 +107,7 @@ export function TutorSession() {
   const [errorText, setErrorText] = useState<string | null>(null);
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
   const [confirmingPlanId, setConfirmingPlanId] = useState<string | null>(null);
+  const [taskTitleDisplay, setTaskTitleDisplay] = useState("学习任务");
 
   const normalizePlanSteps = (plan?: TaskPlan | null): string[] => {
     if (!plan) return [];
@@ -192,7 +193,7 @@ export function TutorSession() {
         task_id: currentTaskId,
         session_id: activeSessionId,
         message: messageText,
-        topic: taskTitle,
+        topic: taskTitleDisplay,
         plan_hint: planHint,
       }),
     });
@@ -218,7 +219,7 @@ export function TutorSession() {
   const isPanelOpen = context?.isPanelOpen ?? true;
   const setIsPanelOpen = context?.setIsPanelOpen ?? (() => {});
 
-  const taskTitle = taskId ? taskTitles[taskId] || "学习任务" : "欢迎使用 ChatTutor";
+  const rawTaskId = taskId ? (taskId.startsWith("task_") ? taskId.slice(5) : taskId) : "";
   const currentTaskId = taskId ? (taskId.startsWith("task_") ? taskId : `task_${taskId}`) : "task_default";
   const currentDate = new Date().toLocaleDateString("zh-CN", {
     year: "numeric",
@@ -226,6 +227,35 @@ export function TutorSession() {
     day: "numeric",
     weekday: "long",
   });
+  useEffect(() => {
+    let cancelled = false;
+    const fallbackTitle = taskId
+      ? taskTitles[rawTaskId] || taskTitles[taskId] || "学习任务"
+      : "欢迎使用 ChatTutor";
+
+    const loadTaskTitle = async () => {
+      try {
+        const response = await fetch(`${API_BASE_URL}/notes/task?task_id=${currentTaskId}`);
+        if (!response.ok) {
+          throw new Error("failed");
+        }
+        const data = await response.json();
+        const resolved = data?.taskTitle || fallbackTitle;
+        if (!cancelled) {
+          setTaskTitleDisplay(resolved);
+        }
+      } catch {
+        if (!cancelled) {
+          setTaskTitleDisplay(fallbackTitle);
+        }
+      }
+    };
+
+    void loadTaskTitle();
+    return () => {
+      cancelled = true;
+    };
+  }, [currentTaskId, rawTaskId, taskId]);
   useEffect(() => {
     let isCancelled = false;
 
@@ -330,7 +360,7 @@ export function TutorSession() {
           task_id: currentTaskId,
           session_id: activeSessionId,
           message: messageText,
-          topic: taskTitle,
+            topic: taskTitleDisplay,
           plan_hint: /(计划|目标|安排|进度|时间|每天|每周|每月|完成|调整|改成|更新)/.test(
             messageText
           ),
@@ -422,7 +452,7 @@ export function TutorSession() {
       <div className="bg-white border-b border-gray-200 px-6 py-4">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-xl font-semibold text-gray-900">{taskTitle}</h1>
+            <h1 className="text-xl font-semibold text-gray-900">{taskTitleDisplay}</h1>
             <p className="text-sm text-gray-500 mt-0.5">{currentDate}</p>
           </div>
           <div className="flex items-center gap-3">

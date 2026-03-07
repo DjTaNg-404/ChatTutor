@@ -5,6 +5,7 @@ import { SettingsPage } from "./components/SettingsPage";
 import { ChatHistoryPage } from "./components/ChatHistoryPage";
 import { DailyNotePage } from "./components/DailyNotePage";
 import { TaskNotePage } from "./components/TaskNotePage";
+import { NewTaskPage } from "./components/NewTaskPage";
 
 export const router = createBrowserRouter([
   {
@@ -13,6 +14,7 @@ export const router = createBrowserRouter([
     children: [
       { index: true, element: <TutorSession /> },
       { path: "task/:taskId", element: <TutorSession /> },
+      { path: "task/new", element: <NewTaskPage /> },
     ],
   },
   {

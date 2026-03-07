@@ -46,7 +46,12 @@ interface TaskPlan {
 export function SummaryPanel() {
   const location = useLocation();
   const taskMatch = location.pathname.match(/^\/task\/(.+)$/);
-  const currentTaskId = taskMatch ? `task_${taskMatch[1]}` : "task_default";
+  const rawTaskId = taskMatch ? taskMatch[1] : "";
+  const currentTaskId = rawTaskId
+    ? rawTaskId.startsWith("task_")
+      ? rawTaskId
+      : `task_${rawTaskId}`
+    : "task_default";
   const [dailySummaries, setDailySummaries] = useState<DailySummary[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [taskPlan, setTaskPlan] = useState<TaskPlan | null>(null);
@@ -133,13 +138,19 @@ export function SummaryPanel() {
     if (!plan) return [];
     const raw = (plan as { nextSteps?: unknown }).nextSteps;
     if (Array.isArray(raw)) {
-      return raw.map((item) => String(item)).filter((item) => item.trim());
+      const steps = raw.map((item) => String(item)).filter((item) => item.trim());
+      if (steps.length > 0) {
+        return steps;
+      }
     }
     if (typeof raw === "string") {
-      return raw
+      const steps = raw
         .split(/\r?\n|[；;]+/)
         .map((item) => item.trim())
         .filter(Boolean);
+      if (steps.length > 0) {
+        return steps;
+      }
     }
     if (plan.overallSummary) {
       return [plan.overallSummary];

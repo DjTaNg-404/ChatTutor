@@ -1,10 +1,12 @@
-import { Outlet } from "react-router";
+import { Outlet, useLocation } from "react-router";
 import { TaskSidebar } from "./TaskSidebar";
 import { SummaryPanel } from "./SummaryPanel";
 import { useState } from "react";
 
 export function RootLayout() {
   const [isPanelOpen, setIsPanelOpen] = useState(true);
+  const location = useLocation();
+  const hideSummaryPanel = location.pathname.startsWith("/task/new");
 
   return (
     <div className="flex h-screen bg-gray-50">
@@ -17,7 +19,7 @@ export function RootLayout() {
       </main>
 
       {/* Right Summary Panel */}
-      {isPanelOpen && <SummaryPanel />}
+      {isPanelOpen && !hideSummaryPanel && <SummaryPanel />}
     </div>
   );
 }

@@ -1,9 +1,9 @@
-# desk_pet/code/pet_controller.py
 import random
 import ctypes
 from ctypes.wintypes import RECT
 from PyQt6.QtCore import QObject, QTimer, pyqtSignal, QPoint
 from PyQt6.QtWidgets import QApplication
+
 
 class PetController(QObject):
     position_changed = pyqtSignal(int, int)  

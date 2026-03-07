@@ -1,4 +1,3 @@
-# desk_pet/code/test_real_pet.py
 import sys
 import os
 from PyQt6.QtWidgets import QApplication, QWidget, QVBoxLayout, QPushButton, QGridLayout

@@ -1,0 +1,279 @@
+import { useState } from "react";
+import { useNavigate } from "react-router";
+import {
+  ArrowLeft,
+  Sparkles,
+  ClipboardCheck,
+  Target,
+  BookOpen,
+  CheckCircle2,
+  Loader2,
+  Lightbulb,
+} from "lucide-react";
+
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8000/api/v1";
+
+interface TaskPlan {
+  task_id?: string;
+  taskTitle?: string;
+  taskIcon?: string;
+  startDate?: string;
+  totalDays?: number;
+  totalHours?: number;
+  progress?: number;
+  overallSummary?: string;
+  coreKnowledge?: string[];
+  masteryLevel?: { topic: string; level: number }[];
+  milestones?: { date: string; achievement: string }[];
+  nextSteps?: string[] | string;
+  _plan_sig?: string;
+}
+
+function makeTaskId() {
+  const stamp = Date.now().toString(36);
+  return `task_${stamp}`;
+}
+
+function formatPlanAsGoal(plan: TaskPlan): string {
+  const lines: string[] = [];
+  if (plan.overallSummary) {
+    lines.push(plan.overallSummary.trim());
+  }
+
+  const rawSteps = (plan as { nextSteps?: unknown }).nextSteps;
+  const steps = Array.isArray(rawSteps)
+    ? rawSteps.map((item) => String(item)).filter((item) => item.trim())
+    : typeof rawSteps === "string"
+      ? rawSteps
+          .split(/\r?\n|[；;]+/)
+          .map((item) => item.trim())
+          .filter(Boolean)
+      : [];
+
+  if (steps.length > 0) {
+    lines.push("");
+    lines.push("计划步骤：");
+    steps.forEach((step, idx) => {
+      lines.push(`${idx + 1}. ${step}`);
+    });
+  }
+
+  return lines.join("\n").trim();
+}
+
+async function saveTaskToIndex(task: { id: string; title: string; icon: string }) {
+  await fetch(`${API_BASE_URL}/tasks`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      task_id: task.id,
+      title: task.title,
+      icon: task.icon,
+      status: "active",
+    }),
+  });
+}
+
+export function NewTaskPage() {
+  const navigate = useNavigate();
+  const [taskTitle, setTaskTitle] = useState("");
+  const [taskGoal, setTaskGoal] = useState("");
+  const [taskId] = useState(makeTaskId);
+  const [plan, setPlan] = useState<TaskPlan | null>(null);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [isConfirming, setIsConfirming] = useState(false);
+  const [hint, setHint] = useState<string | null>(null);
+
+  const canGenerate = taskTitle.trim() && taskGoal.trim() && !isGenerating;
+  const canConfirm = taskTitle.trim() && taskGoal.trim() && !isConfirming;
+
+  const handleGenerate = async () => {
+    if (!canGenerate) return;
+    setIsGenerating(true);
+    setHint(null);
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/agent/task-plan`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          task_id: taskId,
+          user_goal: taskGoal,
+          constraints: "",
+          current_level: "",
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`生成计划失败（${response.status}）`);
+      }
+
+      const data = (await response.json()) as TaskPlan;
+      const merged = {
+        ...data,
+        taskTitle: data.taskTitle || taskTitle,
+      };
+      setPlan(merged);
+      const formattedGoal = formatPlanAsGoal(merged);
+      if (formattedGoal) {
+        setTaskGoal(formattedGoal);
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "生成计划失败";
+      setHint(message);
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  const handleConfirm = async () => {
+    if (!canConfirm) return;
+    setIsConfirming(true);
+    setHint(null);
+
+    try {
+      const planPayload: TaskPlan = plan || {
+        taskTitle: taskTitle || "学习任务",
+        overallSummary: taskGoal,
+        coreKnowledge: [],
+        nextSteps: [],
+      };
+
+      const response = await fetch(`${API_BASE_URL}/agent/task-plan/confirm`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          task_id: taskId,
+          plan: {
+            ...planPayload,
+            taskTitle: taskTitle || planPayload.taskTitle,
+          },
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`确认失败（${response.status}）`);
+      }
+
+      const icon = plan?.taskIcon || "✨";
+      const title = taskTitle || plan?.taskTitle || "学习任务";
+      await saveTaskToIndex({ id: taskId, title, icon });
+      window.dispatchEvent(new Event("tasks-updated"));
+      window.dispatchEvent(new Event("task-plan-updated"));
+      navigate(`/task/${taskId}`);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "确认失败";
+      setHint(message);
+    } finally {
+      setIsConfirming(false);
+    }
+  };
+
+  return (
+    <div className="h-full flex flex-col bg-gray-50">
+      <div className="bg-white border-b border-gray-200 px-6 py-4">
+        <div className="max-w-5xl mx-auto">
+          <button
+            onClick={() => navigate(-1)}
+            className="flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-3 transition-colors"
+          >
+            <ArrowLeft className="w-5 h-5" />
+            <span className="text-sm font-medium">返回</span>
+          </button>
+
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-indigo-100 rounded-xl">
+              <BookOpen className="w-5 h-5 text-indigo-600" />
+            </div>
+            <div>
+              <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-gray-100 text-[11px] text-gray-500 uppercase tracking-wide">
+                Preview
+              </span>
+              <h1 className="text-2xl font-semibold text-gray-900 mt-1">创建新的学习任务</h1>
+              <p className="text-sm text-gray-600 mt-1">
+                设定目标，让 AI 为你规划学习路径
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="flex-1 overflow-y-auto p-6">
+        <div className="max-w-5xl mx-auto space-y-6">
+          <section className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm">
+            <div className="flex items-center gap-2 mb-2">
+              <Target className="w-4 h-4 text-indigo-600" />
+              <h2 className="text-base font-semibold text-gray-900">任务名称</h2>
+              <span className="text-rose-500 text-sm font-medium">*</span>
+            </div>
+            <input
+              value={taskTitle}
+              onChange={(event) => setTaskTitle(event.target.value)}
+              placeholder="例如：掌握随机森林算法、雅思口语备考、React Hooks 深入..."
+              className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            />
+          </section>
+
+          <section className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm">
+            <div className="flex items-center gap-2 mb-2">
+              <ClipboardCheck className="w-4 h-4 text-indigo-600" />
+              <h2 className="text-base font-semibold text-gray-900">学习目标</h2>
+              <span className="text-rose-500 text-sm font-medium">*</span>
+            </div>
+            <p className="text-xs text-gray-500 mb-3">
+              详细描述你想达到的学习目标，包括具体的知识点、技能水平、应用场景等
+            </p>
+            <textarea
+              value={taskGoal}
+              onChange={(event) => setTaskGoal(event.target.value)}
+              placeholder="例如：\n\n我想全面掌握随机森林算法，包括：\n1. 理解集成学习的核心原理\n2. 掌握特征重要性评估方法\n3. 学会超参数调优技巧\n4. 能够在实际项目中应用该算法\n5. 了解与其他机器学习算法的对比"
+              rows={7}
+              className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            />
+          </section>
+
+          <div className="flex flex-col items-center gap-3">
+            <button
+              onClick={() => void handleGenerate()}
+              disabled={!canGenerate}
+              className="inline-flex items-center gap-2 px-5 py-2.5 bg-indigo-600 text-white rounded-full hover:bg-indigo-700 disabled:opacity-50 transition-colors"
+            >
+              {isGenerating ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <Sparkles className="w-4 h-4" />
+              )}
+              <span className="text-sm font-medium">AI 生成学习计划</span>
+            </button>
+            {hint && <span className="text-sm text-rose-600">{hint}</span>}
+            <button
+              onClick={() => void handleConfirm()}
+              disabled={!canConfirm}
+              className="inline-flex items-center gap-2 px-5 py-2.5 bg-emerald-600 text-white rounded-full hover:bg-emerald-700 disabled:opacity-50 transition-colors"
+            >
+              {isConfirming ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <CheckCircle2 className="w-4 h-4" />
+              )}
+              <span className="text-sm font-medium">确认使用这个学习计划</span>
+            </button>
+            {!plan && (
+              <span className="text-xs text-gray-500">先生成计划后再确认</span>
+            )}
+          </div>
+
+          <section className="bg-blue-50 rounded-2xl border border-blue-100 p-4">
+            <div className="flex items-center gap-2 text-blue-700">
+              <Lightbulb className="w-4 h-4" />
+              <span className="text-sm font-semibold">小贴士</span>
+            </div>
+            <p className="text-sm text-blue-700 mt-2">
+              写得越具体，AI 生成的学习计划越贴合你的真实目标。
+            </p>
+          </section>
+        </div>
+      </div>
+    </div>
+  );
+}

@@ -1,12 +1,14 @@
 import { Link, useLocation, useNavigate } from "react-router";
 import { Plus, ChevronDown, ChevronRight, BookOpen, Settings, Archive } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 interface Task {
   id: string;
   title: string;
   icon: string;
   status: "active" | "archived";
+  created_at?: string;
+  updated_at?: string;
 }
 
 const activeTasks: Task[] = [
@@ -21,13 +23,167 @@ const archivedTasks: Task[] = [
   { id: "6", title: "SQL 查询优化", icon: "💾", status: "archived" },
 ];
 
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8000/api/v1";
+
+function mergeTasks(primary: Task[], secondary: Task[]): Task[] {
+  const map = new Map<string, Task>();
+  for (const item of secondary) {
+    map.set(item.id, item);
+  }
+  for (const item of primary) {
+    map.set(item.id, item);
+  }
+  return Array.from(map.values());
+}
+
 export function TaskSidebar() {
   const location = useLocation();
   const navigate = useNavigate();
   const [showArchived, setShowArchived] = useState(false);
+  const [storedTasks, setStoredTasks] = useState<Task[]>([]);
+  const [menuState, setMenuState] = useState<{
+    visible: boolean;
+    x: number;
+    y: number;
+    task: Task | null;
+  }>({
+    visible: false,
+    x: 0,
+    y: 0,
+    task: null,
+  });
+
+  const loadTasks = async () => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/tasks`);
+      if (!response.ok) {
+        throw new Error("failed");
+      }
+      const data = await response.json();
+      const tasks = Array.isArray(data.tasks) ? data.tasks : [];
+      setStoredTasks(tasks);
+    } catch {
+      setStoredTasks([]);
+    }
+  };
+
+  useEffect(() => {
+    const refreshTasks = () => {
+      void loadTasks();
+    };
+    void loadTasks();
+    window.addEventListener("tasks-updated", refreshTasks);
+    return () => {
+      window.removeEventListener("tasks-updated", refreshTasks);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!menuState.visible) return;
+    const closeMenu = () => setMenuState((prev) => ({ ...prev, visible: false }));
+    window.addEventListener("click", closeMenu);
+    window.addEventListener("scroll", closeMenu, true);
+    window.addEventListener("resize", closeMenu);
+    return () => {
+      window.removeEventListener("click", closeMenu);
+      window.removeEventListener("scroll", closeMenu, true);
+      window.removeEventListener("resize", closeMenu);
+    };
+  }, [menuState.visible]);
 
   const isTaskActive = (taskId: string) => {
     return location.pathname === `/task/${taskId}`;
+  };
+
+  const activeTaskList = useMemo(
+    () => mergeTasks(storedTasks.filter((item) => item.status === "active"), activeTasks),
+    [storedTasks]
+  );
+  const archivedTaskList = useMemo(
+    () => mergeTasks(storedTasks.filter((item) => item.status === "archived"), archivedTasks),
+    [storedTasks]
+  );
+
+  const handleContextMenu = (event: React.MouseEvent, task: Task) => {
+    event.preventDefault();
+    setMenuState({
+      visible: true,
+      x: event.clientX,
+      y: event.clientY,
+      task,
+    });
+  };
+
+  const handleArchive = async () => {
+    if (!menuState.task) return;
+    const exists = storedTasks.some((item) => item.id === menuState.task?.id);
+    if (!exists) {
+      await fetch(`${API_BASE_URL}/tasks`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          task_id: menuState.task.id,
+          title: menuState.task.title,
+          icon: menuState.task.icon,
+          status: "active",
+        }),
+      });
+    }
+    await fetch(`${API_BASE_URL}/tasks/${menuState.task.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ status: "archived" }),
+    });
+    setMenuState((prev) => ({ ...prev, visible: false }));
+    window.dispatchEvent(new Event("tasks-updated"));
+  };
+
+  const handleRestore = async () => {
+    if (!menuState.task) return;
+    const exists = storedTasks.some((item) => item.id === menuState.task?.id);
+    if (!exists) {
+      await fetch(`${API_BASE_URL}/tasks`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          task_id: menuState.task.id,
+          title: menuState.task.title,
+          icon: menuState.task.icon,
+          status: "archived",
+        }),
+      });
+    }
+    await fetch(`${API_BASE_URL}/tasks/${menuState.task.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ status: "active" }),
+    });
+    setMenuState((prev) => ({ ...prev, visible: false }));
+    window.dispatchEvent(new Event("tasks-updated"));
+  };
+
+  const handleDelete = async () => {
+    if (!menuState.task) return;
+    const taskId = menuState.task.id;
+    const exists = storedTasks.some((item) => item.id === taskId);
+    if (!exists) {
+      await fetch(`${API_BASE_URL}/tasks`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          task_id: menuState.task.id,
+          title: menuState.task.title,
+          icon: menuState.task.icon,
+          status: menuState.task.status,
+        }),
+      });
+    }
+    await fetch(`${API_BASE_URL}/tasks/${taskId}`, { method: "DELETE" });
+    setMenuState((prev) => ({ ...prev, visible: false }));
+    window.dispatchEvent(new Event("tasks-updated"));
+    if (location.pathname === `/task/${taskId}`) {
+      navigate("/");
+    }
   };
 
   return (
@@ -44,7 +200,10 @@ export function TaskSidebar() {
 
       {/* New Task Button */}
       <div className="p-4 border-b border-gray-200">
-        <button className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-medium">
+        <button
+          onClick={() => navigate("/task/new")}
+          className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-medium"
+        >
           <Plus className="w-5 h-5" />
           新建学习任务
         </button>
@@ -57,10 +216,11 @@ export function TaskSidebar() {
             进行中的任务
           </h3>
           <div className="space-y-1">
-            {activeTasks.map((task) => (
+            {activeTaskList.map((task) => (
               <Link
                 key={task.id}
                 to={`/task/${task.id}`}
+                onContextMenu={(event) => handleContextMenu(event, task)}
                 className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all ${
                   isTaskActive(task.id)
                     ? "bg-indigo-50 text-indigo-600 shadow-sm"
@@ -94,10 +254,11 @@ export function TaskSidebar() {
           </button>
           {showArchived && (
             <div className="mt-2 space-y-1">
-              {archivedTasks.map((task) => (
+              {archivedTaskList.map((task) => (
                 <Link
                   key={task.id}
                   to={`/task/${task.id}`}
+                  onContextMenu={(event) => handleContextMenu(event, task)}
                   className="flex items-center gap-3 px-3 py-2 rounded-lg text-gray-600 hover:bg-gray-100 transition-colors"
                 >
                   <span className="text-lg opacity-60">{task.icon}</span>
@@ -119,6 +280,35 @@ export function TaskSidebar() {
           <span className="text-sm font-medium">系统设置</span>
         </Link>
       </div>
+
+      {menuState.visible && menuState.task && (
+        <div
+          className="fixed z-50 w-40 rounded-xl border border-gray-200 bg-white shadow-lg"
+          style={{ top: menuState.y, left: menuState.x }}
+        >
+          {menuState.task.status === "archived" ? (
+            <button
+              onClick={handleRestore}
+              className="w-full px-3 py-2 text-left text-sm text-gray-700 hover:bg-gray-50"
+            >
+              恢复任务
+            </button>
+          ) : (
+            <button
+              onClick={handleArchive}
+              className="w-full px-3 py-2 text-left text-sm text-gray-700 hover:bg-gray-50"
+            >
+              归档任务
+            </button>
+          )}
+          <button
+            onClick={handleDelete}
+            className="w-full px-3 py-2 text-left text-sm text-rose-600 hover:bg-rose-50"
+          >
+            删除任务
+          </button>
+        </div>
+      )}
     </aside>
   );
 }

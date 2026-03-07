@@ -10,6 +10,8 @@ from app.utils import file_io
 # Paths Configuration
 MEMORY_DIR = "memory/sessions"
 NOTES_DIR = "memory/notes"
+TASK_INDEX_DIR = "memory/task_index"
+TASK_INDEX_PATH = os.path.join(TASK_INDEX_DIR, "tasks.json")
 
 
 def _get_daily_note_path(task_id: str, date: str) -> str:
@@ -21,6 +23,79 @@ def _get_task_note_path(task_id: str) -> str:
 
 def _get_task_plan_path(task_id: str) -> str:
     return os.path.join(NOTES_DIR, "task", f"{task_id}.json")
+
+
+def _load_task_index() -> List[Dict[str, Any]]:
+    if not os.path.exists(TASK_INDEX_PATH):
+        return []
+    try:
+        data = file_io.load_json(TASK_INDEX_PATH)
+    except Exception:
+        return []
+    if not isinstance(data, list):
+        return []
+    return [item for item in data if isinstance(item, dict)]
+
+
+def _save_task_index(items: List[Dict[str, Any]]):
+    file_io.save_json(items, TASK_INDEX_PATH)
+
+
+def list_tasks(status: Optional[str] = None) -> List[Dict[str, Any]]:
+    tasks = _load_task_index()
+    if status:
+        tasks = [item for item in tasks if item.get("status") == status]
+    tasks.sort(key=lambda item: item.get("updated_at", ""), reverse=True)
+    return tasks
+
+
+def upsert_task(task_id: str, title: str, icon: str, status: str = "active") -> Dict[str, Any]:
+    now = datetime.datetime.now().isoformat()
+    tasks = _load_task_index()
+    existing = None
+    for item in tasks:
+        if item.get("id") == task_id:
+            existing = item
+            break
+
+    if existing is None:
+        existing = {
+            "id": task_id,
+            "created_at": now,
+        }
+        tasks.insert(0, existing)
+
+    existing.update(
+        {
+            "title": title,
+            "icon": icon,
+            "status": status,
+            "updated_at": now,
+        }
+    )
+    _save_task_index(tasks)
+    return existing
+
+
+def update_task_status(task_id: str, status: str) -> Optional[Dict[str, Any]]:
+    now = datetime.datetime.now().isoformat()
+    tasks = _load_task_index()
+    for item in tasks:
+        if item.get("id") == task_id:
+            item["status"] = status
+            item["updated_at"] = now
+            _save_task_index(tasks)
+            return item
+    return None
+
+
+def delete_task(task_id: str) -> bool:
+    tasks = _load_task_index()
+    next_tasks = [item for item in tasks if item.get("id") != task_id]
+    if len(next_tasks) == len(tasks):
+        return False
+    _save_task_index(next_tasks)
+    return True
 
 
 def _file_updated_at(path: str) -> str:

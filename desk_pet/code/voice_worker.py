@@ -1,9 +1,9 @@
-# desk_pet/code/voice_worker.py
 import os
 import wave
 import requests
 import pyaudio
 from PyQt6.QtCore import QThread, pyqtSignal
+
 
 class AudioRecorder(QThread):
     def __init__(self, output_path):
@@ -55,7 +55,12 @@ class VoiceAgentWorker(QThread):
         try:
             with open(self.audio_path, "rb") as f:
                 files = {"file": ("audio.wav", f, "audio/wav")}
-                data = {"session_id": self.session_id, "topic": self.topic}
+                # ======== 【修改】：在此处新增 "client": "pet" 标识 ========
+                data = {
+                    "session_id": self.session_id, 
+                    "topic": self.topic,
+                    "client": "pet"  # 告诉后端我是桌宠，需要简短回答
+                }
                 
                 response = requests.post(
                     f"{self.api_base_url}/voice_chat", 

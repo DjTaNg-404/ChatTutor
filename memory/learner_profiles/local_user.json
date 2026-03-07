@@ -1,6 +1,6 @@
 {
   "learner_id": "local_user",
-  "updated_at": "2026-03-06T02:35:14",
+  "updated_at": "2026-03-07T14:51:10",
   "cards": [
     {
       "type": "learning_fact",
@@ -79,6 +79,24 @@
       },
       "source": "local_user",
       "ts": "2026-03-06T02:35:14"
+    },
+    {
+      "type": "learning_fact",
+      "fact_type": "goal",
+      "fields": {
+        "subject": "什么吗"
+      },
+      "source": "local_user",
+      "ts": "2026-03-07T14:39:52"
+    },
+    {
+      "type": "learning_fact",
+      "fact_type": "goal",
+      "fields": {
+        "subject": "掌握随机森林"
+      },
+      "source": "local_user",
+      "ts": "2026-03-07T14:50:11"
     }
   ]
 }

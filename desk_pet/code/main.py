@@ -2,31 +2,27 @@
 import sys
 import os
 import signal 
+import sys
+import os
+import signal 
 import json
-if sys.platform.startswith("win"):
-    try:
-        # Ensure Windows ICU DLLs take precedence over Anaconda's older ICU.
-        os.add_dll_directory(r"C:\Windows\System32")
-    except Exception:
-        pass
+
+# ======= 【核心修复：禁用 Chromium 硬件加速，防止透明窗口渲染崩溃】 =======
+os.environ["QTWEBENGINE_CHROMIUM_FLAGS"] = "--disable-gpu --disable-gpu-compositing --log-level=3"
+# ======================================================================================
+
 from PyQt6.QtWidgets import (QApplication, QWidget, QVBoxLayout, QHBoxLayout, 
                              QLineEdit, QLabel, QMenu, QPushButton)
-# 引入了 QUrl
 from PyQt6.QtCore import Qt, QPoint, QSize, QEvent, QUrl
-# 引入了 QPainter 和 QDesktopServices
 from PyQt6.QtGui import QMovie, QFont, QAction, QPixmap, QPainter, QDesktopServices
 from PyQt6.QtWebEngineWidgets import QWebEngineView
 
-# 导入封装好的模块
 from config import HTML_TEMPLATE, BASE_DIR
 from text_worker import AgentWorker
 from voice_worker import AudioRecorder, VoiceAgentWorker
-
-# === 导入抽离出来的物理引擎与状态大脑 ===
 from pet_controller import PetController
 
 
-# ================= 新增：支持动态水平翻转的自制画板 =================
 class PetLabel(QLabel):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -35,13 +31,12 @@ class PetLabel(QLabel):
     def set_flipped(self, flipped):
         if self.is_flipped != flipped:
             self.is_flipped = flipped
-            self.update() # 强制通知系统重新绘制这一帧
+            self.update() 
 
     def paintEvent(self, event):
         painter = QPainter(self)
         pixmap = None
         
-        # 提取当前的图片帧
         if self.movie() and self.movie().currentPixmap() and not self.movie().currentPixmap().isNull():
             pixmap = self.movie().currentPixmap()
         elif self.pixmap() and not self.pixmap().isNull():
@@ -51,13 +46,11 @@ class PetLabel(QLabel):
             x = int((self.width() - pixmap.width()) / 2)
             y = int((self.height() - pixmap.height()) / 2)
             
-            # 核心黑科技：镜像翻转整个画笔坐标系！
             if self.is_flipped:
                 painter.translate(self.width(), 0)
                 painter.scale(-1, 1)
                 
             painter.drawPixmap(x, y, pixmap)
-# ====================================================================
 
 
 class ChatTutorPet(QWidget):
@@ -87,10 +80,12 @@ class ChatTutorPet(QWidget):
         self.layout.setSpacing(12) 
         
         self.chat_container = QWidget()
-        self.chat_container.setFixedHeight(120)
-        self.chat_container.setMinimumWidth(340)
+        self.chat_container.setMinimumHeight(40) 
+        
+        # 将宽度调宽，强制固定宽度为 300px
+        self.chat_container.setFixedWidth(300) 
+        
         self.chat_container.setStyleSheet("background-color: rgba(245, 245, 247, 230); border: 1px solid rgba(200, 200, 220, 150); border-radius: 12px;")
-        self.chat_container.installEventFilter(self)
         
         container_layout = QVBoxLayout(self.chat_container)
         container_layout.setContentsMargins(4, 4, 4, 4)
@@ -98,16 +93,21 @@ class ChatTutorPet(QWidget):
         self.web_view = QWebEngineView()
         self.web_view.page().setBackgroundColor(Qt.GlobalColor.transparent)
         self.web_view.setHtml(HTML_TEMPLATE)
+        # 接收前端通过 title 传回来的高度信息
+        self.web_view.titleChanged.connect(self.adjust_web_height)
+        
         container_layout.addWidget(self.web_view)
         self.chat_container.hide()
 
-        # 【关键修改】：使用我们自制的 PetLabel 替换掉原本的 QLabel
         self.pet_label = PetLabel(self)
         self.pet_label.setFixedSize(self.gif_size)
         
         self.input_field = QLineEdit()
         self.input_field.setPlaceholderText("想问点什么？按回车发送...")
-        self.input_field.setMinimumWidth(290)
+        
+        # 输入框宽度调整为 250px，与气泡容器适配
+        self.input_field.setMinimumWidth(250)
+        
         self.input_field.setStyleSheet("background-color: rgba(255, 255, 255, 240); border: 2px solid #E0E0E0; border-radius: 15px; padding: 6px 14px;")
         self.input_field.returnPressed.connect(self.send_message)
         
@@ -133,7 +133,29 @@ class ChatTutorPet(QWidget):
         self.layout.addWidget(self.chat_container) 
         self.layout.addWidget(self.input_container) 
         self.layout.addWidget(self.pet_label, alignment=Qt.AlignmentFlag.AlignHCenter) 
-        
+
+    # ============ 自适应高度调节 ============
+    def adjust_web_height(self, title):
+        if title.startswith("HEIGHT:"):
+            try:
+                # 解析出前端网页的实际内容高度
+                h = int(float(title.split(":")[1]))
+                # 预留上下 padding 的空间，并设置最小/最大高度防止越界
+                new_height = max(40, h + 15) 
+                
+                # ====== 核心修改：高度上限修改为 450 ======
+                new_height = min(new_height, 450) 
+                # ==========================================
+                
+                # 只有高度真的变化了才重置，避免抖动
+                if self.chat_container.height() != new_height:
+                    self.chat_container.setFixedHeight(new_height)
+                    self.adjustSize() # 强制更新整个桌宠窗口尺寸
+                    self.update_position(self.controller.pet_x, self.controller.pet_y)
+            except Exception:
+                pass
+    # ========================================
+
     def init_agent(self):
         self.api_base_url = "http://127.0.0.1:8000/api/v1"
         self.session_id = "pet_session_1"
@@ -193,7 +215,6 @@ class ChatTutorPet(QWidget):
         self.controller.position_changed.connect(self.update_position)
         self.controller.appearance_changed.connect(self.set_appearance)
         
-        # 【关键修改】：把大脑的转向信号连接到自制画板上
         self.controller.direction_changed.connect(self.pet_label.set_flipped)
         
         self.controller.drag_to(self.x() + self.pet_label.x(), self.y() + self.pet_label.y())
@@ -203,20 +224,6 @@ class ChatTutorPet(QWidget):
         win_x = pet_x - self.pet_label.x()
         win_y = pet_y - self.pet_label.y()
         self.move(int(win_x), int(win_y))
-
-    def eventFilter(self, obj, event):
-        if obj == self.chat_container:
-            if event.type() == QEvent.Type.Enter:
-                self.chat_container.setFixedHeight(400) 
-                self.adjustSize()
-                self.update_position(self.controller.pet_x, self.controller.pet_y)
-                self.web_view.page().runJavaScript("setHover(true);")
-            elif event.type() == QEvent.Type.Leave:
-                self.chat_container.setFixedHeight(120) 
-                self.adjustSize()
-                self.update_position(self.controller.pet_x, self.controller.pet_y)
-                self.web_view.page().runJavaScript("setHover(false);")
-        return super().eventFilter(obj, event)
 
     def add_bubble(self, text, is_user=False):
         js_code = f"addMessage({json.dumps(text)}, {'true' if is_user else 'false'});"
@@ -243,16 +250,12 @@ class ChatTutorPet(QWidget):
             self.drag_position = event.globalPosition().toPoint() - self.frameGeometry().topLeft()
         elif event.button() == Qt.MouseButton.RightButton:
             menu = QMenu(self)
-            # ================= 新增：打开 Web 面板 =================
             open_web_action = menu.addAction("🌐 打开 Web 面板")
             open_web_action.triggered.connect(
                 lambda: QDesktopServices.openUrl(QUrl("http://127.0.0.1:5173"))
             )
-            menu.addSeparator() # 分割线
-            # =======================================================
-            
+            menu.addSeparator() 
             menu.addAction("❌ 退出", QApplication.quit)
-            
             menu.exec(event.globalPosition().toPoint())
 
     def mouseMoveEvent(self, event):
@@ -300,7 +303,10 @@ class ChatTutorPet(QWidget):
             self.audio_recorder.wait()
         
         self.input_field.setPlaceholderText("正在上传语音让 Tutor 思考中... 🧠")
-        self.add_bubble("🎵 [发送了一条语音]", True)
+        
+        # ====== 核心修改：触发前端生成包含语音占位符的真实用户卡片 ======
+        self.add_bubble("🎤 语音输入...", True)
+        # ==============================================================
         
         self.controller.change_state("THINKING", 9999) 
         
@@ -311,19 +317,24 @@ class ChatTutorPet(QWidget):
     def send_message(self):
         text = self.input_field.text()
         if not text: return
-        self.add_bubble(text, True); self.input_field.clear()
-        self.input_field.setEnabled(False); self.input_field.setPlaceholderText("Tutor 正在通过 API 思考中... 🧠")
+        self.input_field.clear()
+        self.input_field.setEnabled(False)
+        self.input_field.setPlaceholderText("Tutor 正在通过 API 思考中... 🧠")
+        
+        # ====== 核心修改：将用户的真实问题发送给前端，生成一张新卡片 ======
+        self.add_bubble(text, True)
+        # =================================================================
         
         self.controller.change_state("THINKING", 9999) 
         
         self.worker = AgentWorker(self.api_base_url, self.session_id, self.topic, text)
         self.worker.stream_started.connect(self.start_stream_bubble)
         self.worker.chunk_ready.connect(self.append_stream_bubble)
-        self.worker.stream_finished.connect(self.finish_stream_bubble)
         self.worker.response_ready.connect(self.handle_response); self.worker.start()
 
     def handle_response(self, text, is_concluded):
-        self.input_field.setEnabled(True); self.input_field.setPlaceholderText("想问点什么？按回车发送...")
+        self.input_field.setEnabled(True)
+        self.input_field.setPlaceholderText("想问点什么？按回车发送...")
         self.input_field.setFocus()
         if self.active_stream_message_id:
             self.finish_stream_bubble(self.active_stream_message_id)

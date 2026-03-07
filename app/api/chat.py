@@ -17,6 +17,7 @@ from app.core.summary.generator import summary_generator
 router = APIRouter()
 
 ENABLE_STREAMING = os.getenv("ENABLE_STREAMING", "true").lower() in {"1", "true", "yes", "on"}
+ENABLE_PLAN_PROPOSAL = os.getenv("ENABLE_PLAN_PROPOSAL", "false").lower() in {"1", "true", "yes", "on"}
 
 # Initialize the agent graph once when the module loads
 agent_graph = build_agent()
@@ -251,16 +252,17 @@ async def chat_endpoint(request: ChatRequest):
         asyncio.create_task(_call_summary_agent(session_id, task_id, summary_from_agent))
 
     plan_proposal = None
-    try:
-        plan_proposal = await _build_plan_proposal(
-            task_id,
-            final_state,
-            fallback_text=request.message,
-            plan_hint=request.plan_hint,
-            reply_text=reply_content,
-        )
-    except Exception as e:
-        print(f"[TaskPlan] proposal failed: {e}")
+    if ENABLE_PLAN_PROPOSAL:
+        try:
+            plan_proposal = await _build_plan_proposal(
+                task_id,
+                final_state,
+                fallback_text=request.message,
+                plan_hint=request.plan_hint,
+                reply_text=reply_content,
+            )
+        except Exception as e:
+            print(f"[TaskPlan] proposal failed: {e}")
 
     return ChatResponse(
         task_id=task_id,
@@ -327,16 +329,17 @@ async def chat_stream_endpoint(request: ChatRequest):
                 asyncio.create_task(_call_summary_agent(session_id, task_id, summary_from_agent))
 
             plan_proposal = None
-            try:
-                plan_proposal = await _build_plan_proposal(
-                    task_id,
-                    final_state,
-                    fallback_text=request.message,
-                    plan_hint=request.plan_hint,
-                    reply_text=reply_content,
-                )
-            except Exception as e:
-                print(f"[TaskPlan] proposal failed: {e}")
+            if ENABLE_PLAN_PROPOSAL:
+                try:
+                    plan_proposal = await _build_plan_proposal(
+                        task_id,
+                        final_state,
+                        fallback_text=request.message,
+                        plan_hint=request.plan_hint,
+                        reply_text=reply_content,
+                    )
+                except Exception as e:
+                    print(f"[TaskPlan] proposal failed: {e}")
 
             yield _event_line("done", {
                 "task_id": task_id,
