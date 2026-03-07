@@ -4,7 +4,6 @@ from ctypes.wintypes import RECT
 from PyQt6.QtCore import QObject, QTimer, pyqtSignal, QPoint
 from PyQt6.QtWidgets import QApplication
 
-
 class PetController(QObject):
     position_changed = pyqtSignal(int, int)  
     appearance_changed = pyqtSignal(str)     
@@ -27,14 +26,9 @@ class PetController(QObject):
         
         self.is_flipped = False  
         
-        # ================= 动作逻辑锁 =================
         self.sit_has_thought = False 
         self.stand_has_acted = False 
-        
-        # ================= 聊天冻结标记 =================
         self.is_chatting = False
-        
-        # (移除了缓存单窗口的变量，因为现在我们要遍历所有窗口)
         
         self.game_timer = QTimer(self)
         self.game_timer.timeout.connect(self.game_loop)
@@ -62,27 +56,40 @@ class PetController(QObject):
         else:
             self.change_state("STAND", 20)
 
-    # ================= 核心重构：扫描桌面上的所有可见窗口 =================
+    # ================= 核心修复：分离所有窗口与可踩踏窗口 =================
     def get_all_visible_windows(self, screen_geo, ratio):
         user32 = ctypes.windll.user32
-        # 获取 Z 轴最顶层的窗口句柄
+        dwmapi = ctypes.windll.dwmapi 
+        
         hwnd = user32.GetTopWindow(None)
-        rects = []
+        windows_info = []
+        
+        DWMWA_EXTENDED_FRAME_BOUNDS = 9
+        DWMWA_CLOAKED = 14
         
         while hwnd:
-            # 1. 过滤：不是自己、可见、且未最小化
             if hwnd != self.win_id and user32.IsWindowVisible(hwnd) and not user32.IsIconic(hwnd):
                 
+                cloaked = ctypes.wintypes.DWORD()
+                res = dwmapi.DwmGetWindowAttribute(
+                    hwnd, DWMWA_CLOAKED, ctypes.byref(cloaked), ctypes.sizeof(cloaked)
+                )
+                if res == 0 and cloaked.value != 0:
+                    hwnd = user32.GetWindow(hwnd, 2)
+                    continue 
+
                 class_name = ctypes.create_unicode_buffer(256)
                 user32.GetClassNameW(hwnd, class_name, 256)
                 c_name = class_name.value
                 
-                # 2. 过滤掉桌面壁纸、任务栏、Win10/11内部系统组件层
                 if c_name not in ["WorkerW", "Progman", "Shell_TrayWnd", "Windows.UI.Core.CoreWindow"]:
                     rect = RECT()
-                    user32.GetWindowRect(hwnd, ctypes.byref(rect))
+                    res = dwmapi.DwmGetWindowAttribute(
+                        hwnd, DWMWA_EXTENDED_FRAME_BOUNDS, ctypes.byref(rect), ctypes.sizeof(rect)
+                    )
+                    if res != 0: 
+                        user32.GetWindowRect(hwnd, ctypes.byref(rect))
                     
-                    # 动态 DPI 缩放换算
                     rect.left = int(rect.left / ratio)
                     rect.right = int(rect.right / ratio)
                     rect.top = int(rect.top / ratio)
@@ -91,15 +98,20 @@ class PetController(QObject):
                     width = rect.right - rect.left
                     height = rect.bottom - rect.top
                     
-                    # 3. 过滤掉尺寸异常小的组件，以及填满屏幕的全屏应用
-                    if width > 100 and height > 50 and \
-                       (width < screen_geo.width() - 20 or height < screen_geo.height() - 20):
-                        rects.append(rect)
+                    if width > 0 and height > 0:
+                        # 判断是否为全屏/最大化窗口（它们不能作为地板，但必须作为遮挡物）
+                        is_fullscreen = (width >= screen_geo.width() - 20) and (height >= screen_geo.height() - 20)
+                        # 判断是否是可以踩踏的有效小窗口
+                        is_valid_floor = not is_fullscreen and width > 100 and height > 50
                         
-            # 沿着 Z 轴往下找下一个窗口
-            hwnd = user32.GetWindow(hwnd, 2) # 2 = GW_HWNDNEXT
+                        windows_info.append({
+                            "rect": rect,
+                            "is_valid_floor": is_valid_floor
+                        })
+                        
+            hwnd = user32.GetWindow(hwnd, 2) 
             
-        return rects
+        return windows_info
     # ======================================================================
 
     def game_loop(self):
@@ -113,7 +125,6 @@ class PetController(QObject):
         self.pet_x += self.vx
         self.pet_y += self.vy
         
-        # 1. 多屏动态定位
         pet_point = QPoint(int(self.pet_x + self.pet_width / 2), int(self.pet_y + self.pet_height / 2))
         current_screen = QApplication.screenAt(pet_point)
         
@@ -126,37 +137,45 @@ class PetController(QObject):
             
         screen_floor_y = screen_geo.bottom() - self.pet_height
 
-        # 2. 获取所有的悬浮台阶 (多窗口)
-        all_windows = self.get_all_visible_windows(screen_geo, ratio)
+        # 获取带有地板属性标记的窗口列表
+        all_windows_info = self.get_all_visible_windows(screen_geo, ratio)
         
-        # ================= 核心碰撞检测：寻找脚底最高的那块踏板 =================
         highest_floor_y = screen_floor_y
         on_window = False
         pet_center_x = self.pet_x + self.pet_width / 2
         
         if self.state != "DRAGGED":
-            for rect in all_windows:
-                # 如果桌宠的中心在窗口左右边界内
-                if rect.left <= pet_center_x <= rect.right:
-                    # 保留你精心调教的 +25 偏移量
-                    window_top_y = rect.top - self.pet_height + 25 
+            for i, win_data in enumerate(all_windows_info):
+                # 只有非全屏的有效窗口，才有资格做地板
+                if not win_data["is_valid_floor"]:
+                    continue
                     
-                    # Y轴方向越小说明位置越高。我们要找到正好在桌宠脚底，且最高的那扇窗
-                    if self.vy >= 0: # 正在掉落或行走
-                        if self.pet_y <= window_top_y + 80: # 允许一定的掉落穿透判定范围
-                            if window_top_y < highest_floor_y:
-                                highest_floor_y = window_top_y
-                                on_window = True
-                    else: # 正在向上跳跃
-                        if self.pet_y <= window_top_y:
-                            if window_top_y < highest_floor_y:
-                                highest_floor_y = window_top_y
-                                on_window = True
+                rect = win_data["rect"]
+                if rect.left <= pet_center_x <= rect.right:
+                    is_occluded = False
+                    # 遍历上方所有窗口（包含全屏大窗口）检测遮挡
+                    for j in range(i):
+                        hw = all_windows_info[j]["rect"]
+                        if hw.left <= pet_center_x <= hw.right and hw.top <= rect.top <= hw.bottom:
+                            is_occluded = True
+                            break
+                    
+                    if not is_occluded:
+                        window_top_y = rect.top - self.pet_height + 25 
+                        
+                        if self.vy >= 0: 
+                            if self.pet_y <= window_top_y + 80: 
+                                if window_top_y < highest_floor_y:
+                                    highest_floor_y = window_top_y
+                                    on_window = True
+                        else: 
+                            if self.pet_y <= window_top_y:
+                                if window_top_y < highest_floor_y:
+                                    highest_floor_y = window_top_y
+                                    on_window = True
 
         target_floor_y = highest_floor_y
-        # =========================================================================
 
-        # 物理掉落反馈
         if self.pet_y < target_floor_y - 5:  
             self.vy += 2.0  
             if self.state not in ["FALLING", "FELL", "JUMP"]: 
@@ -176,7 +195,6 @@ class PetController(QObject):
             elif self.state == "JUMP": 
                 self.change_state("STAND", random.randint(100, 200))
 
-        # 动态屏幕边界反弹
         if self.pet_x < screen_geo.left(): 
             self.pet_x = screen_geo.left()
             self.vx = abs(self.vx)  
@@ -184,7 +202,6 @@ class PetController(QObject):
             self.pet_x = screen_geo.right() - self.pet_width
             self.vx = -abs(self.vx) 
 
-        # 转向判定
         new_flipped = self.is_flipped
         if self.vx > 0:
             new_flipped = True   
@@ -203,7 +220,7 @@ class PetController(QObject):
 
         self.state_timer -= 1
         if self.state_timer <= 0:
-            self.decide_next_state(on_window, all_windows, screen_geo)
+            self.decide_next_state(on_window, all_windows_info, screen_geo)
 
         if self.state == "WALK":
             self.walk_frame += 1
@@ -236,7 +253,7 @@ class PetController(QObject):
         elif new_state == "STAND_READING": self.appearance_changed.emit("stand_reading"); self.vx = 0 
         elif new_state == "SIT_READING": self.appearance_changed.emit("sit_reading"); self.vx = 0
 
-    def decide_next_state(self, on_window, all_windows, screen_geo):
+    def decide_next_state(self, on_window, all_windows_info, screen_geo):
         if self.state == "FELL":
             self.change_state("GETUP")
             return
@@ -257,18 +274,56 @@ class PetController(QObject):
         if self.state == "STAND":
             r = random.random()
 
-            # ================= 跳跃重构：从全桌面的窗口中随机抽选目标 =================
-            if not on_window and all_windows:
+            if not on_window and all_windows_info:
                 if r < 0.50: 
-                    target_win = random.choice(all_windows)
-                    safe_left = target_win.left
-                    safe_right = max(target_win.left, target_win.right - int(self.pet_width))
-                    
-                    if safe_right > safe_left: # 确保目标窗口足够大，能落脚
-                        target_x = float(random.randint(safe_left, safe_right))
-                        target_y = float(target_win.top - self.pet_height + 25)
+                    valid_targets = []
+                    for i, win_data in enumerate(all_windows_info):
+                        if not win_data["is_valid_floor"]:
+                            continue
+                            
+                        tw = win_data["rect"]
+                        center_x = (tw.left + tw.right) / 2
+                        is_occluded = False
                         
-                        T = 30.0
+                        # 同样在决定跳跃目标时，做严格的遮挡剔除
+                        for j in range(i):
+                            hw = all_windows_info[j]["rect"]
+                            if hw.left <= center_x <= hw.right and hw.top <= tw.top <= hw.bottom:
+                                is_occluded = True
+                                break
+                                
+                        if not is_occluded:
+                            valid_targets.append(tw)
+
+                    if valid_targets:
+                        target_win = random.choice(valid_targets)
+                        safe_left = target_win.left
+                        safe_right = max(target_win.left, target_win.right - int(self.pet_width))
+                        
+                        if safe_right > safe_left: 
+                            target_x = float(random.randint(safe_left, safe_right))
+                            target_y = float(target_win.top - self.pet_height + 25)
+                            
+                            T = 30.0
+                            g = 2.0 
+                            
+                            self.vx = (target_x - self.pet_x) / T
+                            self.vy = (target_y - self.pet_y - 0.5 * g * (T ** 2)) / T
+                            
+                            self.change_state("JUMP", 9999) 
+                            return
+
+            # ================= 新增逻辑：在窗口上时有概率主动跳下来 =================
+            elif on_window:
+                if r < 0.20: # 20% 的概率待腻了想跳下去
+                    safe_left = screen_geo.left() + 50
+                    safe_right = screen_geo.right() - int(self.pet_width) - 50
+                    
+                    if safe_right > safe_left:
+                        target_x = float(random.randint(safe_left, safe_right))
+                        target_y = float(screen_geo.bottom() - self.pet_height) 
+                        
+                        T = 35.0 
                         g = 2.0 
                         
                         self.vx = (target_x - self.pet_x) / T
@@ -276,7 +331,7 @@ class PetController(QObject):
                         
                         self.change_state("JUMP", 9999) 
                         return
-            # =======================================================================
+            # ====================================================================
 
             r2 = random.random()
             

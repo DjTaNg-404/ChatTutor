@@ -6,6 +6,9 @@ import sys
 import os
 import signal 
 import json
+from datetime import datetime
+
+import requests
 
 # ======= 【核心修复：禁用 Chromium 硬件加速，防止透明窗口渲染崩溃】 =======
 os.environ["QTWEBENGINE_CHROMIUM_FLAGS"] = "--disable-gpu --disable-gpu-compositing --log-level=3"
@@ -66,6 +69,7 @@ class ChatTutorPet(QWidget):
         self.init_ui()
         self.init_assets()      
         self.init_agent()
+        self._auto_select_default_task()
         self.init_controller()  
         self.active_stream_message_id = None
 
@@ -158,8 +162,37 @@ class ChatTutorPet(QWidget):
 
     def init_agent(self):
         self.api_base_url = "http://127.0.0.1:8000/api/v1"
+        self.task_id = None
+        self.task_title = None
         self.session_id = "pet_session_1"
         self.topic = "General"
+
+    def _refresh_tasks(self):
+        try:
+            response = requests.get(f"{self.api_base_url}/tasks", timeout=5)
+            response.raise_for_status()
+            return response.json().get("tasks", [])
+        except Exception:
+            return []
+
+    def _set_active_task(self, task_id, title):
+        self.task_id = task_id
+        self.task_title = title
+        self.topic = title or "General"
+        timestamp = datetime.now().strftime("%Y%m%d__%H%M%S")
+        self.session_id = f"{task_id}__{timestamp}"
+
+    def _auto_select_default_task(self):
+        tasks = self._refresh_tasks()
+        if not tasks:
+            return
+        active_tasks = [t for t in tasks if t.get("status") == "active"]
+        picked = active_tasks[0] if active_tasks else tasks[0]
+        task_id = picked.get("id")
+        if not task_id:
+            return
+        title = picked.get("title") or task_id
+        self._set_active_task(task_id, title)
 
     def init_assets(self):
         assets_dir = os.path.normpath(os.path.join(BASE_DIR, "img"))
@@ -250,6 +283,21 @@ class ChatTutorPet(QWidget):
             self.drag_position = event.globalPosition().toPoint() - self.frameGeometry().topLeft()
         elif event.button() == Qt.MouseButton.RightButton:
             menu = QMenu(self)
+            tasks = self._refresh_tasks()
+            if tasks:
+                task_menu = menu.addMenu("🗂 选择任务")
+                for task in tasks:
+                    task_id = task.get("id")
+                    title = task.get("title") or task_id
+                    action = QAction(title, self)
+                    action.setCheckable(True)
+                    if task_id and task_id == self.task_id:
+                        action.setChecked(True)
+                    action.triggered.connect(
+                        lambda checked=False, t_id=task_id, t_title=title: self._set_active_task(t_id, t_title)
+                    )
+                    task_menu.addAction(action)
+                menu.addSeparator()
             open_web_action = menu.addAction("🌐 打开 Web 面板")
             open_web_action.triggered.connect(
                 lambda: QDesktopServices.openUrl(QUrl("http://127.0.0.1:5173"))
@@ -310,7 +358,13 @@ class ChatTutorPet(QWidget):
         
         self.controller.change_state("THINKING", 9999) 
         
-        self.worker = VoiceAgentWorker(self.api_base_url, self.session_id, self.topic, self.audio_file_path)
+        self.worker = VoiceAgentWorker(
+            self.api_base_url,
+            self.session_id,
+            self.topic,
+            self.audio_file_path,
+            task_id=self.task_id,
+        )
         self.worker.response_ready.connect(self.handle_response)
         self.worker.start()
 
@@ -327,7 +381,7 @@ class ChatTutorPet(QWidget):
         
         self.controller.change_state("THINKING", 9999) 
         
-        self.worker = AgentWorker(self.api_base_url, self.session_id, self.topic, text)
+        self.worker = AgentWorker(self.api_base_url, self.session_id, self.topic, text, task_id=self.task_id)
         self.worker.stream_started.connect(self.start_stream_bubble)
         self.worker.chunk_ready.connect(self.append_stream_bubble)
         self.worker.response_ready.connect(self.handle_response); self.worker.start()

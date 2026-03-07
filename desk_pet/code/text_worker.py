@@ -10,12 +10,13 @@ class AgentWorker(QThread):
     stream_finished = pyqtSignal(str)
     response_ready = pyqtSignal(str, bool)
     
-    def __init__(self, api_base_url, session_id, topic, user_input):
+    def __init__(self, api_base_url, session_id, topic, user_input, task_id=None):
         super().__init__()
         self.api_base_url = api_base_url.rstrip("/")
         self.session_id = session_id
         self.topic = topic
         self.user_input = user_input
+        self.task_id = task_id
         
         # ====== 【核心修复】：生成绝对唯一的任务标识 ======
         # 替代原来容易被内存复用导致串台的 id(self)
@@ -30,6 +31,7 @@ class AgentWorker(QThread):
         response = requests.post(
             f"{self.api_base_url}/chat",
             json={
+                "task_id": self.task_id,
                 "session_id": self.session_id, 
                 "message": self.user_input, 
                 "topic": self.topic,
@@ -49,6 +51,7 @@ class AgentWorker(QThread):
             response = requests.post(
                 f"{self.api_base_url}/chat/stream",
                 json={
+                    "task_id": self.task_id,
                     "session_id": self.session_id, 
                     "message": self.user_input, 
                     "topic": self.topic,

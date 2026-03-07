@@ -44,12 +44,13 @@ class AudioRecorder(QThread):
 class VoiceAgentWorker(QThread):
     response_ready = pyqtSignal(str, bool)
     
-    def __init__(self, api_base_url, session_id, topic, audio_path):
+    def __init__(self, api_base_url, session_id, topic, audio_path, task_id=None):
         super().__init__()
         self.api_base_url = api_base_url.rstrip("/")
         self.session_id = session_id
         self.topic = topic
         self.audio_path = audio_path
+        self.task_id = task_id
 
     def run(self):
         try:
@@ -57,6 +58,7 @@ class VoiceAgentWorker(QThread):
                 files = {"file": ("audio.wav", f, "audio/wav")}
                 # ======== 【修改】：在此处新增 "client": "pet" 标识 ========
                 data = {
+                    "task_id": self.task_id,
                     "session_id": self.session_id, 
                     "topic": self.topic,
                     "client": "pet"  # 告诉后端我是桌宠，需要简短回答
