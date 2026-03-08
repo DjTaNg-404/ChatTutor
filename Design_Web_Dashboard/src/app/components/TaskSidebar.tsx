@@ -186,6 +186,31 @@ export function TaskSidebar() {
     }
   };
 
+  const makeTaskId = () => {
+    const stamp = Date.now().toString(36);
+    return `task_${stamp}`;
+  };
+
+  const handleCreateTask = async () => {
+    const taskId = makeTaskId();
+    try {
+      await fetch(`${API_BASE_URL}/tasks`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          task_id: taskId,
+          title: "新学习任务",
+          icon: "⭐",
+          status: "active",
+        }),
+      });
+      window.dispatchEvent(new Event("tasks-updated"));
+    } catch {
+      // If creation fails, still allow entering the session.
+    }
+    navigate(`/task/${taskId}`);
+  };
+
   return (
     <aside className="w-[250px] bg-white border-r border-gray-200 flex flex-col">
       {/* Brand Logo */}
@@ -201,7 +226,7 @@ export function TaskSidebar() {
       {/* New Task Button */}
       <div className="p-4 border-b border-gray-200">
         <button
-          onClick={() => navigate("/task/new")}
+          onClick={() => void handleCreateTask()}
           className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-medium"
         >
           <Plus className="w-5 h-5" />

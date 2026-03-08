@@ -7,7 +7,7 @@ import asyncio
 import json
 import os
 import re
-from langchain_core.messages import HumanMessage
+from langchain_core.messages import HumanMessage, AIMessage
 
 from app.core.agent_builder import build_agent
 from app.core import memory
@@ -214,6 +214,24 @@ def _chunk_to_text(chunk: Any) -> str:
     return str(content)
 
 
+def _is_greeting(text: str) -> bool:
+    if not text:
+        return True
+    trimmed = text.strip()
+    greetings = {"\u4f60\u597d", "\u54c8\u55bd", "\u55e8", "\u5728\u5417", "\u65e9\u4e0a\u597d", "\u4e0b\u5348\u597d", "\u665a\u4e0a\u597d"}
+    return trimmed in greetings
+
+
+def _should_offer_plan(text: str, is_new_session: bool, has_plan: bool, plan_session: Optional[dict]) -> bool:
+    if not is_new_session or has_plan:
+        return False
+    if plan_session and plan_session.get("status") and plan_session.get("status") != "idle":
+        return False
+    if _is_greeting(text):
+        return False
+    return bool(text and text.strip())
+
+
 def _extract_reply_from_state(final_state: dict) -> str:
     messages = final_state.get("messages", []) if isinstance(final_state, dict) else []
     if not messages:
@@ -242,8 +260,64 @@ async def chat_endpoint(request: ChatRequest):
     task_id = _normalize_task_id(request.task_id, request.session_id)
     session_id = _build_session_id(task_id, request.session_id)
 
+    # Plan chat flow (learning plan assistant)
+    try:
+        plan_data = memory.get_task_plan_data(task_id)
+    except Exception:
+        plan_data = {}
+    plan_session = plan_data.get(task_plan_agent.PLAN_SESSION_KEY) if isinstance(plan_data, dict) else None
+    session_snapshot = memory.load_session(session_id) or {}
+    plan_result = await task_plan_agent.handle_plan_chat(
+        task_id=task_id,
+        user_message=request.message,
+        existing_plan=plan_data,
+        plan_session=plan_session,
+        has_plan=memory.has_task_plan(task_id),
+        conversation_summary=session_snapshot.get("conversation_summary", "") or "",
+        history_messages=session_snapshot.get("messages", []) or [],
+    )
+    if isinstance(plan_result, dict) and plan_result.get("handled"):
+        reply_content = plan_result.get("reply", "")
+        plan_proposal = plan_result.get("plan_proposal")
+        plan_session = plan_result.get("plan_session")
+        if plan_session is not None:
+            try:
+                memory.save_task_plan(task_id=task_id, plan={task_plan_agent.PLAN_SESSION_KEY: plan_session})
+            except Exception:
+                pass
+
+        # Persist the minimal chat record for timeline/history
+        try:
+            current_state = _build_state(request, task_id, session_id)
+            current_state["messages"].append(AIMessage(content=reply_content))
+            memory.save_session(current_state)
+        except Exception:
+            pass
+
+        return ChatResponse(
+            task_id=task_id,
+            session_id=session_id,
+            reply=reply_content,
+            is_concluded=False,
+            plan_proposal=plan_proposal,
+        )
+
     current_state = _build_state(request, task_id, session_id)
     final_state, reply_content, is_concluded = await _invoke_agent(current_state)
+
+    is_new_session = len(current_state.get("messages", [])) <= 1
+    if _should_offer_plan(request.message, is_new_session, memory.has_task_plan(task_id), plan_session):
+        reply_content = (
+            reply_content.rstrip()
+            + "\n\n\u5982\u679c\u4f60\u9700\u8981\u6211\u5e2e\u4f60\u5236\u5b9a\u5b66\u4e60\u8ba1\u5212\uff0c\u76f4\u63a5\u56de\u590d\u201c\u9700\u8981\u201d\u5373\u53ef\u3002"
+        )
+        try:
+            memory.save_task_plan(
+                task_id=task_id,
+                plan={task_plan_agent.PLAN_SESSION_KEY: {"status": "await_offer"}},
+            )
+        except Exception:
+            pass
 
     # 7. 如果会话结束，异步调用总结生成器保存总结
     if is_concluded:
@@ -281,6 +355,57 @@ async def chat_stream_endpoint(request: ChatRequest):
     task_id = _normalize_task_id(request.task_id, request.session_id)
     session_id = _build_session_id(task_id, request.session_id)
 
+    # Plan chat flow (learning plan assistant)
+    try:
+        plan_data = memory.get_task_plan_data(task_id)
+    except Exception:
+        plan_data = {}
+    plan_session = plan_data.get(task_plan_agent.PLAN_SESSION_KEY) if isinstance(plan_data, dict) else None
+    session_snapshot = memory.load_session(session_id) or {}
+    plan_result = await task_plan_agent.handle_plan_chat(
+        task_id=task_id,
+        user_message=request.message,
+        existing_plan=plan_data,
+        plan_session=plan_session,
+        has_plan=memory.has_task_plan(task_id),
+        conversation_summary=session_snapshot.get("conversation_summary", "") or "",
+        history_messages=session_snapshot.get("messages", []) or [],
+    )
+    if isinstance(plan_result, dict) and plan_result.get("handled"):
+        reply_content = plan_result.get("reply", "")
+        plan_proposal = plan_result.get("plan_proposal")
+        plan_session = plan_result.get("plan_session")
+        if plan_session is not None:
+            try:
+                memory.save_task_plan(task_id=task_id, plan={task_plan_agent.PLAN_SESSION_KEY: plan_session})
+            except Exception:
+                pass
+
+        # Persist the minimal chat record for timeline/history
+        try:
+            current_state = _build_state(request, task_id, session_id)
+            current_state["messages"].append(AIMessage(content=reply_content))
+            memory.save_session(current_state)
+        except Exception:
+            pass
+
+        async def _gen_plan():
+            yield _event_line("start", {"task_id": task_id, "session_id": session_id})
+            if ENABLE_STREAMING and reply_content:
+                for chunk in _split_for_stream(reply_content):
+                    yield _event_line("delta", {"text": chunk})
+                    await asyncio.sleep(0.02)
+            else:
+                yield _event_line("delta", {"text": reply_content})
+            yield _event_line("done", {
+                "task_id": task_id,
+                "session_id": session_id,
+                "is_concluded": False,
+                "plan_proposal": plan_proposal,
+            })
+
+        return StreamingResponse(_gen_plan(), media_type="application/x-ndjson")
+
     async def _gen():
         try:
             yield _event_line("start", {"task_id": task_id, "session_id": session_id})
@@ -312,6 +437,18 @@ async def chat_stream_endpoint(request: ChatRequest):
                 final_state = await asyncio.to_thread(memory.load_session, session_id) or {}
 
             reply_content = _extract_reply_from_state(final_state)
+            is_new_session = len(current_state.get("messages", [])) <= 1
+            offer_text = ""
+            if _should_offer_plan(request.message, is_new_session, memory.has_task_plan(task_id), plan_session):
+                offer_text = "\n\n\u5982\u679c\u4f60\u9700\u8981\u6211\u5e2e\u4f60\u5236\u5b9a\u5b66\u4e60\u8ba1\u5212\uff0c\u76f4\u63a5\u56de\u590d\u201c\u9700\u8981\u201d\u5373\u53ef\u3002"
+                reply_content = reply_content.rstrip() + offer_text
+                try:
+                    memory.save_task_plan(
+                        task_id=task_id,
+                        plan={task_plan_agent.PLAN_SESSION_KEY: {"status": "await_offer"}},
+                    )
+                except Exception:
+                    pass
 
             # 事件流未产出 token 时，回退到句子分片流
             if not streamed_any and reply_content:
@@ -321,6 +458,9 @@ async def chat_stream_endpoint(request: ChatRequest):
                         await asyncio.sleep(0.02)
                 else:
                     yield _event_line("delta", {"text": reply_content})
+
+            if streamed_any and offer_text:
+                yield _event_line("delta", {"text": offer_text})
 
             is_concluded = bool(final_state.get("should_exit", False))
 

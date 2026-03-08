@@ -458,7 +458,12 @@ def _load_task_plan(task_id: str) -> Dict[str, Any]:
         return {}
     try:
         data = file_io.load_json(path)
-        return data if isinstance(data, dict) else {}
+        if isinstance(data, dict):
+            if "plan" not in data and "nextSteps" in data:
+                data["plan"] = data.get("nextSteps")
+            data.pop("nextSteps", None)
+            return data
+        return {}
     except Exception:
         return {}
 
@@ -481,7 +486,7 @@ def has_task_plan(task_id: str) -> bool:
         "coreKnowledge",
         "masteryLevel",
         "milestones",
-        "nextSteps",
+        "plan",
     ):
         value = plan.get(key)
         if isinstance(value, list) and value:
@@ -495,6 +500,7 @@ def get_task_note(task_id: str) -> Dict[str, Any]:
     note_path = _get_task_note_path(task_id)
     plan_path = _get_task_plan_path(task_id)
     plan_data = _load_task_plan(task_id)
+    plan_data.pop("nextSteps", None)
     content = ""
     if "userNotes" in plan_data:
         content = plan_data.get("userNotes") or ""
@@ -519,6 +525,7 @@ def save_task_note(task_id: str, content: str) -> Dict[str, Any]:
 
     plan_data["task_id"] = task_id
     plan_data["userNotes"] = content
+    plan_data.pop("nextSteps", None)
     file_io.save_text(content, note_path)
     file_io.save_json(plan_data, plan_path)
     return get_task_note(task_id)
@@ -531,6 +538,7 @@ def save_task_plan(task_id: str, plan: Dict[str, Any]) -> Dict[str, Any]:
 
     plan_data.update(plan)
     plan_data["task_id"] = task_id
+    plan_data.pop("nextSteps", None)
     if "userNotes" in plan_data:
         file_io.save_text(plan_data.get("userNotes") or "", note_path)
     file_io.save_json(plan_data, plan_path)

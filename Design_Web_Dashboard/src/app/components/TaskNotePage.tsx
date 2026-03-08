@@ -24,7 +24,7 @@ interface TaskNoteApiResponse {
     date: string;
     achievement: string;
   }[];
-  nextSteps?: string[] | string;
+  plan?: string[] | string;
   updated_at?: string;
 }
 
@@ -46,7 +46,7 @@ interface TaskNote {
     date: string;
     achievement: string;
   }[];
-  nextSteps: string[];
+  plan: string[] | string;
   userNotes: string;
 }
 
@@ -83,7 +83,7 @@ const taskNotesData: { [key: string]: TaskNote } = {
       { date: "2026-03-01", achievement: "深入理解信息增益与基尼系数" },
       { date: "2026-03-02", achievement: "掌握特征重要性和超参数调优" },
     ],
-    nextSteps: [
+    plan: [
       "使用 Kaggle 泰坦尼克数据集进行实践练习",
       "对比随机森林与 XGBoost 在真实数据上的表现",
       "学习特征工程技巧并应用到模型中",
@@ -117,7 +117,7 @@ const taskNotesData: { [key: string]: TaskNote } = {
       { date: "2026-02-20", achievement: "开始口语备考计划" },
       { date: "2026-02-25", achievement: "完成 Part 1 基础话题练习" },
     ],
-    nextSteps: [
+    plan: [
       "每天练习 Part 2 话题",
       "积累高分词汇和表达",
       "进行模拟考试",
@@ -147,7 +147,7 @@ function mergeTaskNote(
     coreKnowledge: api?.coreKnowledge || fallback?.coreKnowledge || [],
     masteryLevel: api?.masteryLevel || fallback?.masteryLevel || [],
     milestones: api?.milestones || fallback?.milestones || [],
-  nextSteps: api?.nextSteps || fallback?.nextSteps || [],
+  plan: api?.plan || fallback?.plan || [],
     userNotes: api?.userNotes || api?.content || fallback?.userNotes || "",
   };
 }
@@ -157,13 +157,17 @@ export function TaskNotePage() {
   const navigate = useNavigate();
 
   const noteData = taskId ? taskNotesData[taskId] : null;
-  const resolvedTaskId = taskId ? `task_${taskId}` : "task_default";
+  const resolvedTaskId = taskId
+    ? taskId.startsWith("task_")
+      ? taskId
+      : `task_${taskId}`
+    : "task_default";
   const [taskNote, setTaskNote] = useState<TaskNote | null>(
     mergeTaskNote(noteData, null, taskId)
   );
   const [userNotes, setUserNotes] = useState(taskNote?.userNotes || "");
 
-  const normalizePlanSteps = (steps?: TaskNoteResponse["nextSteps"]): string[] => {
+  const normalizePlanSteps = (steps?: TaskNote["plan"]): string[] => {
     if (!steps) return [];
     if (Array.isArray(steps)) {
       return steps.map((item) => String(item)).filter((item) => item.trim());
@@ -441,7 +445,7 @@ export function TaskNotePage() {
           <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl border border-blue-200 p-6">
             <h2 className="text-lg font-semibold text-gray-900 mb-4">详细学习计划</h2>
             <ul className="space-y-2">
-              {normalizePlanSteps(taskNote.nextSteps).map((step, idx) => (
+              {normalizePlanSteps(taskNote.plan).map((step, idx) => (
                 <li
                   key={idx}
                   className="flex items-start gap-3 text-sm text-gray-700 bg-white rounded-lg p-3"

@@ -25,7 +25,7 @@ interface TaskPlan {
   coreKnowledge?: string[];
   masteryLevel?: { topic: string; level: number }[];
   milestones?: { date: string; achievement: string }[];
-  nextSteps?: string[] | string;
+  plan?: string[] | string;
   _plan_sig?: string;
 }
 
@@ -40,7 +40,7 @@ function formatPlanAsGoal(plan: TaskPlan): string {
     lines.push(plan.overallSummary.trim());
   }
 
-  const rawSteps = (plan as { nextSteps?: unknown }).nextSteps;
+  const rawSteps = (plan as { plan?: unknown }).plan;
   const steps = Array.isArray(rawSteps)
     ? rawSteps.map((item) => String(item)).filter((item) => item.trim())
     : typeof rawSteps === "string"
@@ -136,7 +136,7 @@ export function NewTaskPage() {
         taskTitle: taskTitle || "学习任务",
         overallSummary: taskGoal,
         coreKnowledge: [],
-        nextSteps: [],
+        plan: [],
       };
 
       const response = await fetch(`${API_BASE_URL}/agent/task-plan/confirm`, {

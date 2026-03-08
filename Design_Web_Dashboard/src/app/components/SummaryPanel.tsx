@@ -40,7 +40,7 @@ interface TaskPlan {
   coreKnowledge?: string[];
   masteryLevel?: { topic: string; level: number }[];
   milestones?: { date: string; achievement: string }[];
-  nextSteps?: string[] | string;
+  plan?: string[] | string;
 }
 
 export function SummaryPanel() {
@@ -106,7 +106,7 @@ export function SummaryPanel() {
           Boolean(data.coreKnowledge && data.coreKnowledge.length) ||
           Boolean(data.masteryLevel && data.masteryLevel.length) ||
           Boolean(data.milestones && data.milestones.length) ||
-          Boolean(data.nextSteps && data.nextSteps.length);
+          Boolean(data.plan && data.plan.length);
         if (!cancelled) {
           setTaskPlan(hasPlan ? data : null);
         }
@@ -136,7 +136,7 @@ export function SummaryPanel() {
 
   const normalizePlanSteps = (plan: TaskPlan | null): string[] => {
     if (!plan) return [];
-    const raw = (plan as { nextSteps?: unknown }).nextSteps;
+    const raw = (plan as { plan?: unknown }).plan;
     if (Array.isArray(raw)) {
       const steps = raw.map((item) => String(item)).filter((item) => item.trim());
       if (steps.length > 0) {
@@ -287,7 +287,7 @@ export function SummaryPanel() {
       <section className="flex-1 min-h-0 flex flex-col border-t border-gray-200">
         <div className="p-6 border-b border-gray-200">
           <h3 className="text-lg font-semibold text-gray-900">详细学习计划</h3>
-          <p className="text-sm text-gray-600 mt-1">展示模型生成的完整计划</p>
+          <p className="text-sm text-gray-600 mt-1">当前学习计划</p>
         </div>
         <div className="flex-1 overflow-y-auto p-4">
           {isPlanLoading && (

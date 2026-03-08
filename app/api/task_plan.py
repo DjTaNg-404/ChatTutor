@@ -66,6 +66,7 @@ async def generate_task_plan(request: TaskPlanRequest):
 async def confirm_task_plan(request: TaskPlanConfirmRequest):
     plan = dict(request.plan or {})
     plan["task_id"] = request.task_id
+    plan.pop(task_plan_agent.PLAN_SESSION_KEY, None)
     if not plan.get("_plan_sig"):
         plan["_plan_sig"] = task_plan_agent.plan_signature(plan)
     return memory.save_task_plan(task_id=request.task_id, plan=plan)

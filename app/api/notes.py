@@ -34,7 +34,7 @@ class TaskNoteResponse(BaseModel):
     coreKnowledge: Optional[List[str]] = None
     masteryLevel: Optional[List[dict]] = None
     milestones: Optional[List[dict]] = None
-    nextSteps: Optional[List[str]] = None
+    plan: Optional[List[str]] = None
     updated_at: str
 
 

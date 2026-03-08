@@ -66,7 +66,7 @@ interface TaskPlan {
   coreKnowledge?: string[];
   masteryLevel?: { topic: string; level: number }[];
   milestones?: { date: string; achievement: string }[];
-  nextSteps?: string[] | string;
+  plan?: string[] | string;
   _plan_sig?: string;
 }
 
@@ -111,7 +111,7 @@ export function TutorSession() {
 
   const normalizePlanSteps = (plan?: TaskPlan | null): string[] => {
     if (!plan) return [];
-    const raw = (plan as { nextSteps?: unknown }).nextSteps;
+    const raw = (plan as { plan?: unknown }).plan;
     if (Array.isArray(raw)) {
       return raw.map((item) => String(item)).filter((item) => item.trim());
     }
