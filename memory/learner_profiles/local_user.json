@@ -1,6 +1,6 @@
 {
   "learner_id": "local_user",
-  "updated_at": "2026-03-07T14:51:10",
+  "updated_at": "2026-03-09T21:08:34",
   "cards": [
     {
       "type": "learning_fact",
@@ -97,6 +97,25 @@
       },
       "source": "local_user",
       "ts": "2026-03-07T14:50:11"
+    },
+    {
+      "type": "learning_fact",
+      "fact_type": "skill_state",
+      "fields": {
+        "topic": "按预期退出",
+        "level": "weak"
+      },
+      "source": "local_user",
+      "ts": "2026-03-09T21:03:55"
+    },
+    {
+      "type": "learning_fact",
+      "fact_type": "goal",
+      "fields": {
+        "subject": "明确**：用户的核心目标是学习Python和SQL"
+      },
+      "source": "local_user",
+      "ts": "2026-03-09T21:08:34"
     }
   ]
 }

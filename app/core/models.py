@@ -12,6 +12,7 @@ class ExecutionPlan(BaseModel):
     needs_judge: bool = Field(description="是否需要评估用户的观点/答案")
     needs_inquiry: bool = Field(description="是否需要进一步提问/探究")
     request_summary: bool = Field(description="用户是否要求总结当前的对话内容")
+    request_plan: bool = Field(description="用户是否要求制定学习计划")
     is_concluding: bool = Field(description="用户是否想要结束/退出对话")
     thought_process: str = Field(description="做出此计划的简短思考过程")
 

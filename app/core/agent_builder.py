@@ -17,6 +17,7 @@ from app.core.cache import generation_cache, retrieval_cache
 from app.core import learning_profile
 from app.core import profile_store
 from app.core.tools_v2 import search_tool_v2
+from app.core.task_plan import generate_task_plan_from_state
 
 # --- 1. Model Initialization ---
 # 通用模型：用于文本生成 (Tutor, Judge, Inquiry, Aggregator)
@@ -116,22 +117,37 @@ async def analyzer_node(state: AgentState) -> Dict[str, Any]:
 
     _ensure_cache_trace(state)
     recent_context = messages[-3:]
-    
+
     # 构造 Prompt（注入用户学习画像）
-    sys_msg = SystemMessage(content=_inject_profile(prompts.ANALYZER_SYSTEM_PROMPT, state))
-    
+    sys_msg_content = _inject_profile(prompts.ANALYZER_SYSTEM_PROMPT, state)
+
+    # 注入当前计划状态，帮助 Analyzer 准确判断
+    from app.core import memory as memory_io
+    task_id = state.get("task_id", "task_default")
+    has_existing_plan = False
+    try:
+        existing_plan = memory_io.get_task_plan_data(task_id)
+        has_existing_plan = existing_plan is not None and bool(existing_plan)
+    except Exception:
+        pass
+
+    if has_existing_plan:
+        sys_msg_content += "\n\n[当前状态] 用户已经有了一个学习计划。如果用户提到调整计划的具体内容（如时间、难度），请用 tutor_answer 回应，不要触发 request_plan。"
+
+    sys_msg = SystemMessage(content=sys_msg_content)
+
     # 绑定结构化输出
     planner = analyzer_model_raw.with_structured_output(ExecutionPlan)
-    
+
     try:
         # Analyzer 也应该看到上下文摘要，否则它可能听不懂关于旧话题的回答
         # 不过为了简单准确，把 Summary 放在 System Prompt 之后比较好
         inputs = [sys_msg]
         if state.get("conversation_summary"):
              inputs.append(SystemMessage(content=f"Context: {state.get('conversation_summary')}"))
-        
+
         inputs.extend(recent_context)
-        
+
         plan: ExecutionPlan = await planner.ainvoke(inputs)
     except Exception as e:
         # Fallback 策略：如果解析失败，默认当作普通提问
@@ -141,10 +157,28 @@ async def analyzer_node(state: AgentState) -> Dict[str, Any]:
             needs_judge=False,
             needs_inquiry=False,
             request_summary=False,
+            request_plan=False,
             is_concluding=False,
             thought_process="Error in planning, defaulting to simple answer."
         )
-    
+
+    # 后处理：如果已有计划，强制覆盖 request_plan=False
+    # 防止进入计划生成后无法退出的循环
+    if has_existing_plan and plan.request_plan:
+        # 检查用户消息是否明确说"重新生成"或"新的计划"
+        last_user_msg = ""
+        for msg in reversed(recent_context):
+            if isinstance(msg, HumanMessage):
+                last_user_msg = msg.content or ""
+                break
+
+        regen_keywords = ["重新生成", "新的计划", "重新做一个", "重新规划", "生成新的"]
+        if not any(kw in last_user_msg for kw in regen_keywords):
+            plan.request_plan = False
+            # 如果没有其他意图，默认用 tutor_answer 回应
+            if not any([plan.needs_tutor_answer, plan.needs_judge, plan.needs_inquiry, plan.request_summary, plan.is_concluding]):
+                plan.needs_tutor_answer = True
+
     # 返回计划，并重置临时字段，防止污染
     # 如果计划中包含结束意图，设置 should_exit 信号
     return {
@@ -358,7 +392,8 @@ async def aggregator_node(state: AgentState) -> Dict[str, Any]:
     judge_out = state.get("judge_output") or ""
     inquiry_out = state.get("inquiry_output") or ""
     summary_out = state.get("summary_output") or ""
-    
+    plan_out = state.get("plan_output") or ""
+
     final_response = None
 
 
@@ -385,6 +420,60 @@ async def aggregator_node(state: AgentState) -> Dict[str, Any]:
         )
         summary_out = summary_text
 
+    # 检查是否需要生成学习计划（用户在对话中要求制定计划）
+    if plan and plan.request_plan:
+        from app.core import memory as memory_io
+
+        task_id = state.get("task_id", "task_default")
+        messages = state.get("messages", [])
+
+        try:
+            existing_plan = memory_io.get_task_plan_data(task_id)
+        except Exception:
+            existing_plan = None
+
+        # 如果已有计划，提示用户去 Web 界面调整或用自然语言回应
+        if existing_plan:
+            plan_title = existing_plan.get("taskTitle", "当前学习计划")
+            # 检查用户是否有明确的调整诉求（如"调整时间"、"增加内容"）
+            last_user_msg = ""
+            for msg in reversed(messages):
+                if isinstance(msg, HumanMessage):
+                    last_user_msg = msg.content or ""
+                    break
+
+            # 如果用户说的是具体调整诉求，用 tutor_answer 模式回应
+            adjustment_keywords = ["调整时间", "改时间", "时间", "天数", "增加", "减少", "难度", "内容"]
+            if any(kw in last_user_msg for kw in adjustment_keywords):
+                # 不设置 plan_output，让 tutor_answer 处理
+                state["plan_output"] = f"关于{plan_title}的调整，你想具体怎么改？比如调整天数、每天学习时长、还是学习内容？"
+            else:
+                # 否则引导用户去 Web 界面
+                state["plan_output"] = f"你已经有**{plan_title}**了。你可以在 Web 界面查看详细计划并调整，或者直接告诉我你想改什么（比如'调整时间'、'增加内容'等）。"
+        else:
+            # 没有计划，生成新计划
+            plan_state = {
+                "messages": messages,
+                "conversation_summary": state.get("conversation_summary") or "",
+                "task_id": task_id,
+                "session_id": state.get("session_id") or "",
+            }
+            plan_result = await asyncio.to_thread(
+                generate_task_plan_from_state,
+                plan_state,
+                "",
+                existing_plan,
+            )
+
+            # 保存计划
+            try:
+                memory_io.save_task_plan(task_id=task_id, plan=plan_result)
+            except Exception:
+                pass
+
+            # 保存到 state 供 aggregator 使用
+            state["plan_output"] = f"已为你生成学习计划：**{plan_result.get('taskTitle', '学习计划')}**（共 {plan_result.get('totalDays', 7)} 天）\n\n你可以在 Web 界面查看详细计划并调整。"
+
     # 场景: Ending or Normal
     if state.get("should_exit"):
         # 如果处于 Concluding 状态，生成离场学习笔记
@@ -409,7 +498,7 @@ async def aggregator_node(state: AgentState) -> Dict[str, Any]:
             summary_out = summary_text
         
         final_response = AIMessage(content=summary_out)
-    elif not any([tutor_out, judge_out, inquiry_out, summary_out]):
+    elif not any([tutor_out, judge_out, inquiry_out, summary_out, plan_out]):
         # 闲聊/低信息量场景：走专用闲聊 Prompt，生成自然回复
         inputs = context.build_context(state, prompts.CHITCHAT_SYSTEM_PROMPT)
         final_response = await model.ainvoke(inputs)
@@ -421,14 +510,18 @@ async def aggregator_node(state: AgentState) -> Dict[str, Any]:
             inquiry_output=inquiry_out,
             summary_output=summary_out
         )
-        
+
+        # 如果有计划输出，追加到 prompt
+        if plan_out:
+            prompt += f"\n\n[学习计划通知]: {plan_out}"
+
         # 汇总者目前不需要太长的历史，只看各个模块的输出即可。
         # 传入 System Prompt 即可。
         # 为了语气连贯，传入最近一条用户消息也是好的。
         inputs = [SystemMessage(content=prompt)]
         if state["messages"]:
             inputs.append(state["messages"][-1])
-            
+
         final_response = await model.ainvoke(inputs)
 
     # ---------------- 存档与压缩逻辑 (Auto-Save & Compress) ----------------
@@ -531,12 +624,16 @@ async def aggregator_node(state: AgentState) -> Dict[str, Any]:
     # ----------------------------------------------------
 
     # 返回给 Graph 的更新 (包括 messages 和 可能更新的 summary/cursor)
-    return {
+    result = {
         "messages": [final_response],
-        "conversation_summary": state_to_save["conversation_summary"], # 可能没变
-        "summarized_msg_count": state_to_save["summarized_msg_count"], # 可能没变
-        "_cache_trace": {}  # 清零，供下一轮使用
+        "conversation_summary": state_to_save["conversation_summary"],
+        "summarized_msg_count": state_to_save["summarized_msg_count"],
+        "_cache_trace": {},
     }
+    # 如果处理了计划请求或总结请求，清除 plan 标志，让下一轮重新意图识别
+    if plan and (plan.request_plan or plan.request_summary):
+        result["plan"] = None
+    return result
 
 
 # --- 3. Edge Logic (条件路由) ---
@@ -546,8 +643,8 @@ def route_from_analyzer(state: AgentState) -> Literal["parallel_workers", "aggre
     if not plan: # Should not happen
         return "aggregator"
 
-    # 如果用户要求即时总结，直接路由到 aggregator 处理
-    if plan.request_summary:
+    # 如果用户要求即时总结或学习计划，直接路由到 aggregator 处理
+    if plan.request_summary or plan.request_plan:
         return "aggregator"
 
     if any([plan.needs_tutor_answer, plan.needs_judge, plan.needs_inquiry]):
