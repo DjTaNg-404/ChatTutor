@@ -41,6 +41,7 @@ class ChatResponse(BaseModel):
     reply: str
     is_concluded: bool
     plan_proposal: Optional[dict] = None
+    intent_display: Optional[str] = None  # 意图识别的展示文字（思考过程 + 跳转模块）
 
 
 class StreamEvent(BaseModel):
@@ -191,7 +192,46 @@ async def _invoke_agent(current_state):
     last_msg = messages[-1]
     reply_content = last_msg.content if hasattr(last_msg, "content") else str(last_msg)
     is_concluded = final_state.get("should_exit", False)
-    return final_state, reply_content, is_concluded
+
+    # 获取意图识别结果（用于前端显示）
+    intent_display = _build_intent_display(final_state)
+
+    return final_state, reply_content, is_concluded, intent_display
+
+
+def _build_intent_display(final_state: dict) -> Optional[str]:
+    """构建意图识别的展示文字"""
+    plan = final_state.get("plan")
+    if not plan:
+        # 如果没有 plan，返回默认值
+        return "分析用户问题 → tutor_answer"
+
+    # 获取思考过程
+    thought = getattr(plan, "thought_process", "") or ""
+
+    # 获取激活的模块
+    activated_modules = []
+    if getattr(plan, "needs_tutor_answer", False):
+        activated_modules.append("tutor_answer")
+    if getattr(plan, "needs_judge", False):
+        activated_modules.append("judge")
+    if getattr(plan, "needs_inquiry", False):
+        activated_modules.append("inquiry")
+    if getattr(plan, "request_summary", False):
+        activated_modules.append("summary")
+    if getattr(plan, "request_plan", False):
+        activated_modules.append("plan")
+    if getattr(plan, "is_concluding", False):
+        activated_modules.append("concluding")
+
+    # 构建展示文字
+    parts = []
+    if thought:
+        parts.append(thought)
+    if activated_modules:
+        parts.append("→ " + " + ".join(activated_modules))
+
+    return " | ".join(parts) if parts else "分析用户问题 → tutor_answer"
 
 
 def _split_for_stream(text: str):
@@ -347,7 +387,7 @@ async def chat_endpoint(request: ChatRequest):
 
     # 3. 非 Task 模式，走主 Agent
     current_state = _build_state(request, task_id, session_id)
-    final_state, reply_content, is_concluded = await _invoke_agent(current_state)
+    final_state, reply_content, is_concluded, intent_display = await _invoke_agent(current_state)
 
     is_new_session = len(current_state.get("messages", [])) <= 1
     if _should_offer_plan(request.message, is_new_session, memory.has_task_plan(task_id)):
@@ -365,9 +405,19 @@ async def chat_endpoint(request: ChatRequest):
 
     # 7. 如果会话结束，异步调用总结生成器保存总结
     if is_concluded:
-        # 获取 Agent 生成的总结（如果有的话）
-        summary_from_agent = final_state.get("summary_output") or final_state.get("summary_out")
-        asyncio.create_task(_call_summary_agent(session_id, task_id, summary_from_agent))
+        # 检查是否已经在生成总结中（防止重复触发）
+        from app.core.memory import is_session_summarizing
+
+        if not is_session_summarizing(session_id):
+            # 设置正在总结的标志
+            from app.core.memory import set_session_summarizing
+            set_session_summarizing(session_id, True)
+
+            # 获取 Agent 生成的总结（如果有的话）
+            summary_from_agent = final_state.get("summary_output") or final_state.get("summary_out")
+            asyncio.create_task(_call_summary_agent(session_id, task_id, summary_from_agent))
+        else:
+            print(f"⚠️ 会话 {session_id} 已经在生成总结中，跳过重复请求")
 
     plan_proposal = None
     if ENABLE_PLAN_PROPOSAL:
@@ -388,6 +438,7 @@ async def chat_endpoint(request: ChatRequest):
         reply=reply_content,
         is_concluded=is_concluded,
         plan_proposal=plan_proposal,
+        intent_display=intent_display,
     )
 
 
@@ -409,6 +460,13 @@ async def chat_stream_endpoint(request: ChatRequest):
         async def _task_gen():
             try:
                 yield _event_line("start", {"task_id": task_id, "session_id": session_id})
+
+                # Task 模式也发送意图识别事件
+                yield _event_line("intent", {
+                    "status": "analyzed",
+                    "text": "任务模式 → tutor_answer"
+                })
+
                 if task_response:
                     yield _event_line("delta", {"text": task_response.reply})
                     if task_response.plan_proposal:
@@ -418,6 +476,7 @@ async def chat_stream_endpoint(request: ChatRequest):
                     "session_id": session_id,
                     "is_concluded": False,
                     "plan_proposal": task_response.plan_proposal if task_response else None,
+                    "intent_display": "任务模式 → tutor_answer"
                 })
             except Exception as e:
                 yield _event_line("error", {"message": str(e), "status": 500})
@@ -428,6 +487,9 @@ async def chat_stream_endpoint(request: ChatRequest):
         try:
             yield _event_line("start", {"task_id": task_id, "session_id": session_id})
 
+            # 发送意图识别开始事件
+            yield _event_line("intent", {"status": "analyzing", "text": "正在进行意图识别..."})
+
             current_state = _build_state(request, task_id, session_id)
             final_state = None
             streamed_any = False
@@ -437,6 +499,47 @@ async def chat_stream_endpoint(request: ChatRequest):
                 event_name = event.get("event", "")
                 metadata = event.get("metadata", {}) or {}
                 node_name = metadata.get("langgraph_node")
+
+                # 监听意图识别节点（analyzer）
+                if node_name == "analyzer" and event_name == "on_chain_end":
+                    # 意图识别完成，解析结果
+                    output = (event.get("data") or {}).get("output")
+                    if isinstance(output, dict) and output.get("plan"):
+                        plan = output["plan"]
+                        # 处理 Pydantic 模型对象
+                        is_pydantic = hasattr(plan, "model_dump")
+                        plan_dict = plan.model_dump() if is_pydantic else plan
+
+                        # 构建激活的模块列表
+                        modules = []
+                        if plan_dict.get("needs_tutor_answer"):
+                            modules.append("tutor_answer")
+                        if plan_dict.get("needs_judge"):
+                            modules.append("judge")
+                        if plan_dict.get("needs_inquiry"):
+                            modules.append("inquiry")
+                        if plan_dict.get("request_summary"):
+                            modules.append("summary")
+                        if plan_dict.get("request_plan"):
+                            modules.append("plan")
+                        if plan_dict.get("is_concluding"):
+                            modules.append("concluding")
+
+                        # 发送意图识别结果
+                        thought = plan_dict.get("thought_process", "")
+                        modules_str = " + ".join(modules) if modules else "闲聊"
+                        yield _event_line("intent", {
+                            "status": "analyzed",
+                            "text": f"{thought} → {modules_str}",
+                            "modules": modules
+                        })
+
+                        # 进入具体模块
+                        if modules:
+                            yield _event_line("progress", {
+                                "status": "processing",
+                                "text": f"进入 {modules[0]} 模式..."
+                            })
 
                 if event_name == "on_chat_model_stream" and node_name == "aggregator":
                     chunk = (event.get("data") or {}).get("chunk")
@@ -486,6 +589,9 @@ async def chat_stream_endpoint(request: ChatRequest):
                 summary_from_agent = final_state.get("summary_output") or final_state.get("summary_out")
                 asyncio.create_task(_call_summary_agent(session_id, task_id, summary_from_agent))
 
+            # 构建意图识别展示文字
+            intent_display = _build_intent_display(final_state)
+
             plan_proposal = None
             if ENABLE_PLAN_PROPOSAL:
                 try:
@@ -504,6 +610,7 @@ async def chat_stream_endpoint(request: ChatRequest):
                 "session_id": session_id,
                 "is_concluded": is_concluded,
                 "plan_proposal": plan_proposal,
+                "intent_display": intent_display,
             })
         except HTTPException as e:
             yield _event_line("error", {"message": str(e.detail), "status": e.status_code})
@@ -565,3 +672,7 @@ topic: {task_id}
 
     except Exception as e:
         print(f"⚠️ 生成总结异常：{e}")
+    finally:
+        # 清除总结标记（无论成功还是失败）
+        from app.core.memory import set_session_summarizing
+        set_session_summarizing(session_id, False)

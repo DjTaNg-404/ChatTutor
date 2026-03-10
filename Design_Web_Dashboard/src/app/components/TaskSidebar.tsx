@@ -1,6 +1,38 @@
 import { Link, useLocation, useNavigate } from "react-router";
-import { Plus, ChevronDown, ChevronRight, BookOpen, Settings, Archive } from "lucide-react";
+import { Plus, ChevronDown, ChevronRight, BookOpen, Settings, Archive, Edit2, X, Loader2 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
+
+const COMMON_ICONS = [
+  { icon: "📚", label: "书本" },
+  { icon: "🎯", label: "目标" },
+  { icon: "💻", label: "电脑" },
+  { icon: "📊", label: "图表" },
+  { icon: "🔬", label: "科学" },
+  { icon: "📝", label: "笔记" },
+  { icon: "🎓", label: "学位" },
+  { icon: "📖", label: "开放书" },
+  { icon: "🧮", label: "算盘" },
+  { icon: "🔢", label: "数字" },
+  { icon: "🔤", label: "字母" },
+  { icon: "🌳", label: "树" },
+  { icon: "🗣️", label: "说话" },
+  { icon: "⚛️", label: "原子" },
+  { icon: "🐍", label: "蛇" },
+  { icon: "💾", label: "磁盘" },
+  { icon: "⭐", label: "星星" },
+  { icon: "🚀", label: "火箭" },
+  { icon: "💡", label: "灯泡" },
+  { icon: "🏆", label: "奖杯" },
+  { icon: "📈", label: "增长" },
+  { icon: "🎨", label: "艺术" },
+  { icon: "🎵", label: "音乐" },
+  { icon: "🧠", label: "大脑" },
+  { icon: "⚡", label: "闪电" },
+  { icon: "🔥", label: "火焰" },
+  { icon: "💪", label: "力量" },
+  { icon: "🌟", label: "闪亮" },
+  { icon: "✨", label: "火花" },
+];
 
 interface Task {
   id: string;
@@ -51,6 +83,19 @@ export function TaskSidebar() {
     x: 0,
     y: 0,
     task: null,
+  });
+  const [editState, setEditState] = useState<{
+    visible: boolean;
+    task: Task | null;
+    title: string;
+    icon: string;
+    isSaving: boolean;
+  }>({
+    visible: false,
+    task: null,
+    title: "",
+    icon: "",
+    isSaving: false,
   });
 
   const loadTasks = async () => {
@@ -129,12 +174,18 @@ export function TaskSidebar() {
         }),
       });
     }
-    await fetch(`${API_BASE_URL}/tasks/${menuState.task.id}`, {
+    await fetch(`${API_BASE_URL}/tasks/${menuState.task.id}/status`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ status: "archived" }),
     });
     setMenuState((prev) => ({ ...prev, visible: false }));
+    // 更新本地状态，立即反映变化
+    setStoredTasks((prev) =>
+      prev.map((t) =>
+        t.id === menuState.task?.id ? { ...t, status: "archived" as const } : t
+      )
+    );
     window.dispatchEvent(new Event("tasks-updated"));
   };
 
@@ -153,12 +204,18 @@ export function TaskSidebar() {
         }),
       });
     }
-    await fetch(`${API_BASE_URL}/tasks/${menuState.task.id}`, {
+    await fetch(`${API_BASE_URL}/tasks/${menuState.task.id}/status`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ status: "active" }),
     });
     setMenuState((prev) => ({ ...prev, visible: false }));
+    // 更新本地状态，立即反映变化
+    setStoredTasks((prev) =>
+      prev.map((t) =>
+        t.id === menuState.task?.id ? { ...t, status: "active" as const } : t
+      )
+    );
     window.dispatchEvent(new Event("tasks-updated"));
   };
 
@@ -184,6 +241,63 @@ export function TaskSidebar() {
     if (location.pathname === `/task/${taskId}`) {
       navigate("/");
     }
+  };
+
+  const handleEdit = () => {
+    if (!menuState.task) return;
+    setEditState({
+      visible: true,
+      task: menuState.task,
+      title: menuState.task.title,
+      icon: menuState.task.icon,
+      isSaving: false,
+    });
+    setMenuState((prev) => ({ ...prev, visible: false }));
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editState.task) return;
+    const taskId = editState.task.id;
+    setEditState((prev) => ({ ...prev, isSaving: true }));
+    try {
+      const payload: { title?: string; icon?: string } = {};
+      if (editState.title.trim()) {
+        payload.title = editState.title.trim();
+      }
+      if (editState.icon) {
+        payload.icon = editState.icon;
+      }
+
+      const response = await fetch(`${API_BASE_URL}/tasks/${taskId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      if (!response.ok) {
+        const error = await response.json().catch(() => ({}));
+        throw new Error(error.detail || "更新失败");
+      }
+
+      // 重新加载任务列表确保数据一致
+      await loadTasks();
+      window.dispatchEvent(new Event("tasks-updated"));
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "更新任务失败";
+      console.error("更新任务失败:", error);
+      alert(message);
+      setEditState((prev) => ({ ...prev, isSaving: false }));
+      return;
+    }
+    setEditState((prev) => ({ ...prev, visible: false, isSaving: false }));
+  };
+
+  const handleCancelEdit = () => {
+    setEditState((prev) => ({ ...prev, visible: false }));
+  };
+
+  const selectIcon = (icon: string) => {
+    setEditState((prev) => ({ ...prev, icon }));
   };
 
   const makeTaskId = () => {
@@ -310,7 +424,15 @@ export function TaskSidebar() {
         <div
           className="fixed z-50 w-40 rounded-xl border border-gray-200 bg-white shadow-lg"
           style={{ top: menuState.y, left: menuState.x }}
+          onClick={(e) => e.stopPropagation()}
         >
+          <button
+            onClick={handleEdit}
+            className="w-full px-3 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
+          >
+            <Edit2 className="w-4 h-4" />
+            编辑任务
+          </button>
           {menuState.task.status === "archived" ? (
             <button
               onClick={handleRestore}
@@ -332,6 +454,86 @@ export function TaskSidebar() {
           >
             删除任务
           </button>
+        </div>
+      )}
+
+      {/* 编辑任务对话框 */}
+      {editState.visible && editState.task && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-30">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md mx-4 overflow-hidden">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
+              <h3 className="text-lg font-semibold text-gray-900">编辑任务</h3>
+              <button
+                onClick={handleCancelEdit}
+                className="text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="p-6 space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  任务名称
+                </label>
+                <input
+                  type="text"
+                  value={editState.title}
+                  onChange={(e) => setEditState((prev) => ({ ...prev, title: e.target.value }))}
+                  className="w-full rounded-xl border border-gray-200 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  placeholder="输入任务名称..."
+                  autoFocus
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  任务图标
+                </label>
+                <div className="grid grid-cols-8 gap-2 max-h-48 overflow-y-auto p-2 bg-gray-50 rounded-xl border border-gray-200">
+                  {COMMON_ICONS.map((item) => (
+                    <button
+                      key={item.icon}
+                      type="button"
+                      onClick={() => selectIcon(item.icon)}
+                      className={`w-10 h-10 flex items-center justify-center text-lg rounded-lg transition-colors ${
+                        editState.icon === item.icon
+                          ? "bg-indigo-100 ring-2 ring-indigo-500"
+                          : "hover:bg-gray-200"
+                      }`}
+                      title={item.label}
+                    >
+                      {item.icon}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-3 px-6 py-4 bg-gray-50 border-t border-gray-200">
+              <button
+                onClick={handleCancelEdit}
+                disabled={editState.isSaving}
+                className="px-4 py-2 text-sm text-gray-700 hover:bg-gray-200 rounded-lg transition-colors disabled:opacity-50"
+              >
+                取消
+              </button>
+              <button
+                onClick={handleSaveEdit}
+                disabled={!editState.title.trim() || editState.isSaving}
+                className="px-4 py-2 text-sm text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+              >
+                {editState.isSaving ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    保存中...
+                  </>
+                ) : (
+                  "保存修改"
+                )}
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </aside>

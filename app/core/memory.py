@@ -13,6 +13,9 @@ NOTES_DIR = "memory/notes"
 TASK_INDEX_DIR = "memory/task_index"
 TASK_INDEX_PATH = os.path.join(TASK_INDEX_DIR, "tasks.json")
 
+# 防重复总结标记（内存级别）
+_SUMMARIZING_SESSIONS = set()
+
 
 def _get_daily_note_path(task_id: str, date: str) -> str:
     return os.path.join(NOTES_DIR, "daily", task_id, f"{date}.md")
@@ -83,6 +86,22 @@ def update_task_status(task_id: str, status: str) -> Optional[Dict[str, Any]]:
     for item in tasks:
         if item.get("id") == task_id:
             item["status"] = status
+            item["updated_at"] = now
+            _save_task_index(tasks)
+            return item
+    return None
+
+
+def update_task(task_id: str, title: Optional[str] = None, icon: Optional[str] = None) -> Optional[Dict[str, Any]]:
+    """更新任务的名称和/或图标"""
+    now = datetime.datetime.now().isoformat()
+    tasks = _load_task_index()
+    for item in tasks:
+        if item.get("id") == task_id:
+            if title is not None:
+                item["title"] = title
+            if icon is not None:
+                item["icon"] = icon
             item["updated_at"] = now
             _save_task_index(tasks)
             return item
@@ -305,6 +324,23 @@ def _index_session_for_rag(
     except Exception as e:
         # Don't fail the save operation if RAG indexing fails
         print(f"[RAG] Failed to index session: {e}")
+
+
+# ==================== 防重复总结标记 ====================
+
+def set_session_summarizing(session_id: str, is_summarizing: bool = True):
+    """设置会话的总结中状态"""
+    global _SUMMARIZING_SESSIONS
+    if is_summarizing:
+        _SUMMARIZING_SESSIONS.add(session_id)
+    else:
+        _SUMMARIZING_SESSIONS.discard(session_id)
+
+
+def is_session_summarizing(session_id: str) -> bool:
+    """检查会话是否正在生成总结中"""
+    return session_id in _SUMMARIZING_SESSIONS
+
 
 def load_session(session_id: str) -> Optional[Dict[str, Any]]:
     """

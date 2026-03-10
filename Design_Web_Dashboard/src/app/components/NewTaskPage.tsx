@@ -9,9 +9,41 @@ import {
   CheckCircle2,
   Loader2,
   Lightbulb,
+  Palette,
 } from "lucide-react";
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8000/api/v1";
+const COMMON_ICONS = [
+  { icon: "📚", label: "书本" },
+  { icon: "🎯", label: "目标" },
+  { icon: "💻", label: "电脑" },
+  { icon: "📊", label: "图表" },
+  { icon: "🔬", label: "科学" },
+  { icon: "📝", label: "笔记" },
+  { icon: "🎓", label: "学位" },
+  { icon: "📖", label: "开放书" },
+  { icon: "🧮", label: "算盘" },
+  { icon: "🔢", label: "数字" },
+  { icon: "🔤", label: "字母" },
+  { icon: "📚", label: "书籍堆" },
+  { icon: "🌳", label: "树" },
+  { icon: "🗣️", label: "说话" },
+  { icon: "⚛️", label: "原子" },
+  { icon: "🐍", label: "蛇" },
+  { icon: "💾", label: "磁盘" },
+  { icon: "⭐", label: "星星" },
+  { icon: "🚀", label: "火箭" },
+  { icon: "💡", label: "灯泡" },
+  { icon: "🏆", label: "奖杯" },
+  { icon: "📈", label: "增长" },
+  { icon: "🎨", label: "艺术" },
+  { icon: "🎵", label: "音乐" },
+  { icon: "🧠", label: "大脑" },
+  { icon: "⚡", label: "闪电" },
+  { icon: "🔥", label: "火焰" },
+  { icon: "💪", label: "力量" },
+  { icon: "🌟", label: "闪亮" },
+  { icon: "✨", label: "火花" },
+];
 
 interface TaskPlan {
   task_id?: string;
@@ -74,10 +106,66 @@ async function saveTaskToIndex(task: { id: string; title: string; icon: string }
   });
 }
 
+function IconPicker({
+  selectedIcon,
+  onSelect,
+}: {
+  selectedIcon: string;
+  onSelect: (icon: string) => void;
+}) {
+  const [isOpen, setIsOpen] = useState(false);
+
+  return (
+    <div className="relative">
+      <button
+        type="button"
+        onClick={() => setIsOpen(!isOpen)}
+        className="flex items-center gap-2 px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl hover:bg-gray-100 transition-colors"
+      >
+        <Palette className="w-4 h-4 text-gray-500" />
+        <span className="text-sm text-gray-700">选择图标</span>
+        <span className="text-lg">{selectedIcon}</span>
+      </button>
+
+      {isOpen && (
+        <>
+          <div
+            className="fixed inset-0 z-10"
+            onClick={() => setIsOpen(false)}
+          />
+          <div className="absolute top-full left-0 mt-2 z-20 w-72 bg-white border border-gray-200 rounded-xl shadow-lg p-3">
+            <div className="grid grid-cols-6 gap-2 max-h-64 overflow-y-auto">
+              {COMMON_ICONS.map((item) => (
+                <button
+                  key={item.icon}
+                  type="button"
+                  onClick={() => {
+                    onSelect(item.icon);
+                    setIsOpen(false);
+                  }}
+                  className={`w-10 h-10 flex items-center justify-center text-lg rounded-lg transition-colors ${
+                    selectedIcon === item.icon
+                      ? "bg-indigo-100 ring-2 ring-indigo-500"
+                      : "hover:bg-gray-100"
+                  }`}
+                  title={item.label}
+                >
+                  {item.icon}
+                </button>
+              ))}
+            </div>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
 export function NewTaskPage() {
   const navigate = useNavigate();
   const [taskTitle, setTaskTitle] = useState("");
   const [taskGoal, setTaskGoal] = useState("");
+  const [taskIcon, setTaskIcon] = useState("⭐");
   const [taskId] = useState(makeTaskId);
   const [plan, setPlan] = useState<TaskPlan | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -155,7 +243,7 @@ export function NewTaskPage() {
         throw new Error(`确认失败（${response.status}）`);
       }
 
-      const icon = plan?.taskIcon || "✨";
+      const icon = taskIcon || plan?.taskIcon || "✨";
       const title = taskTitle || plan?.taskTitle || "学习任务";
       await saveTaskToIndex({ id: taskId, title, icon });
       window.dispatchEvent(new Event("tasks-updated"));
@@ -206,12 +294,17 @@ export function NewTaskPage() {
               <h2 className="text-base font-semibold text-gray-900">任务名称</h2>
               <span className="text-rose-500 text-sm font-medium">*</span>
             </div>
-            <input
-              value={taskTitle}
-              onChange={(event) => setTaskTitle(event.target.value)}
-              placeholder="例如：掌握随机森林算法、雅思口语备考、React Hooks 深入..."
-              className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-            />
+            <div className="flex gap-3">
+              <div className="flex-1">
+                <input
+                  value={taskTitle}
+                  onChange={(event) => setTaskTitle(event.target.value)}
+                  placeholder="例如：掌握随机森林算法、雅思口语备考、React Hooks 深入..."
+                  className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                />
+              </div>
+              <IconPicker selectedIcon={taskIcon} onSelect={setTaskIcon} />
+            </div>
           </section>
 
           <section className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm">

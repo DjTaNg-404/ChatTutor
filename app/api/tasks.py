@@ -32,6 +32,11 @@ class TaskStatusRequest(BaseModel):
     status: str
 
 
+class TaskUpdateRequest(BaseModel):
+    title: Optional[str] = None
+    icon: Optional[str] = None
+
+
 @router.get("/tasks", response_model=TaskListResponse)
 async def list_tasks(status: Optional[str] = None):
     tasks = memory.list_tasks(status=status)
@@ -55,7 +60,20 @@ async def upsert_task(request: TaskUpsertRequest):
 
 
 @router.patch("/tasks/{task_id}", response_model=TaskItem)
+async def update_task(task_id: str, request: TaskUpdateRequest):
+    """更新任务的名称和/或图标"""
+    if not request.title and not request.icon:
+        raise HTTPException(status_code=400, detail="At least one of title or icon must be provided")
+
+    task = memory.update_task(task_id, title=request.title, icon=request.icon)
+    if not task:
+        raise HTTPException(status_code=404, detail="Task not found")
+    return TaskItem(**task)
+
+
+@router.patch("/tasks/{task_id}/status", response_model=TaskItem)
 async def update_task_status(task_id: str, request: TaskStatusRequest):
+    """更新任务的状态（归档/恢复）"""
     task = memory.update_task_status(task_id, request.status)
     if not task:
         raise HTTPException(status_code=404, detail="Task not found")

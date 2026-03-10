@@ -51,7 +51,7 @@ interface SessionMessagesResponse {
 }
 
 interface StreamEvent {
-  event: "start" | "delta" | "done" | "error";
+  event: "start" | "delta" | "done" | "error" | "intent" | "progress";
   data: Record<string, any>;
 }
 
@@ -103,11 +103,14 @@ export function TutorSession() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputText, setInputText] = useState("");
   const [isSending, setIsSending] = useState(false);
+  const [isSummarizing, setIsSummarizing] = useState(false);
   const [isLoadingHistory, setIsLoadingHistory] = useState(false);
   const [errorText, setErrorText] = useState<string | null>(null);
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
   const [confirmingPlanId, setConfirmingPlanId] = useState<string | null>(null);
   const [taskTitleDisplay, setTaskTitleDisplay] = useState("学习任务");
+  const [intentDisplay, setIntentDisplay] = useState<string>("");
+  const [showIntentDisplay, setShowIntentDisplay] = useState(false);
 
   const normalizePlanSteps = (plan?: TaskPlan | null): string[] => {
     if (!plan) return [];
@@ -130,7 +133,7 @@ export function TutorSession() {
   const readStreamResponse = async (
     response: Response,
     assistantId: string,
-  ): Promise<{ sessionId?: string; isConcluded?: boolean; planProposal?: TaskPlan | null }> => {
+  ): Promise<{ sessionId?: string; isConcluded?: boolean; planProposal?: TaskPlan | null; intentDisplay?: string }> => {
     const reader = response.body?.getReader();
     if (!reader) {
       throw new Error("流式响应不可读");
@@ -141,6 +144,7 @@ export function TutorSession() {
     let finalSessionId: string | undefined;
     let finalConcluded = false;
     let finalPlan: TaskPlan | null = null;
+    let finalIntentDisplay: string | undefined;
 
     while (true) {
       const { value, done } = await reader.read();
@@ -160,6 +164,28 @@ export function TutorSession() {
                 prev.map((m) => (m.id === assistantId ? { ...m, content: m.content + delta } : m)),
               );
             }
+          } else if (evt.event === "intent") {
+            // 意图识别事件
+            if (evt.data?.text) {
+              setIntentDisplay(evt.data.text);
+              setShowIntentDisplay(true);
+              // 3 秒后隐藏意图识别文字
+              setTimeout(() => {
+                setShowIntentDisplay(false);
+                setIntentDisplay("");
+              }, 3000);
+            }
+          } else if (evt.event === "progress") {
+            // 进度事件（进入 xx 模式）
+            if (evt.data?.text) {
+              setIntentDisplay(evt.data.text);
+              setShowIntentDisplay(true);
+              // 3 秒后隐藏
+              setTimeout(() => {
+                setShowIntentDisplay(false);
+                setIntentDisplay("");
+              }, 3000);
+            }
           } else if (evt.event === "done") {
             if (evt.data?.session_id) {
               finalSessionId = String(evt.data.session_id);
@@ -167,6 +193,9 @@ export function TutorSession() {
             finalConcluded = Boolean(evt.data?.is_concluded);
             if (evt.data?.plan_proposal) {
               finalPlan = evt.data.plan_proposal as TaskPlan;
+            }
+            if (evt.data?.intent_display) {
+              finalIntentDisplay = String(evt.data.intent_display);
             }
           } else if (evt.event === "error") {
             const err = evt.data?.message || "流式响应失败";
@@ -177,7 +206,7 @@ export function TutorSession() {
       }
     }
 
-    return { sessionId: finalSessionId, isConcluded: finalConcluded, planProposal: finalPlan };
+    return { sessionId: finalSessionId, isConcluded: finalConcluded, planProposal: finalPlan, intentDisplay: finalIntentDisplay };
   };
 
   const fallbackSendMessage = async (messageText: string) => {
@@ -213,6 +242,22 @@ export function TutorSession() {
       assistantMessage.planProposal = data.plan_proposal as TaskPlan;
     }
     setMessages((prev) => [...prev, assistantMessage]);
+
+    // 设置意图识别展示文字
+    if (data?.intent_display) {
+      setIntentDisplay(data.intent_display);
+      setShowIntentDisplay(true);
+      // 3 秒后隐藏意图识别文字
+      setTimeout(() => {
+        setShowIntentDisplay(false);
+        setIntentDisplay("");
+      }, 3000);
+    }
+
+    // 如果是总结请求，重置 isSummarizing 状态
+    if (data?.is_concluded) {
+      setIsSummarizing(false);
+    }
   };
 
   // Provide default values if context is undefined
@@ -330,6 +375,7 @@ export function TutorSession() {
     if (!messageText || isSending) return;
 
     setErrorText(null);
+    setIntentDisplay(""); // 清空意图识别显示
     setMessages((prev) => [...prev, makeMessage("user", messageText)]);
     setInputText("");
     setIsSending(true);
@@ -382,6 +428,20 @@ export function TutorSession() {
           )
         );
       }
+      // 设置意图识别展示文字
+      if (streamResult.intentDisplay) {
+        setIntentDisplay(streamResult.intentDisplay);
+        setShowIntentDisplay(true);
+        // 3 秒后隐藏意图识别文字
+        setTimeout(() => {
+          setShowIntentDisplay(false);
+          setIntentDisplay("");
+        }, 3000);
+      }
+      // 如果总结完成，重置 isSummarizing 状态
+      if (streamResult.isConcluded) {
+        setIsSummarizing(false);
+      }
     } catch (error) {
       try {
         await fallbackSendMessage(messageText);
@@ -399,6 +459,8 @@ export function TutorSession() {
   };
 
   const handleEndSession = async () => {
+    if (isSummarizing) return; // 防止重复点击
+
     const dividerMessage: Message = {
       id: `${Date.now()}-divider`,
       role: "divider",
@@ -406,7 +468,9 @@ export function TutorSession() {
       timestamp: formatTime(),
     };
     setMessages((prev) => [...prev, dividerMessage]);
+    setIsSummarizing(true);
     await sendMessage("结束并总结今日学习");
+    // 注意：isSummarizing 会在总结完成后由 stream 结果自动重置
   };
 
   const confirmPlanUpdate = async (messageId: string, plan: TaskPlan) => {
@@ -465,10 +529,11 @@ export function TutorSession() {
             </Link>
             <button
               onClick={handleEndSession}
-              className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-medium"
+              disabled={isSummarizing}
+              className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <CheckCircle className="w-5 h-5" />
-              结束并总结今日学习
+              {isSummarizing ? "总结生成中..." : "结束并总结今日学习"}
             </button>
             <button
               onClick={() => setIsPanelOpen(!isPanelOpen)}
@@ -644,23 +709,28 @@ export function TutorSession() {
         <div className="max-w-4xl mx-auto">
           <div className="flex items-end gap-3 bg-gray-50 rounded-2xl border border-gray-200 p-3 focus-within:border-indigo-400 focus-within:ring-2 focus-within:ring-indigo-100 transition-all">
             <textarea
-              placeholder={isSending ? "Tutor 思考中..." : "输入你的问题或想法..."}
+              placeholder={showIntentDisplay ? intentDisplay : (isSending ? "Tutor 思考中..." : "输入你的问题或想法...")}
               rows={1}
               value={inputText}
-              onChange={(event) => setInputText(event.target.value)}
+              onChange={(event) => {
+                // 如果有意图识别显示，不允许用户输入
+                if (!showIntentDisplay) {
+                  setInputText(event.target.value);
+                }
+              }}
               onKeyDown={(event) => {
                 if (event.key === "Enter" && !event.shiftKey) {
                   event.preventDefault();
                   void sendMessage();
                 }
               }}
-              disabled={isSending}
-              className="flex-1 bg-transparent border-none outline-none px-2 py-2 text-gray-900 placeholder:text-gray-500 resize-none max-h-32"
+              disabled={isSending || showIntentDisplay}
+              className="flex-1 bg-transparent border-none outline-none px-2 py-2 text-gray-900 placeholder:text-gray-400 resize-none max-h-32"
               style={{ minHeight: '40px' }}
             />
             <button
               onClick={() => void sendMessage()}
-              disabled={isSending || !inputText.trim()}
+              disabled={isSending || !inputText.trim() || showIntentDisplay}
               className="p-2.5 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex-shrink-0"
             >
               <Send className="w-5 h-5" />

@@ -1,6 +1,6 @@
 {
   "learner_id": "local_user",
-  "updated_at": "2026-03-09T21:08:34",
+  "updated_at": "2026-03-10T17:34:56",
   "cards": [
     {
       "type": "learning_fact",
@@ -116,6 +116,61 @@
       },
       "source": "local_user",
       "ts": "2026-03-09T21:08:34"
+    },
+    {
+      "type": "learning_fact",
+      "fact_type": "goal",
+      "fields": {
+        "subject": "的知识：**"
+      },
+      "source": "local_user",
+      "ts": "2026-03-10T15:29:42"
+    },
+    {
+      "type": "learning_fact",
+      "fact_type": "goal",
+      "fields": {
+        "subject": "习随机森林"
+      },
+      "source": "local_user",
+      "ts": "2026-03-10T15:35:13"
+    },
+    {
+      "type": "learning_fact",
+      "fact_type": "skill_state",
+      "fields": {
+        "topic": "为负）",
+        "level": "weak"
+      },
+      "source": "local_user",
+      "ts": "2026-03-10T16:11:08"
+    },
+    {
+      "type": "learning_fact",
+      "fact_type": "goal",
+      "fields": {
+        "subject": "习 React Hooks"
+      },
+      "source": "local_user",
+      "ts": "2026-03-10T16:59:28"
+    },
+    {
+      "type": "learning_fact",
+      "fact_type": "goal",
+      "fields": {
+        "subject": "是**随机森林**"
+      },
+      "source": "local_user",
+      "ts": "2026-03-10T17:06:45"
+    },
+    {
+      "type": "learning_fact",
+      "fact_type": "goal",
+      "fields": {
+        "subject": "让同一节点内的样本尽可能属于同一类别"
+      },
+      "source": "local_user",
+      "ts": "2026-03-10T17:34:56"
     }
   ]
 }
