@@ -297,7 +297,7 @@ async def chat_endpoint(request: ChatRequest):
     if _should_offer_plan(request.message, is_first_message, memory.has_task_plan(task_id)):
         reply_content = (
             reply_content.rstrip()
-            + "\n\n如果你需要我帮你制定学习计划，直接回复"需要"即可。"
+            + '\n\n如果你需要我帮你制定学习计划，直接回复"需要"即可。'
         )
         try:
             memory.save_task_plan(
@@ -432,7 +432,7 @@ async def chat_stream_endpoint(request: ChatRequest):
             # 检查是否是新会话（用于判断是否提供计划建议）
             is_first_message = len(current_state.get("messages", [])) <= 1
             if _should_offer_plan(request.message, is_first_message, memory.has_task_plan(task_id)):
-                offer_text = "\n\n如果你需要我帮你制定学习计划，直接回复"需要"即可。"
+                offer_text = '\n\n如果你需要我帮你制定学习计划，直接回复"需要"即可。'
                 reply_content = reply_content.rstrip() + offer_text
                 try:
                     memory.save_task_plan(
