@@ -1,5 +1,13 @@
 [
   {
+    "id": "task_mmlwb9bt",
+    "created_at": "2026-03-11T18:28:04.220254",
+    "title": "新学习任务",
+    "icon": "⭐",
+    "status": "active",
+    "updated_at": "2026-03-11T18:28:04.220254"
+  },
+  {
     "id": "3",
     "created_at": "2026-03-10T17:17:26.001297",
     "title": "React Hooks 深入",

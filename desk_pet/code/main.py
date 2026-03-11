@@ -14,9 +14,9 @@ import requests
 os.environ["QTWEBENGINE_CHROMIUM_FLAGS"] = "--disable-gpu --disable-gpu-compositing --log-level=3"
 # ======================================================================================
 
-from PyQt6.QtWidgets import (QApplication, QWidget, QVBoxLayout, QHBoxLayout, 
+from PyQt6.QtWidgets import (QApplication, QWidget, QVBoxLayout, QHBoxLayout,
                              QLineEdit, QLabel, QMenu, QPushButton)
-from PyQt6.QtCore import Qt, QPoint, QSize, QEvent, QUrl
+from PyQt6.QtCore import Qt, QPoint, QSize, QEvent, QUrl, QTimer
 from PyQt6.QtGui import QMovie, QFont, QAction, QPixmap, QPainter, QDesktopServices
 from PyQt6.QtWebEngineWidgets import QWebEngineView
 
@@ -24,6 +24,14 @@ from config import HTML_TEMPLATE, BASE_DIR
 from text_worker import AgentWorker
 from voice_worker import AudioRecorder, VoiceAgentWorker
 from pet_controller import PetController
+
+# macOS 特定导入，用于设置窗口行为
+import platform
+if platform.system() == "Darwin":
+    try:
+        from AppKit import NSWindowCollectionBehavior
+    except ImportError:
+        NSWindowCollectionBehavior = None
 
 
 class PetLabel(QLabel):
@@ -76,67 +84,110 @@ class ChatTutorPet(QWidget):
     def init_ui(self):
         font = QFont("Microsoft YaHei", 10)
         QApplication.setFont(font)
-        self.setWindowFlags(Qt.WindowType.FramelessWindowHint | Qt.WindowType.WindowStaysOnTopHint | Qt.WindowType.Tool)
+        # macOS: 使用 WindowType.Tool 让窗口保持在所有窗口前面，即使其他应用获得焦点
+        # WindowStaysOnTopHint: 窗口置顶
+        # FramelessWindowHint: 无边框窗口
+        self.setWindowFlags(
+            Qt.WindowType.FramelessWindowHint |
+            Qt.WindowType.WindowStaysOnTopHint |
+            Qt.WindowType.Tool
+        )
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
-        
+
+        # 继续初始化 UI 组件
+        self._init_ui_components()
+
+        # macOS: 设置窗口行为，确保窗口在所有空间中可见
+        if platform.system() == "Darwin" and NSWindowCollectionBehavior is not None:
+            try:
+                # 使用定时器在窗口显示后设置 macOS 窗口行为
+                QTimer.singleShot(100, self._set_macos_window_behavior)
+            except Exception as e:
+                print(f"设置 macOS 窗口行为失败：{e}")
+
+    def _init_ui_components(self):
+        """初始化 UI 组件"""
+
         self.layout = QVBoxLayout(self)
         self.layout.setContentsMargins(15, 15, 15, 15)
-        self.layout.setSpacing(12) 
-        
+        self.layout.setSpacing(12)
+
         self.chat_container = QWidget()
-        self.chat_container.setMinimumHeight(40) 
-        
+        self.chat_container.setMinimumHeight(40)
+
         # 将宽度调宽，强制固定宽度为 300px
-        self.chat_container.setFixedWidth(300) 
-        
+        self.chat_container.setFixedWidth(300)
+
         self.chat_container.setStyleSheet("background-color: rgba(245, 245, 247, 230); border: 1px solid rgba(200, 200, 220, 150); border-radius: 12px;")
-        
+
         container_layout = QVBoxLayout(self.chat_container)
         container_layout.setContentsMargins(4, 4, 4, 4)
-        
+
         self.web_view = QWebEngineView()
         self.web_view.page().setBackgroundColor(Qt.GlobalColor.transparent)
         self.web_view.setHtml(HTML_TEMPLATE)
         # 接收前端通过 title 传回来的高度信息
         self.web_view.titleChanged.connect(self.adjust_web_height)
-        
+
         container_layout.addWidget(self.web_view)
         self.chat_container.hide()
 
         self.pet_label = PetLabel(self)
         self.pet_label.setFixedSize(self.gif_size)
-        
+
         self.input_field = QLineEdit()
         self.input_field.setPlaceholderText("想问点什么？按回车发送...")
-        
+
         # 输入框宽度调整为 250px，与气泡容器适配
         self.input_field.setMinimumWidth(250)
-        
+
         self.input_field.setStyleSheet("background-color: rgba(255, 255, 255, 240); border: 2px solid #E0E0E0; border-radius: 15px; padding: 6px 14px;")
         self.input_field.returnPressed.connect(self.send_message)
-        
+
         self.voice_btn = QPushButton("🎤")
         self.voice_btn.setFixedSize(36, 36)
         self.voice_btn.setStyleSheet("""
-            QPushButton { background-color: #ffffff; border: 2px solid #E0E0E0; border-radius: 18px; font-size: 16px; } 
+            QPushButton { background-color: #ffffff; border: 2px solid #E0E0E0; border-radius: 18px; font-size: 16px; }
             QPushButton:pressed { background-color: #e0e0e0; }
         """)
         self.voice_btn.pressed.connect(self.start_voice_recording)
         self.voice_btn.released.connect(self.stop_voice_recording)
-        
+
         input_layout = QHBoxLayout()
         input_layout.setContentsMargins(0, 0, 0, 0)
         input_layout.setSpacing(8)
         input_layout.addWidget(self.input_field)
         input_layout.addWidget(self.voice_btn)
-        
+
         self.input_container = QWidget()
         self.input_container.setLayout(input_layout)
         self.input_container.hide()
-        
-        self.layout.addWidget(self.chat_container) 
-        self.layout.addWidget(self.input_container) 
-        self.layout.addWidget(self.pet_label, alignment=Qt.AlignmentFlag.AlignHCenter) 
+
+        self.layout.addWidget(self.chat_container)
+        self.layout.addWidget(self.input_container)
+        self.layout.addWidget(self.pet_label, alignment=Qt.AlignmentFlag.AlignHCenter)
+
+    def _set_macos_window_behavior(self):
+        """设置 macOS 窗口行为，让窗口在所有桌面和全屏应用中可见"""
+        if platform.system() != "Darwin" or NSWindowCollectionBehavior is None:
+            return
+        try:
+            # 获取 QT 窗口对应的 NSWindow
+            win_id = int(self.winId())
+            # 使用 objc 获取 NSWindow 对象
+            import objc
+            ns_window = objc.objc_object(c_void_p=win_id)
+            # 设置窗口集合行为：
+            behavior = NSWindowCollectionBehavior.NSWindowCollectionBehaviorManaged
+            behavior |= NSWindowCollectionBehavior.NSWindowCollectionBehaviorStationary
+            behavior |= NSWindowCollectionBehavior.NSWindowCollectionBehaviorCanJoinAllSpaces
+            behavior |= NSWindowCollectionBehavior.NSWindowCollectionBehaviorFullScreenAuxiliary
+            ns_window.setCollectionBehavior_(behavior)
+            # 设置窗口级别为浮动窗口 (25)
+            ns_window.setLevel_(25)
+            print("✅ macOS 窗口行为设置成功")
+        except Exception as e:
+            print(f"设置 macOS 窗口行为失败：{e}")
 
     # ============ 自适应高度调节 ============
     def adjust_web_height(self, title):
@@ -145,16 +196,16 @@ class ChatTutorPet(QWidget):
                 # 解析出前端网页的实际内容高度
                 h = int(float(title.split(":")[1]))
                 # 预留上下 padding 的空间，并设置最小/最大高度防止越界
-                new_height = max(40, h + 15) 
-                
+                new_height = max(40, h + 15)
+
                 # ====== 核心修改：高度上限修改为 450 ======
-                new_height = min(new_height, 450) 
+                new_height = min(new_height, 450)
                 # ==========================================
-                
+
                 # 只有高度真的变化了才重置，避免抖动
                 if self.chat_container.height() != new_height:
                     self.chat_container.setFixedHeight(new_height)
-                    self.adjustSize() # 强制更新整个桌宠窗口尺寸
+                    self.adjustSize()  # 强制更新整个桌宠窗口尺寸
                     self.update_position(self.controller.pet_x, self.controller.pet_y)
             except Exception:
                 pass
@@ -276,6 +327,16 @@ class ChatTutorPet(QWidget):
         self.web_view.page().runJavaScript(js_code)
         self.active_stream_message_id = None
 
+    def update_node_status(self, message_id, node_name):
+        """更新当前处理节点显示"""
+        js_code = f"updateNodeStatus({json.dumps(message_id)}, {json.dumps(node_name)});"
+        self.web_view.page().runJavaScript(js_code)
+
+    def update_intent_status(self, intent_text):
+        """更新意图识别结果显示"""
+        js_code = f"updateIntentStatus({json.dumps(intent_text)});"
+        self.web_view.page().runJavaScript(js_code)
+
     def mousePressEvent(self, event):
         if event.button() == Qt.MouseButton.LeftButton:
             self._is_dragging = False 
@@ -384,6 +445,8 @@ class ChatTutorPet(QWidget):
         self.worker = AgentWorker(self.api_base_url, self.session_id, self.topic, text, task_id=self.task_id)
         self.worker.stream_started.connect(self.start_stream_bubble)
         self.worker.chunk_ready.connect(self.append_stream_bubble)
+        self.worker.node_changed.connect(self.update_node_status)
+        self.worker.intent_changed.connect(self.update_intent_status)
         self.worker.response_ready.connect(self.handle_response); self.worker.start()
 
     def handle_response(self, text, is_concluded):

@@ -1,5 +1,5 @@
 import { useParams, useOutletContext } from "react-router";
-import { Send, CheckCircle, PanelRightClose, PanelRightOpen, BookOpen } from "lucide-react";
+import { Send, CheckCircle, PanelRightClose, PanelRightOpen, BookOpen, Square } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link } from "react-router";
 import ReactMarkdown from "react-markdown";
@@ -51,7 +51,7 @@ interface SessionMessagesResponse {
 }
 
 interface StreamEvent {
-  event: "start" | "delta" | "done" | "error" | "intent" | "progress";
+  event: "start" | "delta" | "done" | "error" | "interrupted" | "intent" | "progress";
   data: Record<string, any>;
 }
 
@@ -111,6 +111,9 @@ export function TutorSession() {
   const [taskTitleDisplay, setTaskTitleDisplay] = useState("学习任务");
   const [intentDisplay, setIntentDisplay] = useState<string>("");
   const [showIntentDisplay, setShowIntentDisplay] = useState(false);
+  const [abortController, setAbortController] = useState<AbortController | null>(null);
+  const [showAcceptNoteButton, setShowAcceptNoteButton] = useState(false);
+  const [isAcceptingNote, setIsAcceptingNote] = useState(false);
 
   const normalizePlanSteps = (plan?: TaskPlan | null): string[] => {
     if (!plan) return [];
@@ -145,6 +148,7 @@ export function TutorSession() {
     let finalConcluded = false;
     let finalPlan: TaskPlan | null = null;
     let finalIntentDisplay: string | undefined;
+    let interrupted = false;
 
     while (true) {
       const { value, done } = await reader.read();
@@ -186,6 +190,16 @@ export function TutorSession() {
                 setIntentDisplay("");
               }, 3000);
             }
+          } else if (evt.event === "interrupted") {
+            // 中断事件
+            interrupted = true;
+            setMessages((prev) =>
+              prev.map((m) =>
+                m.id === assistantId
+                  ? { ...m, content: m.content + "\n\n[已停止生成]" }
+                  : m
+              )
+            );
           } else if (evt.event === "done") {
             if (evt.data?.session_id) {
               finalSessionId = String(evt.data.session_id);
@@ -197,6 +211,10 @@ export function TutorSession() {
             if (evt.data?.intent_display) {
               finalIntentDisplay = String(evt.data.intent_display);
             }
+            // 如果是总结完成，显示接受笔记更新按钮
+            if (finalConcluded) {
+              setShowAcceptNoteButton(true);
+            }
           } else if (evt.event === "error") {
             const err = evt.data?.message || "流式响应失败";
             throw new Error(String(err));
@@ -204,6 +222,12 @@ export function TutorSession() {
         }
         idx = buffer.indexOf("\n");
       }
+    }
+
+    // 如果被中断，不要返回正常的完成状态
+    if (interrupted) {
+      setIsSending(false);
+      return { sessionId: finalSessionId, isConcluded: false, planProposal: null, intentDisplay: "" };
     }
 
     return { sessionId: finalSessionId, isConcluded: finalConcluded, planProposal: finalPlan, intentDisplay: finalIntentDisplay };
@@ -254,9 +278,15 @@ export function TutorSession() {
       }, 3000);
     }
 
-    // 如果是总结请求，重置 isSummarizing 状态
+    // 如果是总结请求，重置 isSummarizing 状态并显示接受笔记更新按钮
     if (data?.is_concluded) {
       setIsSummarizing(false);
+      setShowAcceptNoteButton(true);
+    } else {
+      // 备用逻辑：如果用户发送的是"生成学习总结"，也显示按钮
+      if (messageText === "生成学习总结") {
+        setShowAcceptNoteButton(true);
+      }
     }
   };
 
@@ -380,6 +410,15 @@ export function TutorSession() {
     setInputText("");
     setIsSending(true);
 
+    // 如果是生成学习总结的消息，先隐藏按钮
+    if (messageText === "生成学习总结") {
+      setShowAcceptNoteButton(false);
+    }
+
+    // 创建 AbortController 用于取消请求
+    const controller = new AbortController();
+    setAbortController(controller);
+
     try {
       if (!ENABLE_STREAMING) {
         await fallbackSendMessage(messageText);
@@ -410,8 +449,7 @@ export function TutorSession() {
           plan_hint: /(计划|目标|安排|进度|时间|每天|每周|每月|完成|调整|改成|更新)/.test(
             messageText
           ),
-        }),
-      });
+        }), signal: controller.signal });
 
       if (!response.ok) {
         throw new Error(`请求失败（${response.status}）`);
@@ -438,9 +476,15 @@ export function TutorSession() {
           setIntentDisplay("");
         }, 3000);
       }
-      // 如果总结完成，重置 isSummarizing 状态
+      // 如果总结完成，重置 isSummarizing 状态并显示按钮
       if (streamResult.isConcluded) {
         setIsSummarizing(false);
+        setShowAcceptNoteButton(true);
+      } else {
+        // 备用逻辑：如果用户发送的是"生成学习总结"，也显示按钮
+        if (messageText === "生成学习总结") {
+          setShowAcceptNoteButton(true);
+        }
       }
     } catch (error) {
       try {
@@ -455,22 +499,101 @@ export function TutorSession() {
       }
     } finally {
       setIsSending(false);
+      setAbortController(null);
+
+      // 发送消息后，触发时间线更新事件
+      window.dispatchEvent(new Event("timeline-updated"));
+    }
+  };
+  const handleStopGeneration = async () => {
+    if (abortController && activeSessionId) {
+      // 调用后端中断接口
+      try {
+        await fetch(`${API_BASE_URL}/chat/interrupt`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            session_id: activeSessionId,
+          }),
+        });
+      } catch (error) {
+        console.error("中断请求失败:", error);
+      }
+      // 取消前端请求
+      abortController.abort();
+      setAbortController(null);
+      setIsSending(false);
     }
   };
 
   const handleEndSession = async () => {
     if (isSummarizing) return; // 防止重复点击
 
+    // 添加分割线
     const dividerMessage: Message = {
       id: `${Date.now()}-divider`,
       role: "divider",
-      content: "-------------------结束并总结今日学习-------------------",
+      content: "-------------------生成学习总结-------------------",
       timestamp: formatTime(),
     };
     setMessages((prev) => [...prev, dividerMessage]);
+
     setIsSummarizing(true);
-    await sendMessage("结束并总结今日学习");
+    setShowAcceptNoteButton(false); // 重置按钮状态
+    await sendMessage("生成学习总结");
     // 注意：isSummarizing 会在总结完成后由 stream 结果自动重置
+  };
+
+  const handleAcceptNoteUpdate = async () => {
+    setIsAcceptingNote(true);
+    setShowAcceptNoteButton(false);
+    try {
+      // 调用后端任务总结 API（对整个任务的所有对话生成总结）
+      const taskSummaryResp = await fetch(
+        `${API_BASE_URL}/history/tasks/${currentTaskId}/summary`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            task_id: currentTaskId,
+          }),
+        }
+      );
+
+      if (!taskSummaryResp.ok) {
+        throw new Error(`获取任务总结失败（${taskSummaryResp.status}）`);
+      }
+
+      // 等待后端保存完成
+      await new Promise(resolve => setTimeout(resolve, 500));
+
+      // 触发任务计划更新事件
+      window.dispatchEvent(new Event("task-plan-updated"));
+
+      // 显示成功提示
+      const successMessage: Message = {
+        id: `${Date.now()}-note-accepted`,
+        role: "assistant",
+        content: "✅ 已将任务学习总结更新到任务笔记。点击右上角【任务笔记】按钮查看。",
+        timestamp: formatTime(),
+      };
+      setMessages((prev) => [...prev, successMessage]);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "更新失败";
+      const errorMessage: Message = {
+        id: `${Date.now()}-note-error`,
+        role: "assistant",
+        content: `❌ 更新笔记失败：${message}`,
+        timestamp: formatTime(),
+      };
+      setMessages((prev) => [...prev, errorMessage]);
+    } finally {
+      setIsAcceptingNote(false);
+    }
   };
 
   const confirmPlanUpdate = async (messageId: string, plan: TaskPlan) => {
@@ -479,6 +602,7 @@ export function TutorSession() {
       prev.map((m) => (m.id === messageId ? { ...m, planError: undefined } : m))
     );
     try {
+      // 确认学习计划（后端会自动更新任务笔记）
       const response = await fetch(`${API_BASE_URL}/agent/task-plan/confirm`, {
         method: "POST",
         headers: {
@@ -492,12 +616,16 @@ export function TutorSession() {
       if (!response.ok) {
         throw new Error(`请求失败（${response.status}）`);
       }
+
       setMessages((prev) =>
         prev.map((m) =>
           m.id === messageId ? { ...m, planConfirmed: true } : m
         )
       );
+
+      // 触发任务计划和时间线更新事件
       window.dispatchEvent(new Event("task-plan-updated"));
+      window.dispatchEvent(new Event("timeline-updated"));
     } catch (error) {
       const message = error instanceof Error ? error.message : "更新失败";
       setMessages((prev) =>
@@ -533,7 +661,7 @@ export function TutorSession() {
               className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <CheckCircle className="w-5 h-5" />
-              {isSummarizing ? "总结生成中..." : "结束并总结今日学习"}
+              更新任务笔记
             </button>
             <button
               onClick={() => setIsPanelOpen(!isPanelOpen)}
@@ -701,6 +829,20 @@ export function TutorSession() {
               </div>
             );
           })}
+
+          {/* 接受笔记更新按钮 */}
+          {showAcceptNoteButton && (
+            <div className="flex justify-center py-4">
+              <button
+                onClick={handleAcceptNoteUpdate}
+                disabled={isAcceptingNote}
+                className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl hover:from-indigo-700 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg hover:shadow-xl"
+              >
+                <CheckCircle className="w-5 h-5" />
+                <span className="font-medium">{isAcceptingNote ? "更新中..." : "接受笔记更新"}</span>
+              </button>
+            </div>
+          )}
         </div>
       </div>
 
@@ -719,7 +861,7 @@ export function TutorSession() {
                 }
               }}
               onKeyDown={(event) => {
-                if (event.key === "Enter" && !event.shiftKey) {
+                if (event.key === "Enter" && !event.shiftKey && !event.nativeEvent.isComposing) {
                   event.preventDefault();
                   void sendMessage();
                 }
@@ -728,13 +870,22 @@ export function TutorSession() {
               className="flex-1 bg-transparent border-none outline-none px-2 py-2 text-gray-900 placeholder:text-gray-400 resize-none max-h-32"
               style={{ minHeight: '40px' }}
             />
-            <button
-              onClick={() => void sendMessage()}
-              disabled={isSending || !inputText.trim() || showIntentDisplay}
-              className="p-2.5 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex-shrink-0"
-            >
-              <Send className="w-5 h-5" />
-            </button>
+            {isSending ? (
+              <button
+                onClick={handleStopGeneration}
+                className="p-2.5 bg-red-600 text-white rounded-xl hover:bg-red-700 transition-colors flex-shrink-0"
+              >
+                <Square className="w-5 h-5" />
+              </button>
+            ) : (
+              <button
+                onClick={() => void sendMessage()}
+                disabled={isSending || !inputText.trim() || showIntentDisplay}
+                className="p-2.5 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex-shrink-0"
+              >
+                <Send className="w-5 h-5" />
+              </button>
+            )}
           </div>
           <p className="text-xs text-gray-500 text-center mt-2">
             按 Enter 发送，Shift + Enter 换行

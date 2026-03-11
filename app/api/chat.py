@@ -21,10 +21,13 @@ from app.core.summary.generator import summary_generator
 router = APIRouter()
 
 ENABLE_STREAMING = os.getenv("ENABLE_STREAMING", "true").lower() in {"1", "true", "yes", "on"}
-ENABLE_PLAN_PROPOSAL = os.getenv("ENABLE_PLAN_PROPOSAL", "false").lower() in {"1", "true", "yes", "on"}
+ENABLE_PLAN_PROPOSAL = os.getenv("ENABLE_PLAN_PROPOSAL", "true").lower() in {"1", "true", "yes", "on"}
 
 # Initialize the agent graph once when the module loads
 agent_graph = build_agent()
+
+# 中断状态管理：session_id -> bool (是否被中断)
+_generation_interrupts: dict[str, bool] = {}
 
 class ChatRequest(BaseModel):
     task_id: Optional[str] = None
@@ -44,6 +47,10 @@ class ChatResponse(BaseModel):
 class StreamEvent(BaseModel):
     event: str
     data: dict
+
+
+class InterruptRequest(BaseModel):
+    session_id: str
 
 
 def _normalize_task_id(task_id: Optional[str], session_id: Optional[str]) -> str:
@@ -117,15 +124,14 @@ def _should_update_plan(text: str) -> bool:
         "\u66f4\u65b0",  # 更新
     ]
     time_patterns = [
-        r"\\d+\\s*\\u5929",   # 天
-        r"\\d+\\s*\\u5468",   # 周
-        r"\\d+\\s*\\u6708",   # 月
-        r"\\d+(?:\\.\\d+)?\\s*(?:\\u5c0f\\u65f6|h)",  # 小时/h
+        r"\d+\s*\u5929",   # 天
+        r"\d+\s*\u5468",   # 周
+        r"\d+\s*\u6708",   # 月
+        r"\d+(?:\.\d+)?\s*(?:\u5c0f\u65f6|h)",  # 小时/h
     ]
     if any(k in text for k in keywords):
         return True
     return any(re.search(p, text) for p in time_patterns)
-    return any(k in text for k in keywords)
 
 
 def _plan_sig_from_existing(plan_data: dict) -> str:
@@ -144,13 +150,27 @@ async def _build_plan_proposal(
     dialogue = f"{base}\nAI reply: {reply_text}".strip() if reply_text else base
     if not dialogue:
         return None
-    should_update = bool(plan_hint) or _should_update_plan(dialogue) or (not memory.has_task_plan(task_id))
+
+    # 检查是否应该更新计划
+    should_update = bool(plan_hint) or _should_update_plan(dialogue)
+
+    # 如果没有计划，始终生成新计划
+    has_plan = memory.has_task_plan(task_id)
+    if not has_plan:
+        should_update = True
+
+    # 如果用户明确提到计划相关关键词（如"重新生成"、"新的计划"等），也应该更新
+    if has_plan and _should_regenerate_plan(dialogue):
+        should_update = True
+
     if not should_update:
         return None
+
     try:
         existing_plan = memory.get_task_plan_data(task_id)
     except Exception:
         existing_plan = None
+
     plan_state = {
         "messages": messages,
         "conversation_summary": state.get("conversation_summary") if isinstance(state, dict) else "",
@@ -164,6 +184,24 @@ async def _build_plan_proposal(
         existing_plan,
     )
     return plan
+
+
+def _should_regenerate_plan(text: str) -> bool:
+    """检查用户是否要求重新生成计划"""
+    if not text:
+        return False
+    keywords = [
+        "重新生成",
+        "新的计划",
+        "新计划",
+        "更新计划",
+        "修改计划",
+        "调整计划",
+        "换个计划",
+        "重新规划",
+        "重新制定",
+    ]
+    return any(k in text for k in keywords)
 
 
 def _build_state(request: ChatRequest, task_id: str, session_id: str):
@@ -353,7 +391,11 @@ async def chat_stream_endpoint(request: ChatRequest):
     task_id = _normalize_task_id(request.task_id, request.session_id)
     session_id, is_new_session = _build_session_id(task_id, request.session_id)
 
+    # 清除旧的中断状态（如果有）
+    _clear_interrupt(session_id)
+
     async def _gen():
+        nonlocal session_id
         try:
             yield _event_line("start", {"task_id": task_id, "session_id": session_id})
 
@@ -363,14 +405,22 @@ async def chat_stream_endpoint(request: ChatRequest):
             current_state = _build_state(request, task_id, session_id)
             final_state = None
             streamed_any = False
+            saved_modules = None  # 保存 modules 信息，用于 node 事件
 
             # 优先使用 LangGraph 事件流（真流式），若上游不支持则自动回退到后处理分片
             async for event in agent_graph.astream_events(current_state, version="v1"):
+                # 检查中断请求
+                if _check_interrupt(session_id):
+                    print(f"⚠️ 生成被用户中断：{session_id}")
+                    _clear_interrupt(session_id)
+                    yield _event_line("interrupted", {"reason": "user_requested"})
+                    return
+
                 event_name = event.get("event", "")
                 metadata = event.get("metadata", {}) or {}
                 node_name = metadata.get("langgraph_node")
 
-                # 监听意图识别节点（analyzer）
+                # 监听意图识别节点（analyzer）完成，保存 modules 信息
                 if node_name == "analyzer" and event_name == "on_chain_end":
                     # 意图识别完成，解析结果
                     output = (event.get("data") or {}).get("output")
@@ -395,22 +445,27 @@ async def chat_stream_endpoint(request: ChatRequest):
                         if plan_dict.get("is_concluding"):
                             modules.append("concluding")
 
-                        # 发送意图识别结果
-                        thought = plan_dict.get("thought_process", "")
+                        # 保存 modules 信息
+                        saved_modules = modules
+
+                        # 发送意图识别结果（只显示模块，不显示思考过程）
                         modules_str = " + ".join(modules) if modules else "闲聊"
                         yield _event_line("intent", {
                             "status": "analyzed",
-                            "text": f"{thought} → {modules_str}",
+                            "text": modules_str,
                             "modules": modules
                         })
 
-                        # 进入具体模块
-                        if modules:
-                            yield _event_line("progress", {
-                                "status": "processing",
-                                "text": f"进入 {modules[0]} 模式..."
-                            })
+                # 监听 aggregator 节点开始，发送 node 事件（使用保存的 modules 信息）
+                if node_name == "aggregator" and event_name == "on_chain_start" and saved_modules:
+                    if saved_modules:
+                        yield _event_line("node", {
+                            "status": "processing",
+                            "node_name": saved_modules[0],
+                            "modules": saved_modules
+                        })
 
+                # 流式输出 token
                 if event_name == "on_chat_model_stream" and node_name == "aggregator":
                     chunk = (event.get("data") or {}).get("chunk")
                     text_delta = _chunk_to_text(chunk)
@@ -422,6 +477,13 @@ async def chat_stream_endpoint(request: ChatRequest):
                     output = (event.get("data") or {}).get("output")
                     if isinstance(output, dict):
                         final_state = output
+
+            # 检查中断（在 agent 执行完成后）
+            if _check_interrupt(session_id):
+                print(f"⚠️ 生成被用户中断：{session_id}")
+                _clear_interrupt(session_id)
+                yield _event_line("interrupted", {"reason": "user_requested"})
+                return
 
             # 某些运行时不会给到完整 output，这里兜底从持久化会话读取最终状态
             if not isinstance(final_state, dict):
@@ -446,6 +508,12 @@ async def chat_stream_endpoint(request: ChatRequest):
             if not streamed_any and reply_content:
                 if ENABLE_STREAMING:
                     for chunk in _split_for_stream(reply_content):
+                        # 检查中断请求
+                        if _check_interrupt(session_id):
+                            print(f"⚠️ 生成被用户中断：{session_id}")
+                            _clear_interrupt(session_id)
+                            yield _event_line("interrupted", {"reason": "user_requested"})
+                            return
                         yield _event_line("delta", {"text": chunk})
                         await asyncio.sleep(0.02)
                 else:
@@ -543,3 +611,27 @@ topic: {task_id}
         # 清除总结标记（无论成功还是失败）
         from app.core.memory import set_session_summarizing
         set_session_summarizing(session_id, False)
+
+
+@router.post("/chat/interrupt")
+async def interrupt_chat(request: InterruptRequest):
+    """
+    中断当前正在进行的生成
+    """
+    session_id = request.session_id
+    if session_id:
+        _generation_interrupts[session_id] = True
+        # 清理旧的中断记录（防止内存泄漏）
+        if len(_generation_interrupts) > 100:
+            _generation_interrupts.clear()
+    return {"status": "interrupted", "session_id": session_id}
+
+
+def _check_interrupt(session_id: str) -> bool:
+    """检查是否有中断请求"""
+    return _generation_interrupts.get(session_id, False)
+
+
+def _clear_interrupt(session_id: str):
+    """清除中断状态"""
+    _generation_interrupts.pop(session_id, None)

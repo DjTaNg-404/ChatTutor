@@ -9,6 +9,8 @@ class AgentWorker(QThread):
     chunk_ready = pyqtSignal(str, str)
     stream_finished = pyqtSignal(str)
     response_ready = pyqtSignal(str, bool)
+    node_changed = pyqtSignal(str, str)  # (message_id, node_name)
+    intent_changed = pyqtSignal(str)  # (intent_text)
     
     def __init__(self, api_base_url, session_id, topic, user_input, task_id=None):
         super().__init__()
@@ -89,6 +91,16 @@ class AgentWorker(QThread):
                             self.chunk_ready.emit(stream_message_id, chunk)
                 elif event_type == "done":
                     is_concluded = bool(data.get("is_concluded", False))
+                elif event_type == "node":
+                    # 节点变更事件，更新思考状态显示
+                    node_name = data.get("node_name", "")
+                    if stream_message_id and node_name:
+                        self.node_changed.emit(stream_message_id, node_name)
+                elif event_type == "intent":
+                    # 意图识别结果
+                    intent_text = data.get("text", "")
+                    if intent_text:
+                        self.intent_changed.emit(intent_text)
                 elif event_type == "error":
                     self._fallback_chat()
                     return

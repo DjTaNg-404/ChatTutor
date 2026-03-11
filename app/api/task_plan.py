@@ -79,7 +79,77 @@ async def confirm_task_plan(request: TaskPlanConfirmRequest):
     plan.pop(PLAN_SESSION_KEY, None)
     if not plan.get("_plan_sig"):
         plan["_plan_sig"] = plan_signature(plan)
-    return memory.save_task_plan(task_id=request.task_id, plan=plan)
+
+    # 构建任务笔记内容
+    note_content = build_plan_note_content(plan)
+
+    # 保存计划，同时更新任务笔记
+    result = memory.save_task_plan(task_id=request.task_id, plan=plan)
+
+    # 如果有笔记内容，保存到任务笔记
+    if note_content:
+        memory.save_task_note(task_id=request.task_id, content=note_content)
+        result["userNotes"] = note_content
+        result["content"] = note_content
+
+    return result
+
+
+def build_plan_note_content(plan: dict) -> str:
+    """根据学习计划构建任务笔记内容"""
+    lines = []
+
+    task_title = plan.get("taskTitle", "")
+    if task_title:
+        lines.append(f"# {task_title}")
+        lines.append("")
+
+    overall_summary = plan.get("overallSummary", "")
+    if overall_summary:
+        lines.append(f"## 概述")
+        lines.append(overall_summary)
+        lines.append("")
+
+    total_days = plan.get("totalDays", 0)
+    total_hours = plan.get("totalHours", 0)
+    if total_days or total_hours:
+        lines.append(f"## 学习安排")
+        if total_days:
+            lines.append(f"- 总天数：{total_days} 天")
+        if total_hours:
+            lines.append(f"- 每日学习：{total_hours} 小时")
+        lines.append("")
+
+    # 详细计划步骤
+    plan_steps = plan.get("plan", [])
+    if isinstance(plan_steps, str):
+        plan_steps = [s.strip() for s in plan_steps.split("\n") if s.strip()]
+
+    if plan_steps and len(plan_steps) > 0:
+        lines.append(f"## 详细计划")
+        for idx, step in enumerate(plan_steps, 1):
+            lines.append(f"{idx}. {step}")
+        lines.append("")
+
+    # 核心知识点
+    core_knowledge = plan.get("coreKnowledge", [])
+    if core_knowledge and len(core_knowledge) > 0:
+        lines.append(f"## 核心知识点")
+        for k in core_knowledge:
+            lines.append(f"- {k}")
+        lines.append("")
+
+    # 里程碑
+    milestones = plan.get("milestones", [])
+    if milestones and len(milestones) > 0:
+        lines.append(f"## 里程碑")
+        for m in milestones:
+            date = m.get("date", "")
+            achievement = m.get("achievement", "")
+            lines.append(f"- {date}: {achievement}")
+        lines.append("")
+
+    return "\n".join(lines) if lines else ""
 
 
 @router.post("/task-plan/from-chat")

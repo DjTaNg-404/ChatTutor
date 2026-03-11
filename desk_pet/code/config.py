@@ -209,7 +209,7 @@ HTML_TEMPLATE = r"""
                 card.className = 'card';
                 card.innerHTML = `
                     <div class="question-header">🤔 ${text}</div>
-                    <div class="answer-body"><span style="color:#22c55e; font-style:italic;">💭 Tutor 正在思考...</span></div>
+                    <div class="answer-body" data-node="pending"><span style="color:#22c55e; font-style:italic;">💭 意图识别中...</span></div>
                 `;
                 
                 if (cards.length >= 5) {
@@ -237,8 +237,26 @@ HTML_TEMPLATE = r"""
             }
         };
 
-        window.addMessage = function(text, isUser) { window._createMessageRow(text, isUser, null); };
-        window.startAssistantMessage = function(messageId) { window._createMessageRow('', false, messageId); };
+        window.startAssistantMessage = function(messageId) {
+            const card = document.createElement('div');
+            card.className = 'card';
+            // 初始显示一个空状态，等待 node 事件或 delta 事件更新
+            card.innerHTML = `
+                <div class="question-header">💬 AI 回答</div>
+                <div class="answer-body" data-node="waiting"><span style="color:#22c55e; font-style:italic;">💭 处理中...</span></div>
+            `;
+
+            const container = document.getElementById('chat-container');
+            if (cards.length >= 5) {
+                let old = cards.shift();
+                if (old && old.parentNode) old.parentNode.removeChild(old);
+            }
+
+            container.appendChild(card);
+            cards.push(card);
+            if (messageId) card.setAttribute('data-id', messageId);
+            updateStack();
+        };
 
         window.appendAssistantDelta = function(messageId, chunk) {
             const card = document.querySelector(`.card[data-id="${messageId}"]`) || cards[cards.length - 1];
@@ -247,6 +265,52 @@ HTML_TEMPLATE = r"""
             const nextRaw = (aDiv.getAttribute('data-raw') || '') + (chunk || '');
             aDiv.setAttribute('data-raw', nextRaw);
             aDiv.innerHTML = window.renderMarkdownAndMath(nextRaw);
+            // 清除 node 状态标记，因为已经开始显示内容了
+            aDiv.removeAttribute('data-node');
+            recalculateHeight();
+        };
+
+        window.updateNodeStatus = function(messageId, nodeName) {
+            // 只更新 AI 卡片（通过 messageId 查找），不更新用户卡片
+            let card = null;
+
+            // 首先尝试通过 data-id 查找
+            if (messageId) {
+                card = document.querySelector(`.card[data-id="${messageId}"]`);
+            }
+
+            // 如果没找到，尝试找最新的有 data-id 的卡片（AI 卡片）
+            if (!card) {
+                for (let i = cards.length - 1; i >= 0; i--) {
+                    if (cards[i].hasAttribute('data-id')) {
+                        card = cards[i];
+                        break;
+                    }
+                }
+            }
+
+            // 如果还是没找到，可能 AI 卡片还没创建，使用最新的卡片
+            if (!card) {
+                card = cards[cards.length - 1];
+            }
+
+            if (!card) return;
+            const aDiv = card.querySelector('.answer-body');
+            if (!aDiv) return;
+
+            // 将 node_name 转换为中文显示名称
+            const nodeNames = {
+                'tutor_answer': '📚 答疑',
+                'judge': '⚖️ 评审',
+                'inquiry': '🔍 探究',
+                'summary': '📝 总结',
+                'plan': '📋 计划',
+                'concluding': '👋 结语'
+            };
+
+            const displayName = nodeNames[nodeName] || nodeName;
+            aDiv.setAttribute('data-node', nodeName);
+            aDiv.innerHTML = `<span style="color:#22c55e; font-style:italic;">💭 ${displayName} 正在思考...</span>`;
             recalculateHeight();
         };
 
@@ -255,6 +319,36 @@ HTML_TEMPLATE = r"""
             if (!card) return;
             const aDiv = card.querySelector('.answer-body');
             aDiv.innerHTML = window.renderMarkdownAndMath(aDiv.getAttribute('data-raw') || '');
+            recalculateHeight();
+        };
+
+        window.updateIntentStatus = function(intentText) {
+            // 更新最新用户卡片的意图识别结果显示，并持久化保持
+            const userCard = cards[cards.length - 1];
+            if (!userCard) return;
+            const aDiv = userCard.querySelector('.answer-body');
+            if (!aDiv) return;
+
+            // 将模块名转换为中文显示
+            const moduleNames = {
+                'tutor_answer': '📚 答疑',
+                'judge': '⚖️ 评审',
+                'inquiry': '🔍 探究',
+                'summary': '📝 总结',
+                'plan': '📋 计划',
+                'concluding': '👋 结语',
+                '闲聊': '💬 闲聊'
+            };
+
+            // 解析模块列表并转换
+            let displayText = intentText;
+            const modules = intentText.split(' + ');
+            const converted = modules.map(m => moduleNames[m] || m);
+            displayText = converted.join(' + ');
+
+            // 设置为最终状态，不再被覆盖
+            aDiv.setAttribute('data-node', 'intent_done');
+            aDiv.innerHTML = `<span style="color:#22c55e; font-weight:600;">✅ ${displayText}</span>`;
             recalculateHeight();
         };
     </script>

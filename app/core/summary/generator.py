@@ -9,7 +9,8 @@ from app.core.config import settings
 from app.core.summary.prompts import (
     SUMMARIZER_REVIEW_PROMPT,
     SUMMARIZER_NOTE_PROMPT,
-    DAILY_SUMMARY_PROMPT
+    DAILY_SUMMARY_PROMPT,
+    TASK_SUMMARY_PROMPT
 )
 
 
@@ -145,6 +146,58 @@ class SummaryGenerator:
                 messages.append(SystemMessage(content=content))
 
         messages.append(HumanMessage(content="请生成今日学习报告。"))
+
+        response = self.model.invoke(messages)
+        return response.content
+
+    def generate_task_summary(
+        self,
+        sessions: List[Dict[str, Any]],
+        task_id: str
+    ) -> str:
+        """
+        生成任务学习总结（对整个任务的所有对话生成总结）
+
+        Args:
+            sessions: 任务所有会话列表，每项包含会话的完整信息
+            task_id: 任务 ID
+
+        Returns:
+            任务总结文本（Markdown 格式）
+        """
+        # 构造任务标题
+        task_titles = {
+            "task_1": "掌握随机森林算法",
+            "task_2": "雅思口语备考",
+            "task_3": "React Hooks 深入",
+            "task_4": "机器学习数学基础",
+        }
+        task_title = task_titles.get(task_id, task_id)
+
+        # 合并所有会话的对话历史
+        all_messages = []
+        for session in sessions:
+            messages = session.get("messages", [])
+            all_messages.extend(messages)
+
+        # 构造 prompt
+        prompt_text = TASK_SUMMARY_PROMPT.format(
+            task_title=task_title
+        )
+
+        sys_msg = SystemMessage(content=prompt_text)
+        messages = [sys_msg]
+
+        # 添加对话历史
+        for msg in all_messages:
+            role = msg.get("role", "user")
+            content = msg.get("content", "")
+            if role == "user":
+                messages.append(HumanMessage(content=content))
+            elif role == "assistant":
+                messages.append(SystemMessage(content=content))
+
+        messages.append(HumanMessage(content="请生成任务学习总结。"))
 
         response = self.model.invoke(messages)
         return response.content

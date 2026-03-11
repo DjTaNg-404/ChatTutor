@@ -1,6 +1,6 @@
 {
   "learner_id": "local_user",
-  "updated_at": "2026-03-10T21:54:27",
+  "updated_at": "2026-03-11T18:48:00",
   "cards": [
     {
       "type": "learning_fact",
@@ -180,6 +180,161 @@
       },
       "source": "local_user",
       "ts": "2026-03-10T21:54:27"
+    },
+    {
+      "type": "learning_fact",
+      "fact_type": "goal",
+      "fields": {
+        "subject": "习RAG记忆这一部分的内容"
+      },
+      "source": "local_user",
+      "ts": "2026-03-11T16:47:52"
+    },
+    {
+      "type": "learning_fact",
+      "fact_type": "goal",
+      "fields": {
+        "subject": "在**保留完整语义**和**控制信息密度**之间找到平衡"
+      },
+      "source": "local_user",
+      "ts": "2026-03-11T16:52:17"
+    },
+    {
+      "type": "learning_fact",
+      "fact_type": "skill_state",
+      "fields": {
+        "topic": "混入“故障排查”的内容",
+        "level": "weak"
+      },
+      "source": "local_user",
+      "ts": "2026-03-11T16:54:05"
+    },
+    {
+      "type": "learning_fact",
+      "fact_type": "goal",
+      "fields": {
+        "subject": "**：理解RAG完整架构"
+      },
+      "source": "local_user",
+      "ts": "2026-03-11T16:58:16"
+    },
+    {
+      "type": "learning_fact",
+      "fact_type": "goal",
+      "fields": {
+        "subject": "**：引入生成质量评估"
+      },
+      "source": "local_user",
+      "ts": "2026-03-11T17:15:37"
+    },
+    {
+      "type": "learning_fact",
+      "fact_type": "skill_state",
+      "fields": {
+        "topic": "把 “假设 — 数据 — 图表 — 结论” 切开",
+        "level": "weak"
+      },
+      "source": "local_user",
+      "ts": "2026-03-11T17:38:30"
+    },
+    {
+      "type": "learning_fact",
+      "fact_type": "goal",
+      "fields": {
+        "subject": "达到的状态"
+      },
+      "source": "local_user",
+      "ts": "2026-03-11T18:27:50"
+    },
+    {
+      "type": "learning_fact",
+      "fact_type": "progress",
+      "fields": {
+        "milestone": "多少"
+      },
+      "source": "local_user",
+      "ts": "2026-03-11T18:27:50"
+    },
+    {
+      "type": "learning_fact",
+      "fact_type": "goal",
+      "fields": {
+        "subject": "（锚定方向）**"
+      },
+      "source": "local_user",
+      "ts": "2026-03-11T18:27:53"
+    },
+    {
+      "type": "learning_fact",
+      "fact_type": "progress",
+      "fields": {
+        "milestone": "吗"
+      },
+      "source": "local_user",
+      "ts": "2026-03-11T18:27:53"
+    },
+    {
+      "type": "learning_fact",
+      "fact_type": "goal",
+      "fields": {
+        "subject": "]"
+      },
+      "source": "local_user",
+      "ts": "2026-03-11T18:27:58"
+    },
+    {
+      "type": "learning_fact",
+      "fact_type": "goal",
+      "fields": {
+        "subject": "习agnet 生成学习计划"
+      },
+      "source": "local_user",
+      "ts": "2026-03-11T18:28:47"
+    },
+    {
+      "type": "learning_fact",
+      "fact_type": "goal",
+      "fields": {
+        "subject": "调整后的学习计划达到什么具体目标"
+      },
+      "source": "local_user",
+      "ts": "2026-03-11T18:30:15"
+    },
+    {
+      "type": "learning_fact",
+      "fact_type": "goal",
+      "fields": {
+        "subject": "我辅助您生成某份材料的学习总结"
+      },
+      "source": "local_user",
+      "ts": "2026-03-11T18:33:13"
+    },
+    {
+      "type": "learning_fact",
+      "fact_type": "goal",
+      "fields": {
+        "subject": "做什么"
+      },
+      "source": "local_user",
+      "ts": "2026-03-11T18:36:56"
+    },
+    {
+      "type": "learning_fact",
+      "fact_type": "goal",
+      "fields": {
+        "subject": "应保持稳定"
+      },
+      "source": "local_user",
+      "ts": "2026-03-11T18:43:58"
+    },
+    {
+      "type": "learning_fact",
+      "fact_type": "goal",
+      "fields": {
+        "subject": "尝试为哪一部分内容做一个总结"
+      },
+      "source": "local_user",
+      "ts": "2026-03-11T18:48:00"
     }
   ]
 }

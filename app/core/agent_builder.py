@@ -127,7 +127,8 @@ async def analyzer_node(state: AgentState) -> Dict[str, Any]:
     has_existing_plan = False
     try:
         existing_plan = memory_io.get_task_plan_data(task_id)
-        has_existing_plan = existing_plan is not None and bool(existing_plan)
+        # 使用 has_task_plan 检查是否存在有效计划（排除空壳计划如 await_offer 状态）
+        has_existing_plan = memory_io.has_task_plan(task_id)
     except Exception:
         pass
 
@@ -162,7 +163,7 @@ async def analyzer_node(state: AgentState) -> Dict[str, Any]:
             thought_process="Error in planning, defaulting to simple answer."
         )
 
-    # 后处理：如果已有计划，强制覆盖 request_plan=False
+    # 后处理：如果已有计划，需要判断用户意图
     # 防止进入计划生成后无法退出的循环
     if has_existing_plan and plan.request_plan:
         # 检查用户消息是否明确说"重新生成"或"新的计划"
@@ -172,12 +173,19 @@ async def analyzer_node(state: AgentState) -> Dict[str, Any]:
                 last_user_msg = msg.content or ""
                 break
 
-        regen_keywords = ["重新生成", "新的计划", "重新做一个", "重新规划", "生成新的"]
-        if not any(kw in last_user_msg for kw in regen_keywords):
+        # 检查是否有调整诉求的关键词（调整具体时间、难度等）
+        adjust_keywords = ["调整", "改", "增加", "减少", "变更", "修改"]
+        # 检查是否有重新生成的关键词
+        regen_keywords = ["重新生成", "新的计划", "重新做一个", "重新规划", "生成新的", "换个计划", "更新计划", "修改计划", "调整计划"]
+
+        # 如果用户包含调整诉求（如"调整时间"、"改天数"），用 tutor_answer 回应
+        if any(kw in last_user_msg for kw in adjust_keywords):
             plan.request_plan = False
             # 如果没有其他意图，默认用 tutor_answer 回应
             if not any([plan.needs_tutor_answer, plan.needs_judge, plan.needs_inquiry, plan.request_summary, plan.is_concluding]):
                 plan.needs_tutor_answer = True
+        # 注意：如果用户只说"计划"或者包含重新生成关键词，保持 request_plan=True
+        # 这样可以让用户看到确认按钮
 
     # 返回计划，并重置临时字段，防止污染
     # 如果计划中包含结束意图，设置 should_exit 信号

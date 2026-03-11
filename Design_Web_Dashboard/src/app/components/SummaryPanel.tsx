@@ -125,12 +125,18 @@ export function SummaryPanel() {
       void loadPlan();
     };
 
+    const handleTimelineUpdated = () => {
+      void loadTimeline();
+    };
+
     void loadTimeline();
     void loadPlan();
     window.addEventListener("task-plan-updated", handlePlanUpdated);
+    window.addEventListener("timeline-updated", handleTimelineUpdated);
     return () => {
       cancelled = true;
       window.removeEventListener("task-plan-updated", handlePlanUpdated);
+      window.removeEventListener("timeline-updated", handleTimelineUpdated);
     };
   }, [currentTaskId]);
 

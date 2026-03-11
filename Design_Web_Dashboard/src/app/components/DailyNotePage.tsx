@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router";
-import { ArrowLeft, Calendar, Edit3, Save, Sparkles } from "lucide-react";
+import { ArrowLeft, Calendar, Edit3, Save, Sparkles, Wand2, Eye, Pencil } from "lucide-react";
+import { MarkdownPreview } from "./MarkdownPreview";
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8000/api/v1";
 
@@ -9,6 +10,20 @@ interface DailyNoteApiResponse {
   date: string;
   content: string;
   updated_at: string;
+}
+
+interface DailySummaryAiSummary {
+  key_learnings: string[];
+  review_areas: string[];
+  achievements: string[];
+}
+
+interface DailySummaryResponse {
+  task_id: string;
+  date: string;
+  summary: string;
+  ai_summary: DailySummaryAiSummary;
+  created_at: string;
 }
 
 interface DailyNote {
@@ -80,7 +95,10 @@ export function DailyNotePage() {
   const [userNotes, setUserNotes] = useState(noteData?.userNotes || "");
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [isGeneratingSummary, setIsGeneratingSummary] = useState(false);
   const [saveHint, setSaveHint] = useState<string | null>(null);
+  const [aiSummary, setAiSummary] = useState<DailyNote["aiSummary"]>(noteData?.aiSummary || { keyLearnings: [], reviewAreas: [], achievements: [] });
+  const [isPreviewMode, setIsPreviewMode] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -146,6 +164,45 @@ export function DailyNotePage() {
     }
   };
 
+  const handleGenerateSummary = async () => {
+    setIsGeneratingSummary(true);
+    setSaveHint(null);
+    try {
+      const response = await fetch(`${API_BASE_URL}/history/tasks/${resolvedTaskId}/daily-summary`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          task_id: resolvedTaskId,
+          date: resolvedDate,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.detail || `生成总结失败（${response.status}）`);
+      }
+
+      const data: DailySummaryResponse = await response.json();
+
+      // 更新用户笔记内容为生成的总结
+      setUserNotes(data.summary);
+      // 更新 AI 总结显示
+      setAiSummary({
+        keyLearnings: data.ai_summary.key_learnings || [],
+        reviewAreas: data.ai_summary.review_areas || [],
+        achievements: data.ai_summary.achievements || [],
+      });
+      setSaveHint("已生成今日学习总结");
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "生成总结失败";
+      setSaveHint(message);
+    } finally {
+      setIsGeneratingSummary(false);
+    }
+  };
+
   // 格式化日期显示
   const formatDate = (dateStr: string) => {
     if (!dateStr) return "";
@@ -156,11 +213,7 @@ export function DailyNotePage() {
   const displayData: DailyNote = noteData || {
     date: resolvedDate,
     taskTitle: "学习任务",
-    aiSummary: {
-      keyLearnings: [],
-      reviewAreas: [],
-      achievements: [],
-    },
+    aiSummary: aiSummary,
     userNotes: "",
   };
 
@@ -211,12 +264,23 @@ export function DailyNotePage() {
         <div className="max-w-4xl mx-auto space-y-6">
           {/* AI Generated Summary */}
           <div className="bg-gradient-to-br from-indigo-50 to-purple-50 rounded-xl border border-indigo-200 p-6">
-            <div className="flex items-center gap-2 mb-4">
-              <Sparkles className="w-5 h-5 text-indigo-600" />
-              <h2 className="text-lg font-semibold text-gray-900">AI 学习总结</h2>
-              <span className="text-xs px-2 py-0.5 bg-indigo-100 text-indigo-700 rounded-full font-medium ml-2">
-                自动生成
-              </span>
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <Sparkles className="w-5 h-5 text-indigo-600" />
+                <h2 className="text-lg font-semibold text-gray-900">AI 学习总结</h2>
+                <span className="text-xs px-2 py-0.5 bg-indigo-100 text-indigo-700 rounded-full font-medium ml-2">
+                  自动生成
+                </span>
+              </div>
+
+              <button
+                onClick={() => void handleGenerateSummary()}
+                disabled={isGeneratingSummary || isLoading}
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm font-medium"
+              >
+                <Wand2 className="w-4 h-4" />
+                {isGeneratingSummary ? "生成中..." : "生成单日总结"}
+              </button>
             </div>
 
             {/* Key Learnings */}
@@ -280,22 +344,41 @@ export function DailyNotePage() {
           <div className="bg-white rounded-xl border border-gray-200 p-6">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-semibold text-gray-900">我的笔记</h2>
-              <button className="text-sm text-gray-500 hover:text-gray-700 transition-colors">
-                编辑
+              <button
+                onClick={() => setIsPreviewMode(!isPreviewMode)}
+                className="flex items-center gap-1.5 text-sm text-gray-600 hover:text-gray-900 transition-colors"
+              >
+                {isPreviewMode ? (
+                  <>
+                    <Pencil className="w-4 h-4" />
+                    编辑
+                  </>
+                ) : (
+                  <>
+                    <Eye className="w-4 h-4" />
+                    预览
+                  </>
+                )}
               </button>
             </div>
 
-            <textarea
-              value={userNotes}
-              onChange={(event) => setUserNotes(event.target.value)}
-              rows={12}
-              disabled={isLoading}
-              className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-100 focus:border-indigo-400 outline-none resize-none font-mono text-sm text-gray-700"
-              placeholder="在这里添加你的个人学习笔记、心得体会或问题..."
-            />
+            {isPreviewMode ? (
+              <div className="min-h-[300px] max-h-[600px] overflow-y-auto border border-gray-200 rounded-lg p-4 bg-gray-50">
+                <MarkdownPreview content={userNotes} />
+              </div>
+            ) : (
+              <textarea
+                value={userNotes}
+                onChange={(event) => setUserNotes(event.target.value)}
+                rows={12}
+                disabled={isLoading}
+                className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-100 focus:border-indigo-400 outline-none resize-none font-mono text-sm text-gray-700"
+                placeholder="在这里添加你的个人学习笔记、心得体会或问题..."
+              />
+            )}
 
             <p className="text-xs text-gray-500 mt-2">
-              支持 Markdown 格式 · 手动保存
+              支持 Markdown 格式 · 点击"预览"查看渲染效果
             </p>
             {saveHint && <p className="text-xs text-gray-500 mt-1">{saveHint}</p>}
           </div>

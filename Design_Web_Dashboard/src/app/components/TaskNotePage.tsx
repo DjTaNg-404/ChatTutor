@@ -1,6 +1,7 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useParams, useNavigate } from "react-router";
-import { ArrowLeft, BookOpen, Calendar, TrendingUp, Target, Clock, Edit3 } from "lucide-react";
+import { ArrowLeft, BookOpen, Calendar, TrendingUp, Target, Clock, Edit3, Eye, Pencil } from "lucide-react";
+import { MarkdownPreview } from "./MarkdownPreview";
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8000/api/v1";
 
@@ -166,6 +167,7 @@ export function TaskNotePage() {
     mergeTaskNote(noteData, null, taskId)
   );
   const [userNotes, setUserNotes] = useState(taskNote?.userNotes || "");
+  const [isPreviewMode, setIsPreviewMode] = useState(false);
 
   const normalizePlanSteps = (steps?: TaskNote["plan"]): string[] => {
     if (!steps) return [];
@@ -184,47 +186,46 @@ export function TaskNotePage() {
   const [isSaving, setIsSaving] = useState(false);
   const [saveHint, setSaveHint] = useState<string | null>(null);
 
-  useEffect(() => {
+  const loadTaskNote = useCallback(async () => {
     let cancelled = false;
-
-    const loadTaskNote = async () => {
-      setIsLoading(true);
-      setSaveHint(null);
-      try {
-        const response = await fetch(
-          `${API_BASE_URL}/notes/task?task_id=${encodeURIComponent(resolvedTaskId)}`
-        );
-        if (!response.ok) {
-          throw new Error(`加载任务笔记失败（${response.status}）`);
-        }
-        const data: TaskNoteApiResponse = await response.json();
-        if (!cancelled) {
-          const merged = mergeTaskNote(noteData, data, taskId);
-          setTaskNote(merged);
-          setUserNotes(merged?.userNotes || "");
-
-        }
-      } catch (error) {
-        if (!cancelled) {
-          const message = error instanceof Error ? error.message : "加载任务笔记失败";
-          setSaveHint(message);
-          const merged = mergeTaskNote(noteData, null, taskId);
-          setTaskNote(merged);
-          setUserNotes(merged?.userNotes || "");
-        }
-      } finally {
-        if (!cancelled) {
-          setIsLoading(false);
-        }
+    setIsLoading(true);
+    setSaveHint(null);
+    try {
+      const response = await fetch(
+        `${API_BASE_URL}/notes/task?task_id=${encodeURIComponent(resolvedTaskId)}`
+      );
+      if (!response.ok) {
+        throw new Error(`加载任务笔记失败（${response.status}）`);
       }
-    };
+      const data: TaskNoteApiResponse = await response.json();
+      if (!cancelled) {
+        const merged = mergeTaskNote(noteData, data, taskId);
+        setTaskNote(merged);
+        setUserNotes(merged?.userNotes || "");
 
+      }
+    } catch (error) {
+      if (!cancelled) {
+        const message = error instanceof Error ? error.message : "加载任务笔记失败";
+        setSaveHint(message);
+        const merged = mergeTaskNote(noteData, null, taskId);
+        setTaskNote(merged);
+        setUserNotes(merged?.userNotes || "");
+      }
+    } finally {
+      if (!cancelled) {
+        setIsLoading(false);
+      }
+    }
+  }, [resolvedTaskId, taskId, noteData]);
+
+  useEffect(() => {
     void loadTaskNote();
-
+    window.addEventListener("task-plan-updated", loadTaskNote);
     return () => {
-      cancelled = true;
+      window.removeEventListener("task-plan-updated", loadTaskNote);
     };
-  }, [resolvedTaskId, taskId]);
+  }, [loadTaskNote]);
 
   const handleSave = async () => {
     setIsSaving(true);
@@ -462,17 +463,43 @@ export function TaskNotePage() {
 
           {/* User Notes */}
           <div className="bg-white rounded-xl border border-gray-200 p-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">我的笔记</h2>
-            <textarea
-              value={userNotes}
-              onChange={(event) => setUserNotes(event.target.value)}
-              rows={14}
-              disabled={isLoading}
-              className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-100 focus:border-indigo-400 outline-none resize-none font-mono text-sm text-gray-700"
-              placeholder="在这里记录你的学习心得、重点难点、参考资源等..."
-            />
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-semibold text-gray-900">我的笔记</h2>
+              <button
+                onClick={() => setIsPreviewMode(!isPreviewMode)}
+                className="flex items-center gap-1.5 text-sm text-gray-600 hover:text-gray-900 transition-colors"
+              >
+                {isPreviewMode ? (
+                  <>
+                    <Pencil className="w-4 h-4" />
+                    编辑
+                  </>
+                ) : (
+                  <>
+                    <Eye className="w-4 h-4" />
+                    预览
+                  </>
+                )}
+              </button>
+            </div>
+
+            {isPreviewMode ? (
+              <div className="min-h-[300px] max-h-[600px] overflow-y-auto border border-gray-200 rounded-lg p-4 bg-gray-50">
+                <MarkdownPreview content={userNotes} />
+              </div>
+            ) : (
+              <textarea
+                value={userNotes}
+                onChange={(event) => setUserNotes(event.target.value)}
+                rows={14}
+                disabled={isLoading}
+                className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-100 focus:border-indigo-400 outline-none resize-none font-mono text-sm text-gray-700"
+                placeholder="在这里记录你的学习心得、重点难点、参考资源等..."
+              />
+            )}
+
             <p className="text-xs text-gray-500 mt-2">
-              支持 Markdown 格式 · 手动保存
+              支持 Markdown 格式 · 点击"预览"查看渲染效果
             </p>
             {saveHint && <p className="text-xs text-gray-500 mt-1">{saveHint}</p>}
           </div>
