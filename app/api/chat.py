@@ -15,8 +15,6 @@ from app.core.task_plan import (
     PLAN_SESSION_KEY,
     plan_signature,
     generate_task_plan_from_state,
-    handle_plan_chat,
-    PLAN_INTENT_KEYWORDS,
 )
 from app.core.summary.generator import summary_generator
 
@@ -41,7 +39,6 @@ class ChatResponse(BaseModel):
     reply: str
     is_concluded: bool
     plan_proposal: Optional[dict] = None
-    intent_display: Optional[str] = None  # 意图识别的展示文字（思考过程 + 跳转模块）
 
 
 class StreamEvent(BaseModel):
@@ -217,45 +214,7 @@ async def _invoke_agent(current_state):
     reply_content = last_msg.content if hasattr(last_msg, "content") else str(last_msg)
     is_concluded = final_state.get("should_exit", False)
 
-    # 获取意图识别结果（用于前端显示）
-    intent_display = _build_intent_display(final_state)
-
-    return final_state, reply_content, is_concluded, intent_display
-
-
-def _build_intent_display(final_state: dict) -> Optional[str]:
-    """构建意图识别的展示文字"""
-    plan = final_state.get("plan")
-    if not plan:
-        # 如果没有 plan，返回默认值
-        return "分析用户问题 → tutor_answer"
-
-    # 获取思考过程
-    thought = getattr(plan, "thought_process", "") or ""
-
-    # 获取激活的模块
-    activated_modules = []
-    if getattr(plan, "needs_tutor_answer", False):
-        activated_modules.append("tutor_answer")
-    if getattr(plan, "needs_judge", False):
-        activated_modules.append("judge")
-    if getattr(plan, "needs_inquiry", False):
-        activated_modules.append("inquiry")
-    if getattr(plan, "request_summary", False):
-        activated_modules.append("summary")
-    if getattr(plan, "request_plan", False):
-        activated_modules.append("plan")
-    if getattr(plan, "is_concluding", False):
-        activated_modules.append("concluding")
-
-    # 构建展示文字
-    parts = []
-    if thought:
-        parts.append(thought)
-    if activated_modules:
-        parts.append("→ " + " + ".join(activated_modules))
-
-    return " | ".join(parts) if parts else "分析用户问题 → tutor_answer"
+    return final_state, reply_content, is_concluded
 
 
 def _split_for_stream(text: str):
@@ -293,83 +252,12 @@ def _is_greeting(text: str) -> bool:
 
 
 def _should_offer_plan(text: str, is_new_session: bool, has_plan: bool) -> bool:
+    """检查是否应该提供计划建议（仅在新会话且无计划时）"""
     if not is_new_session or has_plan:
         return False
     if _is_greeting(text):
         return False
     return bool(text and text.strip())
-
-
-def _is_task_mode(task_id: str) -> bool:
-    """检查是否处于 Task 模式（计划收集流程中）"""
-    try:
-        plan_data = memory.get_task_plan_data(task_id)
-        if plan_data:
-            plan_session = plan_data.get(PLAN_SESSION_KEY)
-            if plan_session and plan_session.get("status") == "collecting":
-                return True
-    except Exception:
-        pass
-    return False
-
-
-def _has_plan_intent(message: str) -> bool:
-    """检查用户消息是否有计划相关意图"""
-    plan_keywords = ["制定计划", "生成计划", "调整计划", "修改计划", "学习计划", "学什么计划"]
-    return any(kw in message for kw in plan_keywords)
-
-
-async def _handle_task_chat(request: ChatRequest, task_id: str, session_id: str) -> ChatResponse:
-    """处理 Task 模式的对话"""
-    # 获取现有计划
-    try:
-        plan_data = memory.get_task_plan_data(task_id)
-    except Exception:
-        plan_data = None
-
-    existing_plan = plan_data
-    plan_session = plan_data.get(PLAN_SESSION_KEY) if plan_data else None
-    has_plan = existing_plan is not None and bool(existing_plan)
-
-    # 获取历史消息
-    session_state = memory.load_session(session_id)
-    history_messages = session_state.get("messages", []) if session_state else []
-
-    # 调用 Task 对话处理器
-    result = await handle_plan_chat(
-        task_id=task_id,
-        user_message=request.message,
-        existing_plan=existing_plan,
-        plan_session=plan_session,
-        has_plan=has_plan,
-        conversation_summary=session_state.get("conversation_summary") if session_state else "",
-        history_messages=history_messages,
-    )
-
-    if result["handled"]:
-        # 保存 plan_session
-        if result["plan_session"]:
-            updated_plan = plan_data or {}
-            updated_plan[PLAN_SESSION_KEY] = result["plan_session"]
-            memory.save_task_plan(task_id, updated_plan)
-
-        # 检查是否生成了计划（需要退出 Task 模式）
-        if result["plan_proposal"]:
-            # 计划已生成，保存并退出
-            memory.save_task_plan(task_id, result["plan_proposal"])
-            # 清除 plan_session 状态为 idle
-            memory.save_task_plan(task_id, {PLAN_SESSION_KEY: {"status": "idle"}})
-
-        return ChatResponse(
-            task_id=task_id,
-            session_id=session_id,
-            reply=result["reply"],
-            is_concluded=False,
-            plan_proposal=result.get("plan_proposal"),
-        )
-
-    # 如果 Task 模块说"未处理"，回退到主 Agent
-    return None
 
 
 def _extract_reply_from_state(final_state: dict) -> str:
@@ -400,25 +288,16 @@ async def chat_endpoint(request: ChatRequest):
     task_id = _normalize_task_id(request.task_id, request.session_id)
     session_id, is_new_session = _build_session_id(task_id, request.session_id)
 
-    # 1. 检查是否处于 Task 模式或有计划意图
-    is_task = _is_task_mode(task_id) or _has_plan_intent(request.message)
-
-    if is_task:
-        # 2. Task 模式优先处理
-        task_response = await _handle_task_chat(request, task_id, session_id)
-        if task_response:
-            return task_response
-
-    # 3. 非 Task 模式，走主 Agent
+    # 调用主 Agent
     current_state = _build_state(request, task_id, session_id)
-    final_state, reply_content, is_concluded, intent_display = await _invoke_agent(current_state)
+    final_state, reply_content, is_concluded = await _invoke_agent(current_state)
 
     # 检查是否是新会话（用于判断是否提供计划建议）
     is_first_message = len(current_state.get("messages", [])) <= 1
     if _should_offer_plan(request.message, is_first_message, memory.has_task_plan(task_id)):
         reply_content = (
             reply_content.rstrip()
-            + "\n\n\u5982\u679c\u4f60\u9700\u8981\u6211\u5e2e\u4f60\u5236\u5b9a\u5b66\u4e60\u8ba1\u5212\uff0c\u76f4\u63a5\u56de\u590d\u201c\u9700\u8981\u201d\u5373\u53ef\u3002"
+            + "\n\n如果你需要我帮你制定学习计划，直接回复"需要"即可。"
         )
         try:
             memory.save_task_plan(
@@ -428,7 +307,7 @@ async def chat_endpoint(request: ChatRequest):
         except Exception:
             pass
 
-    # 7. 如果会话结束，异步调用总结生成器保存总结
+    # 如果会话结束，异步调用总结生成器保存总结
     if is_concluded:
         # 检查是否已经在生成总结中（防止重复触发）
         from app.core.memory import is_session_summarizing
@@ -463,7 +342,6 @@ async def chat_endpoint(request: ChatRequest):
         reply=reply_content,
         is_concluded=is_concluded,
         plan_proposal=plan_proposal,
-        intent_display=intent_display,
     )
 
 
@@ -474,39 +352,6 @@ async def chat_stream_endpoint(request: ChatRequest):
 
     task_id = _normalize_task_id(request.task_id, request.session_id)
     session_id, is_new_session = _build_session_id(task_id, request.session_id)
-
-    # 检查是否处于 Task 模式或有计划意图
-    is_task = _is_task_mode(task_id) or _has_plan_intent(request.message)
-
-    if is_task:
-        # Task 模式 - 简单流式处理
-        task_response = await _handle_task_chat(request, task_id, session_id)
-
-        async def _task_gen():
-            try:
-                yield _event_line("start", {"task_id": task_id, "session_id": session_id})
-
-                # Task 模式也发送意图识别事件
-                yield _event_line("intent", {
-                    "status": "analyzed",
-                    "text": "任务模式 → tutor_answer"
-                })
-
-                if task_response:
-                    yield _event_line("delta", {"text": task_response.reply})
-                    if task_response.plan_proposal:
-                        yield _event_line("plan", {"plan": task_response.plan_proposal})
-                yield _event_line("done", {
-                    "task_id": task_id,
-                    "session_id": session_id,
-                    "is_concluded": False,
-                    "plan_proposal": task_response.plan_proposal if task_response else None,
-                    "intent_display": "任务模式 → tutor_answer"
-                })
-            except Exception as e:
-                yield _event_line("error", {"message": str(e), "status": 500})
-
-        return StreamingResponse(_task_gen(), media_type="application/x-ndjson")
 
     async def _gen():
         try:
@@ -587,7 +432,7 @@ async def chat_stream_endpoint(request: ChatRequest):
             # 检查是否是新会话（用于判断是否提供计划建议）
             is_first_message = len(current_state.get("messages", [])) <= 1
             if _should_offer_plan(request.message, is_first_message, memory.has_task_plan(task_id)):
-                offer_text = "\n\n\u5982\u679c\u4f60\u9700\u8981\u6211\u5e2e\u4f60\u5236\u5b9a\u5b66\u4e60\u8ba1\u5212\uff0c\u76f4\u63a5\u56de\u590d\u201c\u9700\u8981\u201d\u5373\u53ef\u3002"
+                offer_text = "\n\n如果你需要我帮你制定学习计划，直接回复"需要"即可。"
                 reply_content = reply_content.rstrip() + offer_text
                 try:
                     memory.save_task_plan(
@@ -615,9 +460,6 @@ async def chat_stream_endpoint(request: ChatRequest):
                 summary_from_agent = final_state.get("summary_output") or final_state.get("summary_out")
                 asyncio.create_task(_call_summary_agent(session_id, task_id, summary_from_agent))
 
-            # 构建意图识别展示文字
-            intent_display = _build_intent_display(final_state)
-
             plan_proposal = None
             if ENABLE_PLAN_PROPOSAL:
                 try:
@@ -636,7 +478,6 @@ async def chat_stream_endpoint(request: ChatRequest):
                 "session_id": session_id,
                 "is_concluded": is_concluded,
                 "plan_proposal": plan_proposal,
-                "intent_display": intent_display,
             })
         except HTTPException as e:
             yield _event_line("error", {"message": str(e.detail), "status": e.status_code})
