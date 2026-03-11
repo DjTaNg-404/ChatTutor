@@ -48,6 +48,9 @@ class AgentState(TypedDict):
     # 临时字段
     last_intent: Optional[str]
 
+    # 计划节点是否已处理
+    plan_handled: Optional[bool]
+
     # 用户标识（供 profile_store 识别学习画像）
     user_id: Optional[str]
 

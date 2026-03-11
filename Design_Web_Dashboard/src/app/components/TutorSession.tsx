@@ -72,6 +72,33 @@ interface TaskPlan {
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8000/api/v1";
 const ENABLE_STREAMING = (import.meta.env.VITE_ENABLE_STREAMING ?? "true").toString().toLowerCase() !== "false";
+const TASK_DRAFT_KEY = "task_draft";
+
+function loadDraftTask() {
+  try {
+    const raw = localStorage.getItem(TASK_DRAFT_KEY);
+    if (!raw) return null;
+    const data = JSON.parse(raw);
+    if (data && typeof data.id === "string") {
+      return {
+        id: data.id as string,
+        title: (data.title as string) || "新的学习",
+        icon: (data.icon as string) || "✨",
+      };
+    }
+  } catch {
+    return null;
+  }
+  return null;
+}
+
+function clearDraftTask() {
+  try {
+    localStorage.removeItem(TASK_DRAFT_KEY);
+  } catch {
+    // ignore
+  }
+}
 
 function formatTime(date = new Date()) {
   return date.toLocaleTimeString("zh-CN", {
@@ -114,6 +141,10 @@ export function TutorSession() {
   const [abortController, setAbortController] = useState<AbortController | null>(null);
   const [showAcceptNoteButton, setShowAcceptNoteButton] = useState(false);
   const [isAcceptingNote, setIsAcceptingNote] = useState(false);
+  const [draftTask, setDraftTask] = useState<{ id: string; title: string; icon: string } | null>(() =>
+    loadDraftTask()
+  );
+  const [planStatus, setPlanStatus] = useState<string | null>(null);
 
   const normalizePlanSteps = (plan?: TaskPlan | null): string[] => {
     if (!plan) return [];
@@ -136,7 +167,7 @@ export function TutorSession() {
   const readStreamResponse = async (
     response: Response,
     assistantId: string,
-  ): Promise<{ sessionId?: string; isConcluded?: boolean; planProposal?: TaskPlan | null; intentDisplay?: string }> => {
+  ): Promise<{ sessionId?: string; isConcluded?: boolean; planProposal?: TaskPlan | null; intentDisplay?: string; planStatus?: string | null }> => {
     const reader = response.body?.getReader();
     if (!reader) {
       throw new Error("流式响应不可读");
@@ -148,6 +179,7 @@ export function TutorSession() {
     let finalConcluded = false;
     let finalPlan: TaskPlan | null = null;
     let finalIntentDisplay: string | undefined;
+    let finalPlanStatus: string | null | undefined;
     let interrupted = false;
 
     while (true) {
@@ -208,6 +240,9 @@ export function TutorSession() {
             if (evt.data?.plan_proposal) {
               finalPlan = evt.data.plan_proposal as TaskPlan;
             }
+            if (typeof evt.data?.plan_status !== "undefined") {
+              finalPlanStatus = evt.data.plan_status as string | null;
+            }
             if (evt.data?.intent_display) {
               finalIntentDisplay = String(evt.data.intent_display);
             }
@@ -230,13 +265,11 @@ export function TutorSession() {
       return { sessionId: finalSessionId, isConcluded: false, planProposal: null, intentDisplay: "" };
     }
 
-    return { sessionId: finalSessionId, isConcluded: finalConcluded, planProposal: finalPlan, intentDisplay: finalIntentDisplay };
+    return { sessionId: finalSessionId, isConcluded: finalConcluded, planProposal: finalPlan, intentDisplay: finalIntentDisplay, planStatus: finalPlanStatus };
   };
 
   const fallbackSendMessage = async (messageText: string) => {
-    const planHint = /(计划|目标|安排|进度|时间|每天|每周|每月|完成|调整|改成|更新)/.test(
-      messageText
-    );
+    const planHint = false;
     const response = await fetch(`${API_BASE_URL}/chat`, {
       method: "POST",
       headers: {
@@ -260,6 +293,9 @@ export function TutorSession() {
     const replyText = data?.reply || "抱歉，我暂时没有生成有效回复。";
     if (data?.session_id) {
       setActiveSessionId(data.session_id);
+    }
+    if (typeof data?.plan_status !== "undefined") {
+      setPlanStatus(data.plan_status ?? null);
     }
     const assistantMessage = makeMessage("assistant", replyText);
     if (data?.plan_proposal) {
@@ -296,6 +332,11 @@ export function TutorSession() {
 
   const rawTaskId = taskId ? (taskId.startsWith("task_") ? taskId.slice(5) : taskId) : "";
   const currentTaskId = taskId ? (taskId.startsWith("task_") ? taskId : `task_${taskId}`) : "task_default";
+  const isDraftTask = Boolean(draftTask && currentTaskId === draftTask.id);
+  const isPlanActive = Boolean(
+    planStatus && ["await_confirm", "await_plan_confirm", "collecting"].includes(planStatus)
+  );
+  const isPlanPaused = planStatus === "paused";
   const currentDate = new Date().toLocaleDateString("zh-CN", {
     year: "numeric",
     month: "long",
@@ -303,10 +344,26 @@ export function TutorSession() {
     weekday: "long",
   });
   useEffect(() => {
+    const handleTasksUpdated = () => {
+      setDraftTask(loadDraftTask());
+    };
+    window.addEventListener("tasks-updated", handleTasksUpdated);
+    return () => {
+      window.removeEventListener("tasks-updated", handleTasksUpdated);
+    };
+  }, []);
+  useEffect(() => {
     let cancelled = false;
     const fallbackTitle = taskId
       ? taskTitles[rawTaskId] || taskTitles[taskId] || "学习任务"
       : "欢迎使用 ChatTutor";
+
+    if (isDraftTask) {
+      setTaskTitleDisplay(draftTask?.title || "新的学习");
+      return () => {
+        cancelled = true;
+      };
+    }
 
     const loadTaskTitle = async () => {
       try {
@@ -337,6 +394,16 @@ export function TutorSession() {
     const loadHistory = async () => {
       setIsLoadingHistory(true);
       setErrorText(null);
+
+      if (isDraftTask) {
+        setActiveSessionId(null);
+        setPlanStatus(null);
+        setMessages([
+          makeMessage("assistant", "你好，我是你的 AI 导师，输入你的问题我们就可以开始学习。"),
+        ]);
+        setIsLoadingHistory(false);
+        return;
+      }
 
       try {
         const sessionsResp = await fetch(`${API_BASE_URL}/history/tasks/${currentTaskId}/sessions`);
@@ -370,6 +437,44 @@ export function TutorSession() {
           timestamp: item.timestamp ? item.timestamp.slice(11, 16) : formatTime(),
         }));
 
+        let draftPlan: TaskPlan | null = null;
+        try {
+          const planResp = await fetch(`${API_BASE_URL}/notes/task?task_id=${currentTaskId}`);
+          if (planResp.ok) {
+            const planData = await planResp.json();
+            if (planData?.draft_plan && typeof planData.draft_plan === "object") {
+              draftPlan = planData.draft_plan as TaskPlan;
+            }
+            if (typeof planData?._plan_session?.status !== "undefined") {
+              setPlanStatus(planData._plan_session.status as string);
+            } else {
+              setPlanStatus(null);
+            }
+          }
+        } catch {
+          draftPlan = null;
+          setPlanStatus(null);
+        }
+
+        if (draftPlan && historyMessages.length > 0) {
+          const revIdx = [...historyMessages].reverse().findIndex((msg) => msg.role === "assistant");
+          if (revIdx >= 0) {
+            const idx = historyMessages.length - 1 - revIdx;
+            if (!historyMessages[idx].planProposal) {
+              historyMessages[idx] = { ...historyMessages[idx], planProposal: draftPlan };
+            }
+          } else {
+            const draftMsg = makeMessage("assistant", "?????????????????");
+            draftMsg.planProposal = draftPlan;
+            historyMessages.push(draftMsg);
+          }
+        } else if (draftPlan && historyMessages.length === 0) {
+          const draftMsg = makeMessage("assistant", "?????????????????");
+          draftMsg.planProposal = draftPlan;
+          historyMessages.push(draftMsg);
+        }
+
+
         if (!isCancelled) {
           setActiveSessionId(messageData.session_id);
           setMessages(
@@ -400,9 +505,47 @@ export function TutorSession() {
     };
   }, [currentTaskId]);
 
+  useEffect(() => {
+    return () => {
+      const draft = loadDraftTask();
+      if (draft && draft.id === currentTaskId) {
+        clearDraftTask();
+        window.dispatchEvent(new Event("tasks-updated"));
+      }
+    };
+  }, [currentTaskId]);
+
+  const ensureDraftTaskCreated = async () => {
+    const draft = loadDraftTask();
+    if (!draft || draft.id !== currentTaskId) return;
+    try {
+      const response = await fetch(`${API_BASE_URL}/tasks`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          task_id: draft.id,
+          title: draft.title || "新的学习",
+          icon: draft.icon || "✨",
+          status: "active",
+        }),
+      });
+      if (response.ok) {
+        clearDraftTask();
+        setDraftTask(null);
+        window.dispatchEvent(new Event("tasks-updated"));
+      }
+    } catch {
+      // ignore creation failures
+    }
+  };
+
   const sendMessage = async (text?: string) => {
     const messageText = text !== undefined ? text : inputText.trim();
     if (!messageText || isSending) return;
+
+    if (isDraftTask) {
+      await ensureDraftTaskCreated();
+    }
 
     setErrorText(null);
     setIntentDisplay(""); // 清空意图识别显示
@@ -446,9 +589,7 @@ export function TutorSession() {
           session_id: activeSessionId,
           message: messageText,
             topic: taskTitleDisplay,
-          plan_hint: /(计划|目标|安排|进度|时间|每天|每周|每月|完成|调整|改成|更新)/.test(
-            messageText
-          ),
+          plan_hint: false,
         }), signal: controller.signal });
 
       if (!response.ok) {
@@ -458,6 +599,9 @@ export function TutorSession() {
       const streamResult = await readStreamResponse(response, assistantId);
       if (streamResult.sessionId) {
         setActiveSessionId(streamResult.sessionId);
+      }
+      if (typeof streamResult.planStatus !== "undefined") {
+        setPlanStatus(streamResult.planStatus ?? null);
       }
       if (streamResult.planProposal) {
         setMessages((prev) =>
@@ -505,6 +649,21 @@ export function TutorSession() {
       window.dispatchEvent(new Event("timeline-updated"));
     }
   };
+
+  useEffect(() => {
+    const handleRequestPlan = (event: Event) => {
+      const detail = (event as CustomEvent).detail as { taskId?: string } | undefined;
+      if (detail?.taskId && detail.taskId !== currentTaskId) {
+        return;
+      }
+      if (isSending || showIntentDisplay) return;
+      void sendMessage("帮我生成一份学习计划。");
+    };
+    window.addEventListener("request-plan", handleRequestPlan);
+    return () => {
+      window.removeEventListener("request-plan", handleRequestPlan);
+    };
+  }, [currentTaskId, isSending, showIntentDisplay]);
   const handleStopGeneration = async () => {
     if (abortController && activeSessionId) {
       // 调用后端中断接口
@@ -638,14 +797,74 @@ export function TutorSession() {
     }
   };
 
+  const applyPlanSessionAction = async (action: "resume" | "exit") => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/agent/task-plan/session`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          task_id: currentTaskId,
+          action,
+        }),
+      });
+      if (response.ok) {
+        const data = await response.json();
+        const status = typeof data?.status === "string" ? data.status : null;
+        setPlanStatus(status === "idle" ? null : status);
+      }
+    } catch {
+      // ignore; keep local state unchanged
+    }
+  };
+
+  const handleResumePlan = async () => {
+    setPlanStatus("collecting");
+    await applyPlanSessionAction("resume");
+    setMessages((prev) => [
+      ...prev,
+      makeMessage("assistant", "好的，我们继续调整学习计划。请告诉我你想修改哪些内容。"),
+    ]);
+  };
+
+  const handleExitPlan = async () => {
+    setPlanStatus(null);
+    await applyPlanSessionAction("exit");
+    setMessages((prev) => [
+      ...prev,
+      makeMessage("assistant", "好的，已结束学习计划规划。如需再规划，随时告诉我。"),
+    ]);
+  };
+
   return (
     <div className="flex flex-col h-full">
+      <style>
+        {`
+          @keyframes typing-bounce {
+            0%, 80%, 100% { transform: translateY(0) scale(0.9); opacity: 0.6; }
+            40% { transform: translateY(-6px) scale(1.05); opacity: 1; }
+          }
+        `}
+      </style>
       {/* Header */}
       <div className="bg-white border-b border-gray-200 px-6 py-4">
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-xl font-semibold text-gray-900">{taskTitleDisplay}</h1>
             <p className="text-sm text-gray-500 mt-0.5">{currentDate}</p>
+            {isPlanActive && (
+              <div className="mt-2 inline-flex items-center gap-2 rounded-full bg-indigo-50 text-indigo-700 text-xs font-medium px-3 py-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse" />
+                计划调整中
+              </div>
+            )}
+            {isPlanPaused && (
+              <div className="mt-2 inline-flex items-center gap-2 rounded-full bg-amber-50 text-amber-700 text-xs font-medium px-3 py-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
+                计划已挂起，等待继续
+              </div>
+            )}
           </div>
           <div className="flex items-center gap-3">
             <Link
@@ -829,6 +1048,26 @@ export function TutorSession() {
               </div>
             );
           })}
+          {isSending && (
+            <div className="flex justify-start">
+              <div className="ml-2 bg-white border border-gray-200 rounded-2xl rounded-tl-sm px-4 py-2 shadow-sm">
+                <div className="flex items-end gap-2">
+                  <span
+                    className="w-2.5 h-2.5 bg-indigo-500/70 rounded-full"
+                    style={{ animation: "typing-bounce 1.1s infinite ease-in-out", animationDelay: "0ms" }}
+                  />
+                  <span
+                    className="w-2.5 h-2.5 bg-indigo-500/70 rounded-full"
+                    style={{ animation: "typing-bounce 1.1s infinite ease-in-out", animationDelay: "150ms" }}
+                  />
+                  <span
+                    className="w-2.5 h-2.5 bg-indigo-500/70 rounded-full"
+                    style={{ animation: "typing-bounce 1.1s infinite ease-in-out", animationDelay: "300ms" }}
+                  />
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* 接受笔记更新按钮 */}
           {showAcceptNoteButton && (
@@ -849,6 +1088,29 @@ export function TutorSession() {
       {/* Chat Input Footer */}
       <div className="bg-white border-t border-gray-200 p-4">
         <div className="max-w-4xl mx-auto">
+          {(isPlanActive || isPlanPaused) && (
+            <div className="mb-3 flex flex-wrap items-center gap-2 text-xs text-gray-600">
+              <span>
+                {isPlanPaused ? "计划已挂起，可继续调整或结束计划。" : "当前处于计划调整中，可随时结束计划。"}
+              </span>
+              {isPlanPaused && (
+                <button
+                  onClick={() => void handleResumePlan()}
+                  disabled={isSending || showIntentDisplay}
+                  className="px-2.5 py-1 rounded-full bg-indigo-600 text-white hover:bg-indigo-700 disabled:opacity-50"
+                >
+                  继续调整
+                </button>
+              )}
+              <button
+                onClick={() => void handleExitPlan()}
+                disabled={isSending || showIntentDisplay}
+                className="px-2.5 py-1 rounded-full border border-gray-300 text-gray-600 hover:bg-gray-100 disabled:opacity-50"
+              >
+                结束计划
+              </button>
+            </div>
+          )}
           <div className="flex items-end gap-3 bg-gray-50 rounded-2xl border border-gray-200 p-3 focus-within:border-indigo-400 focus-within:ring-2 focus-within:ring-indigo-100 transition-all">
             <textarea
               placeholder={showIntentDisplay ? intentDisplay : (isSending ? "Tutor 思考中..." : "输入你的问题或想法...")}

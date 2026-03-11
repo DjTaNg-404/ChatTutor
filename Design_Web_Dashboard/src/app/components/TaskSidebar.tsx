@@ -56,6 +56,45 @@ const archivedTasks: Task[] = [
 ];
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8000/api/v1";
+const TASK_DRAFT_KEY = "task_draft";
+
+function loadDraftTask(): Task | null {
+  try {
+    const raw = localStorage.getItem(TASK_DRAFT_KEY);
+    if (!raw) return null;
+    const data = JSON.parse(raw);
+    if (data && typeof data.id === "string") {
+      return {
+        id: data.id,
+        title: data.title || "新的学习",
+        icon: data.icon || "✨",
+        status: "active",
+      };
+    }
+  } catch {
+    return null;
+  }
+  return null;
+}
+
+function saveDraftTask(task: Task) {
+  try {
+    localStorage.setItem(
+      TASK_DRAFT_KEY,
+      JSON.stringify({ id: task.id, title: task.title, icon: task.icon })
+    );
+  } catch {
+    // ignore storage errors
+  }
+}
+
+function clearDraftTask() {
+  try {
+    localStorage.removeItem(TASK_DRAFT_KEY);
+  } catch {
+    // ignore storage errors
+  }
+}
 
 function mergeTasks(primary: Task[], secondary: Task[]): Task[] {
   const map = new Map<string, Task>();
@@ -73,6 +112,7 @@ export function TaskSidebar() {
   const navigate = useNavigate();
   const [showArchived, setShowArchived] = useState(false);
   const [storedTasks, setStoredTasks] = useState<Task[]>([]);
+  const [draftTask, setDraftTask] = useState<Task | null>(() => loadDraftTask());
   const [menuState, setMenuState] = useState<{
     visible: boolean;
     x: number;
@@ -115,8 +155,10 @@ export function TaskSidebar() {
   useEffect(() => {
     const refreshTasks = () => {
       void loadTasks();
+      setDraftTask(loadDraftTask());
     };
     void loadTasks();
+    setDraftTask(loadDraftTask());
     window.addEventListener("tasks-updated", refreshTasks);
     return () => {
       window.removeEventListener("tasks-updated", refreshTasks);
@@ -140,16 +182,20 @@ export function TaskSidebar() {
     return location.pathname === `/task/${taskId}`;
   };
 
-  const activeTaskList = useMemo(
-    () => mergeTasks(storedTasks.filter((item) => item.status === "active"), activeTasks),
-    [storedTasks]
-  );
+  const activeTaskList = useMemo(() => {
+    const merged = mergeTasks(storedTasks.filter((item) => item.status === "active"), activeTasks);
+    if (draftTask && !merged.some((item) => item.id === draftTask.id)) {
+      return [draftTask, ...merged];
+    }
+    return merged;
+  }, [storedTasks, draftTask]);
   const archivedTaskList = useMemo(
     () => mergeTasks(storedTasks.filter((item) => item.status === "archived"), archivedTasks),
     [storedTasks]
   );
 
   const handleContextMenu = (event: React.MouseEvent, task: Task) => {
+    if (draftTask && task.id === draftTask.id) return;
     event.preventDefault();
     setMenuState({
       visible: true,
@@ -222,6 +268,16 @@ export function TaskSidebar() {
   const handleDelete = async () => {
     if (!menuState.task) return;
     const taskId = menuState.task.id;
+    if (draftTask && taskId === draftTask.id) {
+      clearDraftTask();
+      setDraftTask(null);
+      setMenuState((prev) => ({ ...prev, visible: false }));
+      window.dispatchEvent(new Event("tasks-updated"));
+      if (location.pathname === `/task/${taskId}`) {
+        navigate("/");
+      }
+      return;
+    }
     const exists = storedTasks.some((item) => item.id === taskId);
     if (!exists) {
       await fetch(`${API_BASE_URL}/tasks`, {
@@ -239,7 +295,19 @@ export function TaskSidebar() {
     setMenuState((prev) => ({ ...prev, visible: false }));
     window.dispatchEvent(new Event("tasks-updated"));
     if (location.pathname === `/task/${taskId}`) {
-      navigate("/");
+      const existingDraft = loadDraftTask();
+      const nextDraft = existingDraft || {
+        id: makeTaskId(),
+        title: "新的学习",
+        icon: "✨",
+        status: "active" as const,
+      };
+      if (!existingDraft) {
+        saveDraftTask(nextDraft);
+        setDraftTask(nextDraft);
+        window.dispatchEvent(new Event("tasks-updated"));
+      }
+      navigate(`/task/${nextDraft.id}`);
     }
   };
 
@@ -306,25 +374,23 @@ export function TaskSidebar() {
   };
 
   const handleCreateTask = async () => {
-    const taskId = makeTaskId();
-    try {
-      await fetch(`${API_BASE_URL}/tasks`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          task_id: taskId,
-          title: "新学习任务",
-          icon: "⭐",
-          status: "active",
-        }),
-      });
-      window.dispatchEvent(new Event("tasks-updated"));
-    } catch {
-      // If creation fails, still allow entering the session.
+    const existingDraft = loadDraftTask();
+    if (existingDraft) {
+      navigate(`/task/${existingDraft.id}`);
+      return;
     }
+    const taskId = makeTaskId();
+    const nextDraft = {
+      id: taskId,
+      title: "新的学习",
+      icon: "✨",
+      status: "active" as const,
+    };
+    saveDraftTask(nextDraft);
+    setDraftTask(nextDraft);
+    window.dispatchEvent(new Event("tasks-updated"));
     navigate(`/task/${taskId}`);
   };
-
   return (
     <aside className="w-[250px] bg-white border-r border-gray-200 flex flex-col">
       {/* Brand Logo */}
@@ -341,7 +407,8 @@ export function TaskSidebar() {
       <div className="p-4 border-b border-gray-200">
         <button
           onClick={() => void handleCreateTask()}
-          className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-medium"
+          disabled={Boolean(draftTask && location.pathname === `/task/${draftTask.id}`)}
+          className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-medium disabled:opacity-60 disabled:cursor-not-allowed"
         >
           <Plus className="w-5 h-5" />
           新建学习任务

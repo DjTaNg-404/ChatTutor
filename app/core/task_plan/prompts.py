@@ -64,7 +64,7 @@ LEARN_INTENT_KEYWORDS = [
 ]
 
 YES_KEYWORDS = ["是", "好", "可以", "要", "需要", "生成", "想", "确认"]
-NO_KEYWORDS = ["不需要", "不用", "不要", "暂时不", "以后再说", "否", "不想"]
+NO_KEYWORDS = ["不用", "不要", "暂时不", "以后再说", "否", "不想"]
 
 DEPTH_KEYWORDS = [
     "入门",
@@ -95,6 +95,7 @@ CONTENT_KEYWORDS = [
     "范围",
     "重点",
     "课程",
+    "跳过",
 ]
 
 TIME_KEYWORDS = [

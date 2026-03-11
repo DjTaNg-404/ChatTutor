@@ -3,6 +3,7 @@ import asyncio
 
 from fastapi import APIRouter
 from pydantic import BaseModel
+from typing import Literal
 
 from app.core import memory
 from app.core.task_plan import (
@@ -33,6 +34,11 @@ class TaskPlanFromChatRequest(BaseModel):
     """从对话历史生成学习计划的请求"""
     task_id: str
     session_id: Optional[str] = None
+
+
+class PlanSessionActionRequest(BaseModel):
+    task_id: str
+    action: Literal["resume", "exit"]
 
 
 @router.post("/task-plan")
@@ -77,6 +83,7 @@ async def confirm_task_plan(request: TaskPlanConfirmRequest):
     plan = dict(request.plan or {})
     plan["task_id"] = request.task_id
     plan.pop(PLAN_SESSION_KEY, None)
+    plan.pop("draft_plan", None)
     if not plan.get("_plan_sig"):
         plan["_plan_sig"] = plan_signature(plan)
 
@@ -85,6 +92,13 @@ async def confirm_task_plan(request: TaskPlanConfirmRequest):
 
     # 保存计划，同时更新任务笔记
     result = memory.save_task_plan(task_id=request.task_id, plan=plan)
+    try:
+        memory.save_task_plan(
+            task_id=request.task_id,
+            plan={"draft_plan": None, PLAN_SESSION_KEY: {"status": "idle"}},
+        )
+    except Exception:
+        pass
 
     # 如果有笔记内容，保存到任务笔记
     if note_content:
@@ -196,3 +210,38 @@ async def generate_task_plan_from_chat(request: TaskPlanFromChatRequest):
 
     # 保存并返回
     return memory.save_task_plan(task_id=task_id, plan=plan)
+
+
+@router.post("/task-plan/session")
+async def update_plan_session(request: PlanSessionActionRequest):
+    try:
+        plan_data = memory.get_task_plan_data(request.task_id)
+    except Exception:
+        plan_data = None
+
+    session = plan_data.get(PLAN_SESSION_KEY) if isinstance(plan_data, dict) else None
+    if not isinstance(session, dict):
+        session = {"status": "idle"}
+
+    status = session.get("status") or "idle"
+    if request.action == "exit":
+        session = {
+            "status": "idle",
+            "mode": "",
+            "turns": 0,
+            "pending_mode": "",
+            "messages": [],
+        }
+    elif request.action == "resume":
+        if status == "paused":
+            session["status"] = session.get("paused_from") or "collecting"
+            session.pop("paused_from", None)
+
+    updated_plan = dict(plan_data or {})
+    updated_plan[PLAN_SESSION_KEY] = session
+    try:
+        memory.save_task_plan(task_id=request.task_id, plan=updated_plan)
+    except Exception:
+        pass
+
+    return {"status": session.get("status") or "idle"}

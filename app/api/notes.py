@@ -35,6 +35,7 @@ class TaskNoteResponse(BaseModel):
     masteryLevel: Optional[List[dict]] = None
     milestones: Optional[List[dict]] = None
     plan: Optional[List[str]] = None
+    draft_plan: Optional[dict] = None
     updated_at: str
 
 

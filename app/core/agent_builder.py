@@ -1,4 +1,4 @@
-from typing import Dict, Any, Literal
+from typing import Dict, Any, Literal, Optional
 import hashlib
 import asyncio
 
@@ -17,7 +17,11 @@ from app.core.cache import generation_cache, retrieval_cache
 from app.core import learning_profile
 from app.core import profile_store
 from app.core.tools_v2 import search_tool_v2
-from app.core.task_plan import generate_task_plan_from_state
+from app.core.task_plan import (
+    PLAN_SESSION_KEY,
+    handle_plan_chat,
+)
+from pydantic import BaseModel
 
 # --- 1. Model Initialization ---
 # 通用模型：用于文本生成 (Tutor, Judge, Inquiry, Aggregator)
@@ -106,6 +110,63 @@ def _should_invalidate_cache(messages) -> bool:
 
 # --- 2. Node Functions (节点逻辑) ---
 
+class PlanExitDecision(BaseModel):
+    exit_plan: bool = False
+
+class PlanRouteDecision(BaseModel):
+    plan_related: bool = False
+
+
+async def _should_exit_plan_dialog_llm(
+    user_message: str,
+    plan_session: Optional[Dict[str, Any]],
+    has_plan: bool,
+) -> bool:
+    if not user_message:
+        return False
+    # Only exit plan dialog when user explicitly opts out.
+    normalized = user_message.strip()
+    return normalized == "暂不调整计划"
+
+
+async def _is_plan_related_llm(
+    user_message: str,
+    plan_session: Optional[Dict[str, Any]],
+    has_plan: bool,
+) -> bool:
+    if not user_message:
+        return False
+    try:
+        router = analyzer_model_raw.with_structured_output(PlanRouteDecision)
+        status = ""
+        last_question = ""
+        if isinstance(plan_session, dict):
+            status = str(plan_session.get("status") or "")
+            for item in reversed(plan_session.get("messages", []) or []):
+                if item.get("role") == "assistant":
+                    last_question = item.get("content") or ""
+                    if last_question:
+                        break
+        sys_prompt = (
+            "你是对话路由器。用户当前处于学习计划规划流程中。"
+            "判断用户这句话是否与学习计划的制定/修改/确认/继续相关。"
+            "若是计划相关（回答计划问题、补充约束、提出修改、继续调整、确认计划），返回 plan_related=true。"
+            "若是普通知识问答或与计划无关的问题，返回 plan_related=false。"
+            "仅输出JSON：{\"plan_related\": true/false}。"
+        )
+        user_prompt = (
+            f"PlanStatus: {status}\n"
+            f"HasPlan: {has_plan}\n"
+            f"LastPlanQuestion: {last_question}\n"
+            f"UserMessage: {user_message}"
+        )
+        result: PlanRouteDecision = await router.ainvoke(
+            [SystemMessage(content=sys_prompt), HumanMessage(content=user_prompt)]
+        )
+        return bool(getattr(result, "plan_related", False))
+    except Exception:
+        return False
+
 async def analyzer_node(state: AgentState) -> Dict[str, Any]:
     """
     大脑节点：分析用户意图并制定执行计划 (ExecutionPlan)。
@@ -117,6 +178,11 @@ async def analyzer_node(state: AgentState) -> Dict[str, Any]:
 
     _ensure_cache_trace(state)
     recent_context = messages[-3:]
+    last_user_msg = ""
+    for msg in reversed(recent_context):
+        if isinstance(msg, HumanMessage):
+            last_user_msg = msg.content or ""
+            break
 
     # 构造 Prompt（注入用户学习画像）
     sys_msg_content = _inject_profile(prompts.ANALYZER_SYSTEM_PROMPT, state)
@@ -125,15 +191,67 @@ async def analyzer_node(state: AgentState) -> Dict[str, Any]:
     from app.core import memory as memory_io
     task_id = state.get("task_id", "task_default")
     has_existing_plan = False
+    plan_should_pause = False
+    plan_force_request = False
     try:
         existing_plan = memory_io.get_task_plan_data(task_id)
-        # 使用 has_task_plan 检查是否存在有效计划（排除空壳计划如 await_offer 状态）
-        has_existing_plan = memory_io.has_task_plan(task_id)
+        draft_plan = existing_plan.get("draft_plan") if isinstance(existing_plan, dict) else None
+        # ?? has_task_plan ?????????????????? await_offer ???
+        has_existing_plan = memory_io.has_task_plan(task_id) or isinstance(draft_plan, dict)
+        plan_session = existing_plan.get(PLAN_SESSION_KEY) if existing_plan else None
+        if plan_session and plan_session.get("status") in {"await_confirm", "await_plan_confirm", "collecting"}:
+            exit_plan_dialog = await _should_exit_plan_dialog_llm(
+                user_message=last_user_msg,
+                plan_session=plan_session,
+                has_plan=has_existing_plan,
+            )
+            if exit_plan_dialog:
+                updated_plan = dict(existing_plan or {})
+                updated_plan[PLAN_SESSION_KEY] = {
+                    "status": "idle",
+                    "mode": "",
+                    "turns": 0,
+                    "pending_mode": "",
+                    "messages": [],
+                }
+                try:
+                    memory_io.save_task_plan(task_id, updated_plan)
+                except Exception:
+                    pass
+                plan_session = None
+        if plan_session and plan_session.get("status") in {"await_confirm", "await_plan_confirm", "collecting", "paused"}:
+            is_plan_related = await _is_plan_related_llm(
+                user_message=last_user_msg,
+                plan_session=plan_session,
+                has_plan=has_existing_plan,
+            )
+            status = plan_session.get("status")
+            if status == "paused":
+                if is_plan_related:
+                    plan_session["status"] = plan_session.get("paused_from") or "collecting"
+                    plan_session.pop("paused_from", None)
+                    updated_plan = dict(existing_plan or {})
+                    updated_plan[PLAN_SESSION_KEY] = plan_session
+                    try:
+                        memory_io.save_task_plan(task_id, updated_plan)
+                    except Exception:
+                        pass
+                    plan_force_request = True
+                else:
+                    plan_should_pause = True
+            else:
+                if not is_plan_related:
+                    plan_session["paused_from"] = status
+                    plan_session["status"] = "paused"
+                    updated_plan = dict(existing_plan or {})
+                    updated_plan[PLAN_SESSION_KEY] = plan_session
+                    try:
+                        memory_io.save_task_plan(task_id, updated_plan)
+                    except Exception:
+                        pass
+                    plan_should_pause = True
     except Exception:
         pass
-
-    if has_existing_plan:
-        sys_msg_content += "\n\n[当前状态] 用户已经有了一个学习计划。如果用户提到调整计划的具体内容（如时间、难度），请用 tutor_answer 回应，不要触发 request_plan。"
 
     sys_msg = SystemMessage(content=sys_msg_content)
 
@@ -163,29 +281,14 @@ async def analyzer_node(state: AgentState) -> Dict[str, Any]:
             thought_process="Error in planning, defaulting to simple answer."
         )
 
-    # 后处理：如果已有计划，需要判断用户意图
-    # 防止进入计划生成后无法退出的循环
-    if has_existing_plan and plan.request_plan:
-        # 检查用户消息是否明确说"重新生成"或"新的计划"
-        last_user_msg = ""
-        for msg in reversed(recent_context):
-            if isinstance(msg, HumanMessage):
-                last_user_msg = msg.content or ""
-                break
-
-        # 检查是否有调整诉求的关键词（调整具体时间、难度等）
-        adjust_keywords = ["调整", "改", "增加", "减少", "变更", "修改"]
-        # 检查是否有重新生成的关键词
-        regen_keywords = ["重新生成", "新的计划", "重新做一个", "重新规划", "生成新的", "换个计划", "更新计划", "修改计划", "调整计划"]
-
-        # 如果用户包含调整诉求（如"调整时间"、"改天数"），用 tutor_answer 回应
-        if any(kw in last_user_msg for kw in adjust_keywords):
-            plan.request_plan = False
-            # 如果没有其他意图，默认用 tutor_answer 回应
-            if not any([plan.needs_tutor_answer, plan.needs_judge, plan.needs_inquiry, plan.request_summary, plan.is_concluding]):
-                plan.needs_tutor_answer = True
-        # 注意：如果用户只说"计划"或者包含重新生成关键词，保持 request_plan=True
-        # 这样可以让用户看到确认按钮
+    # 如果计划已挂起，本轮走普通答疑
+    if plan_force_request:
+        plan.request_plan = True
+    if plan_should_pause:
+        plan.request_plan = False
+        plan.needs_tutor_answer = True
+        plan.needs_judge = False
+        plan.needs_inquiry = False
 
     # 返回计划，并重置临时字段，防止污染
     # 如果计划中包含结束意图，设置 should_exit 信号
@@ -392,6 +495,154 @@ async def parallel_workers_node(state: AgentState) -> Dict[str, Any]:
 
     return updates
 
+
+async def plan_node(state: AgentState) -> Dict[str, Any]:
+    """
+    Plan flow node: reuse Task Plan dialog manager.
+    """
+    task_id = state.get("task_id", "task_default")
+    session_id = state.get("session_id", "")
+    user_message = ""
+    for msg in reversed(state.get("messages", [])):
+        if isinstance(msg, HumanMessage):
+            user_message = msg.content or ""
+            break
+
+    try:
+        plan_data = memory.get_task_plan_data(task_id)
+    except Exception:
+        plan_data = None
+
+    draft_plan = None
+    if isinstance(plan_data, dict):
+        draft_plan = plan_data.get("draft_plan")
+    existing_plan = draft_plan if isinstance(draft_plan, dict) else plan_data
+    plan_session = plan_data.get(PLAN_SESSION_KEY) if plan_data else None
+    has_plan = memory.has_task_plan(task_id) or isinstance(draft_plan, dict)
+
+    session_state = memory.load_session(session_id) or {}
+    history_messages = state.get("messages") or session_state.get("messages", [])
+    conversation_summary = state.get("conversation_summary") or session_state.get("conversation_summary") or ""
+    if plan_session and plan_session.get("status") in {"await_confirm", "await_plan_confirm", "collecting"}:
+        # Use plan-session dialogue only to avoid mixing normal QA context.
+        history_messages = []
+        for item in plan_session.get("messages", []) or []:
+            role = item.get("role")
+            content = item.get("content") or ""
+            if not content:
+                continue
+            if role == "user":
+                history_messages.append(HumanMessage(content=content))
+            else:
+                history_messages.append(AIMessage(content=content))
+        conversation_summary = ""
+
+    if plan_session and plan_session.get("status") in {"await_confirm", "await_plan_confirm", "collecting"}:
+        exit_plan_dialog = await _should_exit_plan_dialog_llm(
+            user_message=user_message,
+            plan_session=plan_session,
+            has_plan=has_plan,
+        )
+        if exit_plan_dialog:
+            updated_plan = plan_data or {}
+            updated_plan[PLAN_SESSION_KEY] = {
+                "status": "idle",
+                "mode": "",
+                "turns": 0,
+                "pending_mode": "",
+                "messages": [],
+            }
+            try:
+                memory.save_task_plan(task_id, updated_plan)
+            except Exception:
+                pass
+            plan = state.get("plan")
+            if plan and getattr(plan, "request_plan", False):
+                plan.request_plan = False
+            if plan and not any(
+                [
+                    plan.needs_tutor_answer,
+                    plan.needs_judge,
+                    plan.needs_inquiry,
+                    plan.request_summary,
+                ]
+            ):
+                plan.needs_tutor_answer = True
+            return {
+                "plan": plan,
+                "plan_handled": False,
+            }
+
+    seed_user_message = None
+    if not plan_session or plan_session.get("status") == "idle":
+        last_user = None
+        prior_user = None
+        for msg in reversed(state.get("messages", [])):
+            if isinstance(msg, HumanMessage):
+                if last_user is None:
+                    last_user = (msg.content or "").strip()
+                else:
+                    prior_user = (msg.content or "").strip()
+                    break
+        if prior_user and len(prior_user) >= 4:
+            seed_user_message = prior_user
+
+    result = await handle_plan_chat(
+        task_id=task_id,
+        user_message=user_message,
+        existing_plan=existing_plan,
+        plan_session=plan_session,
+        has_plan=has_plan,
+        conversation_summary=conversation_summary,
+        history_messages=history_messages,
+        seed_user_message=seed_user_message,
+    )
+    if not result.get("handled"):
+        plan = state.get("plan")
+        if plan and getattr(plan, "request_plan", False):
+            plan.request_plan = False
+        return {
+            "plan": plan,
+            "plan_handled": False,
+        }
+
+    if result.get("plan_session"):
+        updated_plan = plan_data or {}
+        updated_plan[PLAN_SESSION_KEY] = result["plan_session"]
+        try:
+            memory.save_task_plan(task_id, updated_plan)
+        except Exception:
+            pass
+
+    if result.get("plan_proposal"):
+        try:
+            memory.save_task_plan(task_id, {"draft_plan": result["plan_proposal"]})
+        except Exception:
+            pass
+
+    reply = result.get("reply") or "请告诉我你的学习计划需求，比如目标和时间安排。"
+    if result.get("plan_session"):
+        session = result["plan_session"]
+        if session.get("status") in {"collecting", "await_plan_confirm"} and not session.get("reminded"):
+            reply = "你正在调整学习计划（可随时问普通问题，稍后继续）。\n\n" + reply
+            session["reminded"] = True
+            result["plan_session"] = session
+    ai_reply = AIMessage(content=reply)
+    current_messages = state.get("messages", []) + [ai_reply]
+    temp_state = state.copy()
+    temp_state["messages"] = current_messages
+    new_summary, new_cursor = context.manage_memory(temp_state)
+    temp_state["conversation_summary"] = new_summary
+    temp_state["summarized_msg_count"] = new_cursor
+    memory.save_session(temp_state)
+    return {
+        "messages": [ai_reply],
+        "plan_proposal": result.get("plan_proposal"),
+        "plan_handled": True,
+        "conversation_summary": temp_state.get("conversation_summary"),
+        "summarized_msg_count": temp_state.get("summarized_msg_count"),
+    }
+
 async def aggregator_node(state: AgentState) -> Dict[str, Any]:
     """
     汇总者。将所有 Worker 的输出融合成最终回复。
@@ -429,59 +680,6 @@ async def aggregator_node(state: AgentState) -> Dict[str, Any]:
         summary_out = summary_text
 
     # 检查是否需要生成学习计划（用户在对话中要求制定计划）
-    if plan and plan.request_plan:
-        from app.core import memory as memory_io
-
-        task_id = state.get("task_id", "task_default")
-        messages = state.get("messages", [])
-
-        try:
-            existing_plan = memory_io.get_task_plan_data(task_id)
-        except Exception:
-            existing_plan = None
-
-        # 如果已有计划，提示用户去 Web 界面调整或用自然语言回应
-        if existing_plan:
-            plan_title = existing_plan.get("taskTitle", "当前学习计划")
-            # 检查用户是否有明确的调整诉求（如"调整时间"、"增加内容"）
-            last_user_msg = ""
-            for msg in reversed(messages):
-                if isinstance(msg, HumanMessage):
-                    last_user_msg = msg.content or ""
-                    break
-
-            # 如果用户说的是具体调整诉求，用 tutor_answer 模式回应
-            adjustment_keywords = ["调整时间", "改时间", "时间", "天数", "增加", "减少", "难度", "内容"]
-            if any(kw in last_user_msg for kw in adjustment_keywords):
-                # 不设置 plan_output，让 tutor_answer 处理
-                state["plan_output"] = f"关于{plan_title}的调整，你想具体怎么改？比如调整天数、每天学习时长、还是学习内容？"
-            else:
-                # 否则引导用户去 Web 界面
-                state["plan_output"] = f"你已经有**{plan_title}**了。你可以在 Web 界面查看详细计划并调整，或者直接告诉我你想改什么（比如'调整时间'、'增加内容'等）。"
-        else:
-            # 没有计划，生成新计划
-            plan_state = {
-                "messages": messages,
-                "conversation_summary": state.get("conversation_summary") or "",
-                "task_id": task_id,
-                "session_id": state.get("session_id") or "",
-            }
-            plan_result = await asyncio.to_thread(
-                generate_task_plan_from_state,
-                plan_state,
-                "",
-                existing_plan,
-            )
-
-            # 保存计划
-            try:
-                memory_io.save_task_plan(task_id=task_id, plan=plan_result)
-            except Exception:
-                pass
-
-            # 保存到 state 供 aggregator 使用
-            state["plan_output"] = f"已为你生成学习计划：**{plan_result.get('taskTitle', '学习计划')}**（共 {plan_result.get('totalDays', 7)} 天）\n\n你可以在 Web 界面查看详细计划并调整。"
-
     # 场景: Ending or Normal
     if state.get("should_exit"):
         # 如果处于 Concluding 状态，生成离场学习笔记
@@ -532,7 +730,27 @@ async def aggregator_node(state: AgentState) -> Dict[str, Any]:
 
         final_response = await model.ainvoke(inputs)
 
-    # ---------------- 存档与压缩逻辑 (Auto-Save & Compress) ----------------
+    
+    # --- Plan pause reminder (soft resume) ---
+    try:
+        if isinstance(final_response, AIMessage) and not state.get("should_exit"):
+            task_id = state.get("task_id", "task_default")
+            plan_data = memory.get_task_plan_data(task_id)
+            plan_session = plan_data.get(PLAN_SESSION_KEY) if isinstance(plan_data, dict) else None
+            if plan_session and plan_session.get("status") in {"await_confirm", "await_plan_confirm", "collecting", "paused"}:
+                if not (plan and getattr(plan, "request_plan", False)):
+                    status = plan_session.get("status")
+                    suffix = "当前处于计划调整中，继续提问即可；如需退出可回复“暂不调整计划”。"
+                    if status == "paused":
+                        suffix = "计划已挂起，回复“继续调整计划”可继续；如需退出可回复“暂不调整计划”。"
+                    final_response.content = (
+                        (final_response.content or "").rstrip()
+                        + f"\n\n{suffix}"
+                    )
+    except Exception:
+        pass
+
+# ---------------- 存档与压缩逻辑 (Auto-Save & Compress) ----------------
     # 模拟“状态更新之后”的效果：我们需要把最新的 AI 回复合并进去才能存到完整的记录
     
     current_messages = state["messages"] + [final_response]
@@ -646,19 +864,35 @@ async def aggregator_node(state: AgentState) -> Dict[str, Any]:
 
 # --- 3. Edge Logic (条件路由) ---
 
-def route_from_analyzer(state: AgentState) -> Literal["parallel_workers", "aggregator"]:
+def route_from_analyzer(state: AgentState) -> Literal["plan", "parallel_workers", "aggregator"]:
     plan = state.get("plan")
     if not plan: # Should not happen
         return "aggregator"
 
-    # 如果用户要求即时总结或学习计划，直接路由到 aggregator 处理
-    if plan.request_summary or plan.request_plan:
+    if plan.request_plan:
+        return "plan"
+    # 如果用户要求即时总结，直接路由到 aggregator 处理
+    if plan.request_summary:
         return "aggregator"
 
     if any([plan.needs_tutor_answer, plan.needs_judge, plan.needs_inquiry]):
         return "parallel_workers"
     else:
         return "aggregator"
+
+
+def route_from_plan(state: AgentState) -> Literal["end", "parallel_workers", "aggregator"]:
+    if state.get("plan_handled"):
+        return "end"
+
+    plan = state.get("plan")
+    if not plan:
+        return "aggregator"
+    if plan.request_summary:
+        return "aggregator"
+    if any([plan.needs_tutor_answer, plan.needs_judge, plan.needs_inquiry]):
+        return "parallel_workers"
+    return "aggregator"
         
 # --- 4. Graph Construction ---
 
@@ -671,6 +905,7 @@ def build_agent():
     builder.add_node("judge", judge_node)
     builder.add_node("inquiry", inquiry_node)
     builder.add_node("parallel_workers", parallel_workers_node)
+    builder.add_node("plan", plan_node)
     builder.add_node("aggregator", aggregator_node)
     
     # Start -> Analyzer
@@ -681,6 +916,7 @@ def build_agent():
         "analyzer",
         route_from_analyzer,
         {
+            "plan": "plan",
             "parallel_workers": "parallel_workers",
             "aggregator": "aggregator"
         }
@@ -688,6 +924,17 @@ def build_agent():
 
     # Parallel Workers -> Aggregator
     builder.add_edge("parallel_workers", "aggregator")
+    
+    # Plan -> (Handled End | Fallback Flow)
+    builder.add_conditional_edges(
+        "plan",
+        route_from_plan,
+        {
+            "end": END,
+            "parallel_workers": "parallel_workers",
+            "aggregator": "aggregator",
+        }
+    )
     
     # Aggregator -> End
     builder.add_edge("aggregator", END)

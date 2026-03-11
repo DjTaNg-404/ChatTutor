@@ -11,11 +11,8 @@ from langchain_core.messages import HumanMessage, AIMessage
 
 from app.core.agent_builder import build_agent
 from app.core import memory
-from app.core.task_plan import (
-    PLAN_SESSION_KEY,
-    plan_signature,
-    generate_task_plan_from_state,
-)
+from app.core.config import settings
+from app.core.task_plan import PLAN_SESSION_KEY
 from app.core.summary.generator import summary_generator
 
 router = APIRouter()
@@ -42,6 +39,7 @@ class ChatResponse(BaseModel):
     reply: str
     is_concluded: bool
     plan_proposal: Optional[dict] = None
+    plan_status: Optional[str] = None
 
 
 class StreamEvent(BaseModel):
@@ -105,39 +103,6 @@ def _collect_recent_user_text(messages, limit: int = 6) -> str:
     return " ".join(reversed(chunks)).strip()
 
 
-def _should_update_plan(text: str) -> bool:
-    if not text:
-        return False
-    # Use unicode escapes to avoid encoding issues in some terminals/editors.
-    keywords = [
-        "\u8ba1\u5212",  # 计划
-        "\u76ee\u6807",  # 目标
-        "\u5b89\u6392",  # 安排
-        "\u8fdb\u5ea6",  # 进度
-        "\u65f6\u95f4",  # 时间
-        "\u6bcf\u5929",  # 每天
-        "\u6bcf\u5468",  # 每周
-        "\u6bcf\u6708",  # 每月
-        "\u5b8c\u6210",  # 完成
-        "\u8c03\u6574",  # 调整
-        "\u6539\u6210",  # 改成
-        "\u66f4\u65b0",  # 更新
-    ]
-    time_patterns = [
-        r"\d+\s*\u5929",   # 天
-        r"\d+\s*\u5468",   # 周
-        r"\d+\s*\u6708",   # 月
-        r"\d+(?:\.\d+)?\s*(?:\u5c0f\u65f6|h)",  # 小时/h
-    ]
-    if any(k in text for k in keywords):
-        return True
-    return any(re.search(p, text) for p in time_patterns)
-
-
-def _plan_sig_from_existing(plan_data: dict) -> str:
-    return plan_data.get("_plan_sig") or plan_signature(plan_data) if plan_data else ""
-
-
 async def _build_plan_proposal(
     task_id: str,
     state: dict,
@@ -145,63 +110,8 @@ async def _build_plan_proposal(
     plan_hint: Optional[bool] = None,
     reply_text: str = "",
 ) -> Optional[dict]:
-    messages = state.get("messages", []) if isinstance(state, dict) else []
-    base = fallback_text.strip() if fallback_text else _collect_recent_user_text(messages)
-    dialogue = f"{base}\nAI reply: {reply_text}".strip() if reply_text else base
-    if not dialogue:
-        return None
-
-    # 检查是否应该更新计划
-    should_update = bool(plan_hint) or _should_update_plan(dialogue)
-
-    # 如果没有计划，始终生成新计划
-    has_plan = memory.has_task_plan(task_id)
-    if not has_plan:
-        should_update = True
-
-    # 如果用户明确提到计划相关关键词（如"重新生成"、"新的计划"等），也应该更新
-    if has_plan and _should_regenerate_plan(dialogue):
-        should_update = True
-
-    if not should_update:
-        return None
-
-    try:
-        existing_plan = memory.get_task_plan_data(task_id)
-    except Exception:
-        existing_plan = None
-
-    plan_state = {
-        "messages": messages,
-        "conversation_summary": state.get("conversation_summary") if isinstance(state, dict) else "",
-        "task_id": task_id,
-        "session_id": state.get("session_id") if isinstance(state, dict) else "",
-    }
-    plan = await asyncio.to_thread(
-        generate_task_plan_from_state,
-        plan_state,
-        dialogue,
-        existing_plan,
-    )
-    return plan
-
-
-def _should_regenerate_plan(text: str) -> bool:
-    """检查用户是否要求重新生成计划"""
-    if not text:
-        return False
-    keywords = [
-        "重新生成",
-        "新的计划",
-        "新计划",
-        "更新计划",
-        "修改计划",
-        "调整计划",
-        "换个计划",
-        "重新规划",
-        "重新制定",
-    ]
-    return any(k in text for k in keywords)
+    # 自动草案已移除，计划草案仅由 plan_node 产出
+    return None
 
 
 def _build_state(request: ChatRequest, task_id: str, session_id: str):
@@ -221,6 +131,7 @@ def _build_state(request: ChatRequest, task_id: str, session_id: str):
         "inquiry_output": None,
         "summary_output": None,
         "last_intent": None,
+        "plan_handled": None,
     }
 
     if not current_state:
@@ -230,6 +141,7 @@ def _build_state(request: ChatRequest, task_id: str, session_id: str):
             current_state.setdefault(key, default_val)
         current_state["task_id"] = task_id
         current_state["session_id"] = session_id
+        current_state["plan_handled"] = None
         current_state.setdefault("user_id", "local_user")
         if request.topic:
             current_state["current_topic"] = request.topic
@@ -289,9 +201,9 @@ def _is_greeting(text: str) -> bool:
     return trimmed in greetings
 
 
-def _should_offer_plan(text: str, is_new_session: bool, has_plan: bool) -> bool:
+def _should_offer_plan(text: str, is_new_session: bool, has_plan: bool, offer_shown: bool = False) -> bool:
     """检查是否应该提供计划建议（仅在新会话且无计划时）"""
-    if not is_new_session or has_plan:
+    if not is_new_session or has_plan or offer_shown:
         return False
     if _is_greeting(text):
         return False
@@ -332,15 +244,18 @@ async def chat_endpoint(request: ChatRequest):
 
     # 检查是否是新会话（用于判断是否提供计划建议）
     is_first_message = len(current_state.get("messages", [])) <= 1
-    if _should_offer_plan(request.message, is_first_message, memory.has_task_plan(task_id)):
+    plan_data = memory.get_task_plan_data(task_id)
+    plan_session = plan_data.get(PLAN_SESSION_KEY) if isinstance(plan_data, dict) else None
+    offer_shown = bool(isinstance(plan_session, dict) and plan_session.get("status") == "offer_shown")
+    if _should_offer_plan(request.message, is_first_message, memory.has_task_plan(task_id), offer_shown):
         reply_content = (
             reply_content.rstrip()
-            + '\n\n如果你需要我帮你制定学习计划，直接回复"需要"即可。'
+            + '\n\n如果你需要我帮你制定学习计划，直接回复“需要”即可。'
         )
         try:
             memory.save_task_plan(
                 task_id=task_id,
-                plan={PLAN_SESSION_KEY: {"status": "await_offer"}},
+                plan={PLAN_SESSION_KEY: {"status": "offer_shown"}},
             )
         except Exception:
             pass
@@ -361,18 +276,10 @@ async def chat_endpoint(request: ChatRequest):
         else:
             print(f"⚠️ 会话 {session_id} 已经在生成总结中，跳过重复请求")
 
-    plan_proposal = None
-    if ENABLE_PLAN_PROPOSAL:
-        try:
-            plan_proposal = await _build_plan_proposal(
-                task_id,
-                final_state,
-                fallback_text=request.message,
-                plan_hint=request.plan_hint,
-                reply_text=reply_content,
-            )
-        except Exception as e:
-            print(f"[TaskPlan] proposal failed: {e}")
+    plan_proposal = final_state.get("plan_proposal") if isinstance(final_state, dict) else None
+    plan_data = memory.get_task_plan_data(task_id)
+    plan_session = plan_data.get(PLAN_SESSION_KEY) if isinstance(plan_data, dict) else None
+    plan_status = plan_session.get("status") if isinstance(plan_session, dict) else None
 
     return ChatResponse(
         task_id=task_id,
@@ -380,6 +287,7 @@ async def chat_endpoint(request: ChatRequest):
         reply=reply_content,
         is_concluded=is_concluded,
         plan_proposal=plan_proposal,
+        plan_status=plan_status,
     )
 
 
@@ -473,7 +381,7 @@ async def chat_stream_endpoint(request: ChatRequest):
                         streamed_any = True
                         yield _event_line("delta", {"text": text_delta})
 
-                if event_name == "on_chain_end" and node_name == "aggregator":
+                if event_name == "on_chain_end" and node_name in {"aggregator", "plan"}:
                     output = (event.get("data") or {}).get("output")
                     if isinstance(output, dict):
                         final_state = output
@@ -493,13 +401,16 @@ async def chat_stream_endpoint(request: ChatRequest):
             offer_text = ""
             # 检查是否是新会话（用于判断是否提供计划建议）
             is_first_message = len(current_state.get("messages", [])) <= 1
-            if _should_offer_plan(request.message, is_first_message, memory.has_task_plan(task_id)):
-                offer_text = '\n\n如果你需要我帮你制定学习计划，直接回复"需要"即可。'
+            plan_data = memory.get_task_plan_data(task_id)
+            plan_session = plan_data.get(PLAN_SESSION_KEY) if isinstance(plan_data, dict) else None
+            offer_shown = bool(isinstance(plan_session, dict) and plan_session.get("status") == "offer_shown")
+            if _should_offer_plan(request.message, is_first_message, memory.has_task_plan(task_id), offer_shown):
+                offer_text = '\n\n如果你需要我帮你制定学习计划，直接回复“需要”即可。'
                 reply_content = reply_content.rstrip() + offer_text
                 try:
                     memory.save_task_plan(
                         task_id=task_id,
-                        plan={PLAN_SESSION_KEY: {"status": "await_offer"}},
+                        plan={PLAN_SESSION_KEY: {"status": "offer_shown"}},
                     )
                 except Exception:
                     pass
@@ -528,24 +439,17 @@ async def chat_stream_endpoint(request: ChatRequest):
                 summary_from_agent = final_state.get("summary_output") or final_state.get("summary_out")
                 asyncio.create_task(_call_summary_agent(session_id, task_id, summary_from_agent))
 
-            plan_proposal = None
-            if ENABLE_PLAN_PROPOSAL:
-                try:
-                    plan_proposal = await _build_plan_proposal(
-                        task_id,
-                        final_state,
-                        fallback_text=request.message,
-                        plan_hint=request.plan_hint,
-                        reply_text=reply_content,
-                    )
-                except Exception as e:
-                    print(f"[TaskPlan] proposal failed: {e}")
+            plan_proposal = final_state.get("plan_proposal") if isinstance(final_state, dict) else None
+            plan_data = memory.get_task_plan_data(task_id)
+            plan_session = plan_data.get(PLAN_SESSION_KEY) if isinstance(plan_data, dict) else None
+            plan_status = plan_session.get("status") if isinstance(plan_session, dict) else None
 
             yield _event_line("done", {
                 "task_id": task_id,
                 "session_id": session_id,
                 "is_concluded": is_concluded,
                 "plan_proposal": plan_proposal,
+                "plan_status": plan_status,
             })
         except HTTPException as e:
             yield _event_line("error", {"message": str(e.detail), "status": e.status_code})
