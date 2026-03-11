@@ -125,15 +125,24 @@ def _file_updated_at(path: str) -> str:
 
 
 def _date_from_session_meta(session: Dict[str, Any]) -> str:
-    last_updated = session.get("last_updated", "")
-    if isinstance(last_updated, str) and len(last_updated) >= 10 and "-" in last_updated:
-        return last_updated[:10]
+    """
+    从 session 元数据中提取日期。
 
+    优先级：
+    1. session_id 中的日期（创建日期）- 用于准确归类
+    2. last_updated 中的日期（最后更新日期）- 兜底
+    """
+    # 优先从 session_id 提取日期（创建日期）
     session_id = session.get("session_id", "")
     parts = session_id.split("__")
     if len(parts) >= 2 and len(parts[1]) == 8 and parts[1].isdigit():
         raw = parts[1]
         return f"{raw[0:4]}-{raw[4:6]}-{raw[6:8]}"
+
+    # 兜底：使用 last_updated
+    last_updated = session.get("last_updated", "")
+    if isinstance(last_updated, str) and len(last_updated) >= 10 and "-" in last_updated:
+        return last_updated[:10]
 
     return datetime.datetime.now().strftime("%Y-%m-%d")
 

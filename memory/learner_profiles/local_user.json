@@ -1,6 +1,6 @@
 {
   "learner_id": "local_user",
-  "updated_at": "2026-03-10T17:34:56",
+  "updated_at": "2026-03-10T21:54:27",
   "cards": [
     {
       "type": "learning_fact",
@@ -171,6 +171,15 @@
       },
       "source": "local_user",
       "ts": "2026-03-10T17:34:56"
+    },
+    {
+      "type": "learning_fact",
+      "fact_type": "assessment",
+      "fields": {
+        "score": 86
+      },
+      "source": "local_user",
+      "ts": "2026-03-10T21:54:27"
     }
   ]
 }

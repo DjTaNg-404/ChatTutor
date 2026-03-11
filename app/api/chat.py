@@ -58,11 +58,35 @@ def _normalize_task_id(task_id: Optional[str], session_id: Optional[str]) -> str
     return "task_default"
 
 
-def _build_session_id(task_id: str, session_id: Optional[str]) -> str:
+def _build_session_id(task_id: str, session_id: Optional[str]) -> tuple[str, bool]:
+    """
+    构建或校验 session_id。
+
+    Returns:
+        tuple: (session_id, is_new_session)
+            - session_id: 返回会话 ID（可能是新生成的）
+            - is_new_session: 是否创建了新会话（用于触发缓存失效）
+    """
+    now = datetime.now()
+    today_date = now.strftime("%Y%m%d")
+
     if session_id and session_id.strip():
-        return session_id.strip()
-    now = datetime.now().strftime("%Y%m%d__%H%M%S")
-    return f"{task_id}__{now}"
+        existing_session = session_id.strip()
+        # 解析现有 session_id 中的日期
+        parts = existing_session.split("__")
+        if len(parts) >= 2:
+            session_date = parts[1]  # 格式：YYYYMMDD
+            # 如果日期不一致，创建新 session
+            if session_date != today_date:
+                print(f"📅 检测到跨日对话：原 session 日期 {session_date}，今日日期 {today_date}，创建新 session")
+                new_time = now.strftime("%H%M%S")
+                return f"{task_id}__{today_date}__{new_time}", True
+        # 日期一致或格式不标准，复用原 session
+        return existing_session, False
+
+    # 无 session_id，创建新的
+    new_time = now.strftime("%H%M%S")
+    return f"{task_id}__{today_date}__{new_time}", True
 
 
 def _collect_recent_user_text(messages, limit: int = 6) -> str:
@@ -374,7 +398,7 @@ async def chat_endpoint(request: ChatRequest):
         raise HTTPException(status_code=400, detail="Message cannot be empty")
 
     task_id = _normalize_task_id(request.task_id, request.session_id)
-    session_id = _build_session_id(task_id, request.session_id)
+    session_id, is_new_session = _build_session_id(task_id, request.session_id)
 
     # 1. 检查是否处于 Task 模式或有计划意图
     is_task = _is_task_mode(task_id) or _has_plan_intent(request.message)
@@ -389,8 +413,9 @@ async def chat_endpoint(request: ChatRequest):
     current_state = _build_state(request, task_id, session_id)
     final_state, reply_content, is_concluded, intent_display = await _invoke_agent(current_state)
 
-    is_new_session = len(current_state.get("messages", [])) <= 1
-    if _should_offer_plan(request.message, is_new_session, memory.has_task_plan(task_id)):
+    # 检查是否是新会话（用于判断是否提供计划建议）
+    is_first_message = len(current_state.get("messages", [])) <= 1
+    if _should_offer_plan(request.message, is_first_message, memory.has_task_plan(task_id)):
         reply_content = (
             reply_content.rstrip()
             + "\n\n\u5982\u679c\u4f60\u9700\u8981\u6211\u5e2e\u4f60\u5236\u5b9a\u5b66\u4e60\u8ba1\u5212\uff0c\u76f4\u63a5\u56de\u590d\u201c\u9700\u8981\u201d\u5373\u53ef\u3002"
@@ -448,7 +473,7 @@ async def chat_stream_endpoint(request: ChatRequest):
         raise HTTPException(status_code=400, detail="Message cannot be empty")
 
     task_id = _normalize_task_id(request.task_id, request.session_id)
-    session_id = _build_session_id(task_id, request.session_id)
+    session_id, is_new_session = _build_session_id(task_id, request.session_id)
 
     # 检查是否处于 Task 模式或有计划意图
     is_task = _is_task_mode(task_id) or _has_plan_intent(request.message)
@@ -558,9 +583,10 @@ async def chat_stream_endpoint(request: ChatRequest):
                 final_state = await asyncio.to_thread(memory.load_session, session_id) or {}
 
             reply_content = _extract_reply_from_state(final_state)
-            is_new_session = len(current_state.get("messages", [])) <= 1
             offer_text = ""
-            if _should_offer_plan(request.message, is_new_session, memory.has_task_plan(task_id)):
+            # 检查是否是新会话（用于判断是否提供计划建议）
+            is_first_message = len(current_state.get("messages", [])) <= 1
+            if _should_offer_plan(request.message, is_first_message, memory.has_task_plan(task_id)):
                 offer_text = "\n\n\u5982\u679c\u4f60\u9700\u8981\u6211\u5e2e\u4f60\u5236\u5b9a\u5b66\u4e60\u8ba1\u5212\uff0c\u76f4\u63a5\u56de\u590d\u201c\u9700\u8981\u201d\u5373\u53ef\u3002"
                 reply_content = reply_content.rstrip() + offer_text
                 try:
