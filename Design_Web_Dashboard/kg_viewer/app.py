@@ -30,24 +30,31 @@ def main():
 
     # 确定 KG 文件路径
     selected_file = None
+    found_via_task_id = False
 
+    # 如果有 task_id，查找对应的 KG 文件（支持带时间戳的文件名）
     if task_id:
-        # 如果有 task_id，直接构造对应的 KG 文件路径
         kg_output_dir = os.path.join(os.path.dirname(__file__), "..", "..", "kg_output")
-        selected_file = os.path.join(kg_output_dir, f"kg_task_{task_id}.json")
 
-        # 检查文件是否存在
-        if not os.path.exists(selected_file):
-            # 文件不存在，尝试不带 task_ 前缀
-            selected_file = os.path.join(kg_output_dir, f"kg_{task_id}.json")
+        # 使用 glob 匹配：kg_task_{task_id}*.json 或 kg_{task_id}*.json
+        import glob
+        pattern1 = os.path.join(kg_output_dir, f"kg_task_{task_id}*.json")
+        pattern2 = os.path.join(kg_output_dir, f"kg_{task_id}*.json")
+        matching_files = glob.glob(pattern1) + glob.glob(pattern2)
 
-        if not os.path.exists(selected_file):
-            st.warning(f"未找到 task_id={task_id} 对应的知识图谱文件")
-            st.info("请先点击"更新知识图谱"按钮生成知识图谱")
-            selected_file = None
+        if matching_files:
+            # 按修改时间排序，选择最新的
+            matching_files.sort(key=os.path.getmtime, reverse=True)
+            selected_file = matching_files[0]
+            found_via_task_id = True
+        else:
+            # 文件不存在，显示警告，但仍然渲染侧边栏供用户选择
+            st.sidebar.warning(f"未找到 task_id={task_id} 对应的知识图谱文件")
+            st.sidebar.info("请先点击「更新知识图谱」按钮生成知识图谱")
+            # 继续渲染侧边栏，让用户可以选择其他文件
 
-    # 如果没有 task_id 或文件不存在，使用侧边栏选择
-    if selected_file is None:
+    # 如果没有通过 task_id 找到文件，使用侧边栏选择
+    if not found_via_task_id:
         selected_file = render_sidebar()
 
     if selected_file is None:

@@ -16,6 +16,7 @@ export function KGViewerModal({ taskId, isOpen, onClose }: KGViewerModalProps) {
   const [error, setError] = useState<string | null>(null);
   const [buildSuccess, setBuildSuccess] = useState(false);
   const [kgExists, setKgExists] = useState<boolean | null>(null);
+  const [iframeKey, setIframeKey] = useState(0); // 用于强制刷新 iframe
 
   const checkKGStatus = async () => {
     setIsLoading(true);
@@ -53,6 +54,7 @@ export function KGViewerModal({ taskId, isOpen, onClose }: KGViewerModalProps) {
           task_id: taskId,
           use_deepseek: true,
           deepseek_model: "deepseek-chat",
+          force_rebuild: true, // 强制重新生成
         }),
       });
       if (!response.ok) {
@@ -66,6 +68,8 @@ export function KGViewerModal({ taskId, isOpen, onClose }: KGViewerModalProps) {
         setBuildSuccess(true);
         setKgExists(true);
         setError(null);
+        // 刷新 iframe
+        setIframeKey((prev) => prev + 1);
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : "构建失败");
@@ -154,6 +158,7 @@ export function KGViewerModal({ taskId, isOpen, onClose }: KGViewerModalProps) {
             </div>
           ) : (
             <iframe
+              key={iframeKey}
               src={`${STREAMLIT_KG_URL}/?task_id=${taskId}`}
               className="w-full h-full border-0"
               title="Knowledge Graph Viewer"

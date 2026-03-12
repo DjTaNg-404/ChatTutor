@@ -63,15 +63,9 @@ def render_main_view(kg_file: str, confidence_threshold: float,
         col4.metric("最高置信度", f"{stats['max_score']:.3f}")
 
         if stats["entity_types"]:
-            # 按大类聚合统计
-            from config import get_entity_category
-            category_counts = {}
-            for etype, count in stats["entity_types"].items():
-                category = get_entity_category(etype)
-                category_counts[category] = category_counts.get(category, 0) + count
-
-            types = list(category_counts.keys())
-            counts = list(category_counts.values())
+            # 直接使用实体类型统计，不再聚合到大类
+            types = list(stats["entity_types"].keys())
+            counts = list(stats["entity_types"].values())
 
             fig = go.Figure(data=[
                 go.Bar(x=types, y=counts, marker_color='#3674BA', showlegend=False)
@@ -85,7 +79,7 @@ def render_main_view(kg_file: str, confidence_threshold: float,
                 height=250
             )
             st.plotly_chart(fig, width='stretch', config={'displayModeBar': False})
-            st.caption("实体类型分布（按大类聚合）")
+            st.caption("实体类型分布")
 
         if stats["relation_types"]:
             # 关系类型统计 - 使用对应颜色
@@ -119,11 +113,8 @@ def render_main_view(kg_file: str, confidence_threshold: float,
             # 确保 description 列存在
             if 'description' not in nodes_df.columns:
                 nodes_df['description'] = ''
-            # 添加大类列
-            from config import get_entity_category
-            nodes_df['category'] = nodes_df['type'].apply(get_entity_category)
             # 选择要显示的列
-            display_cols = ['name', 'type', 'category', 'description', 'score', 'method']
+            display_cols = ['name', 'type', 'description', 'score', 'method']
             display_cols = [c for c in display_cols if c in nodes_df.columns]
             st.dataframe(
                 nodes_df[display_cols].style.map(lambda _: 'color: #4ECDC4', subset=['type'])

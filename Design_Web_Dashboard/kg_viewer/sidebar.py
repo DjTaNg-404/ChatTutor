@@ -44,13 +44,13 @@ def render_sidebar():
 
 def render_settings_panel(kg_file: str):
     """渲染设置面板"""
-    st.sidebar.markdown("---")
+    # st.sidebar.markdown("---")
     st.sidebar.subheader("🎯 置信度过滤")
     confidence_threshold = st.sidebar.slider(
         "实体置信度阈值",
         min_value=0.0,
         max_value=1.0,
-        value=0.0,
+        value=0.8,
         step=0.05,
         help="低于此阈值的节点将被隐藏"
     )
@@ -61,7 +61,7 @@ def render_settings_panel(kg_file: str):
         "关系强度阈值",
         min_value=0.5,
         max_value=1.0,
-        value=0.9,
+        value=0.8,
         step=0.002,
         help="低于此强度的关系边将被隐藏"
     )
@@ -77,23 +77,18 @@ def render_settings_panel(kg_file: str):
 
 
 def render_entity_legend(entity_types: dict):
-    """渲染实体类型图例（按大类聚合）"""
-    from config import get_entity_color_by_type, get_entity_category
+    """渲染实体类型图例（直接使用基础类型）"""
+    from config import get_entity_color_by_type
 
     st.sidebar.markdown("---")
     st.sidebar.subheader("🏷️ 实体类型")
 
-    # 按大类聚合实体类型计数
-    category_counts = {}
-    for etype, count in entity_types.items():
-        category = get_entity_category(etype)
-        category_counts[category] = category_counts.get(category, 0) + count
-
+    # 直接使用实体类型计数，不再聚合到大类
     # 按计数排序
-    sorted_categories = sorted(category_counts.items(), key=lambda x: x[1], reverse=True)
+    sorted_types = sorted(entity_types.items(), key=lambda x: x[1], reverse=True)
 
-    for category, count in sorted_categories:
-        color = get_entity_color_by_type(category)
+    for etype, count in sorted_types:
+        color = get_entity_color_by_type(etype)
         col1, col2 = st.sidebar.columns([1, 3], gap="small")
         with col1:
             st.markdown(
@@ -102,7 +97,7 @@ def render_entity_legend(entity_types: dict):
                 unsafe_allow_html=True
             )
         with col2:
-            st.markdown(f"<span style='color:{color}'>{category} ({count})</span>", unsafe_allow_html=True)
+            st.markdown(f"<span style='color:{color}'>{etype} ({count})</span>", unsafe_allow_html=True)
 
 
 def render_relation_legend(relation_types: dict):

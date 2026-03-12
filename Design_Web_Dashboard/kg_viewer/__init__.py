@@ -4,7 +4,7 @@
 """
 
 from .app import main
-from .config import ENTITY_TYPE_COLORS, RELATION_STYLES, CUSTOM_CSS, CATEGORY_COLORS, get_entity_category, get_entity_color_by_type
+from .config import ENTITY_TYPE_COLORS, RELATION_STYLES, CUSTOM_CSS, get_entity_color_by_type
 from .data_loader import list_kg_files, load_kg_data, get_file_display_name
 from .graph_renderer import calculate_graph_layout, create_plotly_figure
 from .stats_utils import calculate_stats, filter_nodes_by_confidence
@@ -16,8 +16,6 @@ __all__ = [
     'ENTITY_TYPE_COLORS',
     'RELATION_STYLES',
     'CUSTOM_CSS',
-    'CATEGORY_COLORS',
-    'get_entity_category',
     'get_entity_color_by_type',
     'list_kg_files',
     'load_kg_data',

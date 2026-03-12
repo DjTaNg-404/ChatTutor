@@ -9,6 +9,10 @@ from pydantic import BaseModel
 from typing import Optional, List
 import os
 import glob
+import json
+
+from app.core import memory as mem
+from app.core.memory import MEMORY_DIR
 
 router = APIRouter()
 
@@ -33,6 +37,7 @@ class KGBuildResponse(BaseModel):
 class KGTaskRequest(BaseModel):
     task_id: str                            # 任务 ID
     output_dir: str = "kg_output"           # KG 文件输出目录
+    force_rebuild: bool = False             # 是否强制重新生成（即使已存在）
     # DeepSeek 配置
     use_deepseek: bool = True               # 默认使用 DeepSeek LLM 提取
     deepseek_model: str = "deepseek-chat"   # DeepSeek 模型名称
@@ -123,18 +128,21 @@ async def build_kg_from_task(request: KGTaskRequest):
     如果知识图谱已存在，则直接返回路径。
     """
     try:
-        from app.core import memory as mem
         from app.kg.kg_builder import KnowledgeGraphBuilder
         from langchain_core.messages import HumanMessage, AIMessage
     except ImportError as e:
         raise HTTPException(status_code=500, detail=f"KG 依赖未安装：{str(e)}")
 
-    # 检查是否已存在知识图谱
+    # 检查是否已存在知识图谱（支持带时间戳的文件名）
     os.makedirs(request.output_dir, exist_ok=True)
-    base_name = f"kg_task_{request.task_id}"
-    json_path = os.path.join(request.output_dir, f"{base_name}.json")
+    pattern1 = os.path.join(request.output_dir, f"kg_task_{request.task_id}*.json")
+    pattern2 = os.path.join(request.output_dir, f"kg_{request.task_id}*.json")
+    matching_files = glob.glob(pattern1) + glob.glob(pattern2)
 
-    if os.path.exists(json_path):
+    if matching_files and not request.force_rebuild:
+        # 选择最新修改的文件
+        matching_files.sort(key=os.path.getmtime, reverse=True)
+        json_path = matching_files[0]
         return KGTaskResponse(
             status="success",
             json_path=json_path,
@@ -142,12 +150,22 @@ async def build_kg_from_task(request: KGTaskRequest):
             message=f"知识图谱已存在",
         )
 
-    # 1. 加载会话历史 - 使用 task_id 作为 session_id 的前缀来查找
-    # 尝试直接使用 task_id 加载会话
+    # 1. 加载会话历史 - 查找 task_id 匹配的最新会话
+    # 会话文件名格式：task_{task_id}__{date}__{time}.json
+    # 注意：task_id 可能已经包含 "task_" 前缀，需要正确处理
     session_state = mem.load_session(request.task_id)
     if not session_state:
-        # 如果找不到，尝试使用 task_ 前缀
-        session_state = mem.load_session(f"task_{request.task_id}")
+        # 尝试查找匹配 task_id 的最新会话文件
+        # request.task_id 可能已经是完整前缀（如 "task_mmj3eqxr"），直接用 glob 查找
+        pattern = os.path.join(MEMORY_DIR, f"{request.task_id}__*.json")
+        matching_files = glob.glob(pattern)
+        if matching_files:
+            # 按修改时间排序，选择最新的
+            matching_files.sort(key=os.path.getmtime, reverse=True)
+            latest_file = matching_files[0]
+            latest_session_id = os.path.basename(latest_file)[:-5]  # 去掉 .json 后缀
+            session_state = mem.load_session(latest_session_id)
+
     if not session_state:
         raise HTTPException(status_code=404, detail=f"Task '{request.task_id}' 的会话历史不存在")
 
@@ -182,8 +200,13 @@ async def build_kg_from_task(request: KGTaskRequest):
             builder.load_models()
         builder.build_graph(full_text)
 
-        # 4. 写出文件
+        # 4. 写出文件（带时间戳的文件名）
+        from datetime import datetime
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        # task_id 已经包含 "task_" 前缀，直接使用
+        base_name = f"kg_{request.task_id}__{timestamp}"
         html_path = os.path.join(request.output_dir, f"{base_name}.html")
+        json_path = os.path.join(request.output_dir, f"{base_name}.json")
 
         builder.visualize_graph(html_path)
         builder.export_graph_data(json_path)
@@ -202,14 +225,20 @@ async def build_kg_from_task(request: KGTaskRequest):
 @router.get("/get-task-kg")
 async def get_task_kg(task_id: str, output_dir: str = "kg_output"):
     """获取指定 task_id 的知识图谱数据。"""
-    base_name = f"kg_task_{task_id}"
-    json_path = os.path.join(output_dir, f"{base_name}.json")
+    # 查找匹配的文件：kg_task_{task_id}*.json 或 kg_{task_id}*.json
+    pattern1 = os.path.join(output_dir, f"kg_task_{task_id}*.json")
+    pattern2 = os.path.join(output_dir, f"kg_{task_id}*.json")
 
-    if not os.path.exists(json_path):
-        return {"exists": False, "data": None, "path": json_path}
+    matching_files = glob.glob(pattern1) + glob.glob(pattern2)
+
+    if not matching_files:
+        return {"exists": False, "data": None, "path": None}
+
+    # 选择最新修改的文件
+    matching_files.sort(key=os.path.getmtime, reverse=True)
+    json_path = matching_files[0]
 
     try:
-        import json
         with open(json_path, 'r', encoding='utf-8') as f:
             data = json.load(f)
         return {"exists": True, "data": data, "path": json_path}
