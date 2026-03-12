@@ -546,11 +546,14 @@ def get_task_note(task_id: str) -> Dict[str, Any]:
     plan_path = _get_task_plan_path(task_id)
     plan_data = _load_task_plan(task_id)
     plan_data.pop("nextSteps", None)
+
+    # 优先从 task_note.txt 文件读取用户笔记内容
+    # 这样用户的个人笔记不会被计划数据覆盖
     content = ""
-    if "userNotes" in plan_data:
-        content = plan_data.get("userNotes") or ""
-    elif os.path.exists(note_path):
+    if os.path.exists(note_path):
         content = file_io.load_text(note_path)
+    elif "userNotes" in plan_data:
+        content = plan_data.get("userNotes") or ""
 
     response = {
         "task_id": task_id,

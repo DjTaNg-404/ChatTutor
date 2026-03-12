@@ -87,14 +87,8 @@ async def confirm_task_plan(request: TaskPlanConfirmRequest):
     if not plan.get("_plan_sig"):
         plan["_plan_sig"] = plan_signature(plan)
 
-    # 读取用户原有的笔记内容
-    current_note = memory.get_task_note(task_id=request.task_id)
-    existing_user_notes = current_note.get("userNotes", "") or current_note.get("content", "")
-
-    # 构建任务笔记内容（只包含计划部分）
-    plan_note_content = build_plan_note_content(plan)
-
-    # 保存计划
+    # 保存计划（只更新结构化数据，不生成笔记内容）
+    # 用户的个人笔记由"更新任务笔记"按钮或结束对话时生成
     result = memory.save_task_plan(task_id=request.task_id, plan=plan)
     try:
         memory.save_task_plan(
@@ -103,17 +97,6 @@ async def confirm_task_plan(request: TaskPlanConfirmRequest):
         )
     except Exception:
         pass
-
-    # 如果有计划内容，将原有用户笔记放在计划后面保存
-    if plan_note_content:
-        if existing_user_notes:
-            # 保留用户原有的笔记内容，放在计划后面
-            final_content = f"{plan_note_content}\n\n---\n\n{existing_user_notes}"
-        else:
-            final_content = plan_note_content
-        memory.save_task_note(task_id=request.task_id, content=final_content)
-        result["userNotes"] = final_content
-        result["content"] = final_content
 
     return result
 
