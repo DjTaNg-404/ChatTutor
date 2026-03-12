@@ -733,6 +733,12 @@ export function TutorSession() {
       // 触发任务计划更新事件
       window.dispatchEvent(new Event("task-plan-updated"));
 
+      // 结束计划状态（如果当前处于计划中）
+      if (planStatus && ["await_confirm", "await_plan_confirm", "collecting", "paused"].includes(planStatus)) {
+        await applyPlanSessionAction("exit");
+        setPlanStatus(null);
+      }
+
       // 显示成功提示
       const successMessage: Message = {
         id: `${Date.now()}-note-accepted`,

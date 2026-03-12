@@ -215,7 +215,7 @@ async def generate_task_summary(task_id: str, request: GenerateTaskSummaryReques
     此端点会：
     1. 加载任务的所有会话
     2. 调用 SummaryGenerator 生成总结
-    3. 保存总结到任务笔记
+    3. 覆盖保存到任务笔记（我的笔记）
     4. 返回生成的总结内容
     """
     # 获取该任务的所有会话
@@ -258,20 +258,8 @@ async def generate_task_summary(task_id: str, request: GenerateTaskSummaryReques
         task_id
     )
 
-    # 获取当前任务笔记
-    current_note = memory.get_task_note(task_id=task_id)
-    current_notes = current_note.get("userNotes", "") or current_note.get("content", "")
-
-    # 将总结追加到任务笔记
-    date_str = datetime.now().strftime("%Y-%m-%d")
-    new_notes = current_notes
-    if new_notes:
-        new_notes += f"\n\n---\n\n## 📚 {date_str} 任务总结\n\n{summary}"
-    else:
-        new_notes = f"## 📚 {date_str} 任务总结\n\n{summary}"
-
-    # 保存更新后的笔记
-    memory.save_task_note(task_id=task_id, content=new_notes)
+    # 覆盖保存到任务笔记（不保留原有用户笔记内容）
+    memory.save_task_note(task_id=task_id, content=summary)
 
     return TaskSummaryResponse(
         task_id=task_id,

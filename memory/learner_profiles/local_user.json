@@ -1,6 +1,6 @@
 {
   "learner_id": "local_user",
-  "updated_at": "2026-03-12T03:37:39",
+  "updated_at": "2026-03-12T19:55:56",
   "cards": [
     {
       "type": "learning_fact",
@@ -353,6 +353,15 @@
       },
       "source": "local_user",
       "ts": "2026-03-12T03:37:39"
+    },
+    {
+      "type": "learning_fact",
+      "fact_type": "goal",
+      "fields": {
+        "subject": "什么”（如UI在某个状态下应该如何呈现）"
+      },
+      "source": "local_user",
+      "ts": "2026-03-12T19:55:56"
     }
   ]
 }
