@@ -1,7 +1,8 @@
 import { useEffect, useState, useCallback } from "react";
 import { useParams, useNavigate } from "react-router";
-import { ArrowLeft, BookOpen, Calendar, TrendingUp, Target, Clock, Edit3, Eye, Pencil } from "lucide-react";
+import { ArrowLeft, BookOpen, Calendar, TrendingUp, Target, Clock, Edit3, Eye, Pencil, Network } from "lucide-react";
 import { MarkdownPreview } from "./MarkdownPreview";
+import { KGViewerModal } from "./KGViewerModal";
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8000/api/v1";
 
@@ -26,6 +27,7 @@ interface TaskNoteApiResponse {
     achievement: string;
   }[];
   plan?: string[] | string;
+  planChecklist?: { [key: string]: boolean }; // 学习计划打勾状态
   updated_at?: string;
 }
 
@@ -49,6 +51,7 @@ interface TaskNote {
   }[];
   plan: string[] | string;
   userNotes: string;
+  planChecklist?: { [key: string]: boolean }; // 学习计划打勾状态
 }
 
 // 模拟任务笔记数据
@@ -148,8 +151,9 @@ function mergeTaskNote(
     coreKnowledge: api?.coreKnowledge || fallback?.coreKnowledge || [],
     masteryLevel: api?.masteryLevel || fallback?.masteryLevel || [],
     milestones: api?.milestones || fallback?.milestones || [],
-  plan: api?.plan || fallback?.plan || [],
+    plan: api?.plan || fallback?.plan || [],
     userNotes: api?.userNotes || api?.content || fallback?.userNotes || "",
+    planChecklist: api?.planChecklist || fallback?.planChecklist || {},
   };
 }
 
@@ -185,6 +189,13 @@ export function TaskNotePage() {
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [saveHint, setSaveHint] = useState<string | null>(null);
+  const [planChecklist, setPlanChecklist] = useState<{ [key: string]: boolean }>({});
+  const [isKgViewerOpen, setIsKgViewerOpen] = useState(false);
+
+  // 找到第一个未完成的项目索引
+  const firstUncheckedIndex = normalizePlanSteps(taskNote?.plan).findIndex(
+    (_, idx) => !planChecklist[String(idx)]
+  );
 
   const loadTaskNote = useCallback(async () => {
     let cancelled = false;
@@ -202,6 +213,7 @@ export function TaskNotePage() {
         const merged = mergeTaskNote(noteData, data, taskId);
         setTaskNote(merged);
         setUserNotes(merged?.userNotes || "");
+        setPlanChecklist(merged?.planChecklist || {});
 
       }
     } catch (error) {
@@ -211,6 +223,7 @@ export function TaskNotePage() {
         const merged = mergeTaskNote(noteData, null, taskId);
         setTaskNote(merged);
         setUserNotes(merged?.userNotes || "");
+        setPlanChecklist(merged?.planChecklist || {});
       }
     } finally {
       if (!cancelled) {
@@ -218,6 +231,45 @@ export function TaskNotePage() {
       }
     }
   }, [resolvedTaskId, taskId, noteData]);
+
+  // 保存学习计划打勾状态
+  const handleSavePlanChecklist = async (checklist: { [key: string]: boolean }) => {
+    try {
+      console.log("保存打勾状态:", {
+        task_id: resolvedTaskId,
+        checklist,
+      });
+
+      const response = await fetch(`${API_BASE_URL}/notes/task/plan-checklist`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          task_id: resolvedTaskId,
+          checklist,
+        }),
+      });
+
+      console.log("保存响应状态:", response.status);
+
+      if (!response.ok) {
+        throw new Error(`保存进度失败（${response.status}）`);
+      }
+      // 触发任务计划更新事件，通知其他组件同步状态
+      window.dispatchEvent(new Event("task-plan-updated"));
+    } catch (error) {
+      console.error("保存学习计划进度失败:", error);
+    }
+  };
+
+  // 处理单个项目的打勾切换
+  const handleTogglePlanItem = (index: number) => {
+    const key = String(index);
+    const newChecklist = { ...planChecklist, [key]: !planChecklist[key] };
+    setPlanChecklist(newChecklist);
+    void handleSavePlanChecklist(newChecklist);
+  };
 
   useEffect(() => {
     void loadTaskNote();
@@ -297,14 +349,24 @@ export function TaskNotePage() {
               </div>
             </div>
 
-            <button
-              onClick={() => void handleSave()}
-              disabled={isSaving || isLoading}
-              className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 transition-colors"
-            >
-              <Edit3 className="w-4 h-4" />
-              <span className="text-sm font-medium">{isSaving ? "保存中..." : "保存笔记"}</span>
-            </button>
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => setIsKgViewerOpen(true)}
+                className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
+              >
+                <Network className="w-4 h-4" />
+                <span className="text-sm font-medium">查看知识图谱</span>
+              </button>
+
+              <button
+                onClick={() => void handleSave()}
+                disabled={isSaving || isLoading}
+                className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 transition-colors"
+              >
+                <Edit3 className="w-4 h-4" />
+                <span className="text-sm font-medium">{isSaving ? "保存中..." : "保存笔记"}</span>
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -446,19 +508,50 @@ export function TaskNotePage() {
           <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl border border-blue-200 p-6">
             <h2 className="text-lg font-semibold text-gray-900 mb-4">详细学习计划</h2>
             <ul className="space-y-2">
-              {normalizePlanSteps(taskNote.plan).map((step, idx) => (
-                <li
-                  key={idx}
-                  className="flex items-start gap-3 text-sm text-gray-700 bg-white rounded-lg p-3"
-                >
-                  <input
-                    type="checkbox"
-                    className="mt-1 w-4 h-4 text-indigo-600 rounded border-gray-300 focus:ring-indigo-500"
-                  />
-                  <span className="flex-1">{step}</span>
-                </li>
-              ))}
+              {normalizePlanSteps(taskNote?.plan).map((step, idx) => {
+                const key = String(idx);
+                const isChecked = planChecklist[key];
+                const isFirstIncomplete = idx === firstUncheckedIndex;
+                return (
+                  <li
+                    key={idx}
+                    className={`flex items-start gap-3 text-sm rounded-lg p-3 transition-all ${
+                      isChecked
+                        ? "bg-gray-100"
+                        : isFirstIncomplete
+                        ? "bg-white border-2 border-indigo-300 shadow-md"
+                        : "bg-white"
+                    }`}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={isChecked || false}
+                      onChange={() => handleTogglePlanItem(idx)}
+                      className="mt-1 w-4 h-4 text-indigo-600 rounded border-gray-300 focus:ring-indigo-500 cursor-pointer"
+                    />
+                    <span
+                      className={`flex-1 ${
+                        isChecked
+                          ? "line-through text-gray-400"
+                          : isFirstIncomplete
+                          ? "font-bold text-gray-900"
+                          : "text-gray-700"
+                      }`}
+                    >
+                      {step}
+                    </span>
+                    {isFirstIncomplete && !isChecked && (
+                      <span className="text-xs text-indigo-600 font-medium px-2 py-0.5 bg-indigo-100 rounded-full">
+                        当前进度
+                      </span>
+                    )}
+                  </li>
+                );
+              })}
             </ul>
+            {normalizePlanSteps(taskNote?.plan).length === 0 && (
+              <p className="text-sm text-gray-500 text-center py-4">暂无学习计划</p>
+            )}
           </div>
 
           {/* User Notes */}
@@ -505,6 +598,13 @@ export function TaskNotePage() {
           </div>
         </div>
       </div>
+
+      {/* KG Viewer Modal */}
+      <KGViewerModal
+        taskId={resolvedTaskId}
+        isOpen={isKgViewerOpen}
+        onClose={() => setIsKgViewerOpen(false)}
+      />
     </div>
   );
 }

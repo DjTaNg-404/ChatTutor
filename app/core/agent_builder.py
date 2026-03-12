@@ -811,44 +811,6 @@ async def aggregator_node(state: AgentState) -> Dict[str, Any]:
     # 7. 执行物理存档
     memory.save_session(state_to_save)
 
-    # 8. KG 自动触发：会话结束时在后台构建知识图谱（不阻塞响应）
-    if state.get("should_exit"):
-        import threading
-        _session_id_for_kg = state.get("session_id", "")
-        if _session_id_for_kg:
-            def _build_kg_background(sid: str):
-                try:
-                    from app.kg.kg_builder import KnowledgeGraphBuilder
-                    import os as _os
-                    from app.core import memory as _mem
-                    _state = _mem.load_session(sid)
-                    if not _state:
-                        return
-                    msgs = _state.get("messages", [])
-                    text = "\n".join(
-                        getattr(m, "content", "") for m in msgs
-                        if hasattr(m, "content") and getattr(m, "content", "")
-                    )
-                    if not text.strip():
-                        return
-                    builder = KnowledgeGraphBuilder(use_advanced_extractor=True)
-                    builder.load_models()
-                    builder.build_graph(text)
-                    _os.makedirs("kg_output", exist_ok=True)
-                    builder.visualize_graph(f"kg_output/kg_{sid}.html")
-                    builder.export_graph_data(f"kg_output/kg_{sid}.json")
-                    print(f"✅ KG built for session {sid}")
-                except Exception as _e:
-                    print(f"⚠️ KG build failed for session {sid}: {_e}")
-
-            t = threading.Thread(
-                target=_build_kg_background,
-                args=(_session_id_for_kg,),
-                daemon=True,
-            )
-            t.start()
-    # ----------------------------------------------------
-
     # 返回给 Graph 的更新 (包括 messages 和 可能更新的 summary/cursor)
     result = {
         "messages": [final_response],

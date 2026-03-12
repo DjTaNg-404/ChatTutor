@@ -18,6 +18,13 @@ try:
 except ImportError:
     HAS_ADVANCED_EXTRACTOR = False
 
+# 尝试导入 DeepSeek LLM 提取器
+try:
+    from app.kg.deepseek_extractor import DeepSeekKGExtractor
+    HAS_DEEPSEEK_EXTRACTOR = True
+except ImportError:
+    HAS_DEEPSEEK_EXTRACTOR = False
+
 
 class KnowledgeGraphBuilder:
     """
@@ -34,6 +41,10 @@ class KnowledgeGraphBuilder:
         use_keybert: bool = True,
         use_spacy: bool = True,
         use_lexicon: bool = True,
+        # DeepSeek 配置
+        use_deepseek: bool = True,              # 默认使用 DeepSeek LLM
+        deepseek_model: str = "deepseek-chat",
+        deepseek_api_key: Optional[str] = None,
         # 优化参数（默认禁用以保持向后兼容性）
         enable_semantic_normalization: bool = False,
         enable_transitive_reduction: bool = False,
@@ -73,6 +84,11 @@ class KnowledgeGraphBuilder:
         self.use_keybert = use_keybert
         self.use_spacy = use_spacy
         self.use_lexicon = use_lexicon
+        # DeepSeek 配置
+        self.use_deepseek = use_deepseek
+        self.deepseek_model = deepseek_model
+        self.deepseek_api_key = deepseek_api_key
+        self.deepseek_extractor = None
         # 优化参数
         self.enable_semantic_normalization = enable_semantic_normalization
         self.enable_transitive_reduction = enable_transitive_reduction
@@ -144,10 +160,107 @@ class KnowledgeGraphBuilder:
             实体列表，每个实体包含文本、类型、位置等信息
         """
         # 根据设置选择提取方法
-        if self.use_advanced_extractor and HAS_ADVANCED_EXTRACTOR:
+        # 优先使用 DeepSeek LLM（如果启用）
+        print(f"[DEBUG] extract_entities: use_deepseek={self.use_deepseek}, HAS_DEEPSEEK_EXTRACTOR={HAS_DEEPSEEK_EXTRACTOR}, use_advanced_extractor={self.use_advanced_extractor}")
+        if self.use_deepseek and HAS_DEEPSEEK_EXTRACTOR:
+            print("[DEBUG] 使用 DeepSeek 提取实体")
+            return self._extract_entities_deepseek(text)
+        elif self.use_advanced_extractor and HAS_ADVANCED_EXTRACTOR:
+            print("[DEBUG] 使用高级提取器提取实体")
+            # 延迟加载模型
             return self._extract_entities_advanced(text)
         else:
+            print("[DEBUG] 使用 NER 提取实体")
+            # 延迟加载模型
             return self._extract_entities_ner(text)
+
+    def _extract_entities_deepseek(self, text: str) -> List[Dict[str, Any]]:
+        """
+        使用 DeepSeek LLM 提取实体。
+        """
+        if self.deepseek_extractor is None:
+            self._load_deepseek_extractor()
+
+        if self.deepseek_extractor is None:
+            print("警告：DeepSeek 提取器加载失败，回退到 NER 方法")
+            return self._extract_entities_ner(text)
+
+        try:
+            # 使用 DeepSeek 提取器提取所有实体和关系
+            print("[DEBUG] 正在调用 DeepSeek API 提取实体...")
+            result = self.deepseek_extractor.extract_entities_and_relations(text)
+
+            # 保存 DeepSeek 返回的关系供后续使用
+            self._deepseek_relations = result.get("relations", [])
+            print(f"[DEBUG] DeepSeek 返回 {len(self._deepseek_relations)} 个关系")
+
+            # 转换为与旧格式兼容的格式
+            formatted_entities = []
+            for entity in result.get("entities", []):
+                formatted_entities.append({
+                    "text": entity.get("text", ""),
+                    "type": entity.get("type", "MISC"),
+                    "start": entity.get("start", 0),
+                    "end": entity.get("end", len(entity.get("text", ""))),
+                    "score": entity.get("score", entity.get("confidence", 0.8)),
+                    "method": "DeepSeek"
+                })
+
+            if not formatted_entities:
+                print("[DEBUG] DeepSeek 返回空结果，回退到高级提取器")
+                return self._extract_entities_advanced(text)
+
+            print(f"[DEBUG] DeepSeek 提取成功：{len(formatted_entities)} 个实体")
+            return formatted_entities
+
+        except Exception as e:
+            print(f"[DEBUG] DeepSeek 提取失败：{e}，回退到高级提取器")
+            return self._extract_entities_advanced(text)
+
+    def _extract_entities_advanced(self, text: str) -> List[Dict[str, Any]]:
+        """
+        使用高级提取器（整合多种方法）提取实体。
+        """
+        if self.advanced_extractor is None:
+            self._load_advanced_extractor()
+
+        if self.advanced_extractor is None:
+            print("警告：高级提取器加载失败，回退到 NER 方法")
+            return self._extract_entities_ner(text)
+
+        # 使用高级提取器提取所有实体
+        entities = self.advanced_extractor.extract_all_entities(text)
+
+        # 转换为与旧格式兼容的格式
+        formatted_entities = []
+        for entity in entities:
+            formatted_entities.append({
+                "text": entity["text"],
+                "type": entity["type"],
+                "start": entity.get("start", 0),
+                "end": entity.get("end", len(entity["text"])),
+                "score": entity["score"],
+                "method": entity.get("method", "ADVANCED")
+            })
+
+        return formatted_entities
+
+    def _load_deepseek_extractor(self):
+        """
+        加载 DeepSeek LLM 提取器。
+        """
+        try:
+            if HAS_DEEPSEEK_EXTRACTOR:
+                self.deepseek_extractor = DeepSeekKGExtractor(
+                    api_key=self.deepseek_api_key,
+                    model=self.deepseek_model
+                )
+                print(f"DeepSeek 提取器已初始化 (model: {self.deepseek_model})")
+            else:
+                print("警告：DeepSeek 提取器不可用，请安装所需依赖")
+        except Exception as e:
+            print(f"加载 DeepSeek 提取器失败：{e}")
+            self.deepseek_extractor = None
 
     def _extract_entities_ner(self, text: str) -> List[Dict[str, Any]]:
         """
@@ -434,7 +547,7 @@ class KnowledgeGraphBuilder:
     def extract_relations(self, text: str, entities: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         """
         从文本中提取实体间的关系。
-        使用改进的共现关系：考虑实体距离和上下文。
+        优先使用 DeepSeek 返回的关系（如果有），否则使用基于距离的共现关系提取。
 
         Args:
             text: 输入文本
@@ -446,7 +559,47 @@ class KnowledgeGraphBuilder:
         if not entities:
             return []
 
-        # 改进的关系提取
+        # 优先使用 DeepSeek 返回的关系（如果有）
+        if hasattr(self, '_deepseek_relations') and self._deepseek_relations:
+            print(f"[DEBUG] 使用 DeepSeek 返回的 {len(self._deepseek_relations)} 个关系")
+            relations = []
+            seen_pairs = set()
+
+            for rel in self._deepseek_relations:
+                source = rel.get("source", "")
+                target = rel.get("target", "")
+                rel_type = rel.get("type", "related_to")
+                strength = rel.get("strength", rel.get("confidence", 0.8))
+
+                # 避免重复关系
+                pair_key = (source, target, rel_type)
+                reverse_key = (target, source, rel_type)
+                if pair_key in seen_pairs or reverse_key in seen_pairs:
+                    continue
+                seen_pairs.add(pair_key)
+
+                # 查找对应的实体类型
+                source_type = "MISC"
+                target_type = "MISC"
+                for ent in entities:
+                    if ent["text"] == source:
+                        source_type = ent["type"]
+                    if ent["text"] == target:
+                        target_type = ent["type"]
+
+                relations.append({
+                    "source": source,
+                    "target": target,
+                    "type": rel_type,
+                    "source_type": source_type,
+                    "target_type": target_type,
+                    "strength": float(strength),
+                    "method": "DeepSeek"
+                })
+
+            return relations
+
+        # 改进的关系提取（基于距离的共现关系）
         relations = []
         seen_pairs = set()  # 避免重复关系
 
@@ -483,15 +636,17 @@ class KnowledgeGraphBuilder:
                     distance = abs(ent1["start"] - ent2["start"])
 
                     # 计算关系强度：距离越近，强度越高
-                    # 最大距离限制为100个字符
-                    max_distance = 100
+                    # 使用句子长度作为参考，使得同一句子内的实体距离也能产生差异化
+                    sentence_length = sentence["end"] - sentence["start"]
+                    max_distance = max(30, sentence_length / 3)  # 最小 30 或句子 1/3 长度
                     distance_strength = max(0, 1 - distance / max_distance)
 
-                    # 结合实体置信度
+                    # 结合实体置信度（使用差异化的置信度）
                     confidence_strength = (ent1["score"] + ent2["score"]) / 2
 
-                    # 综合强度
-                    strength = 0.7 * distance_strength + 0.3 * confidence_strength
+                    # 综合强度 - 增加距离的权重，使得关系更有区分度
+                    # 距离权重 60%，置信度权重 40%
+                    strength = 0.6 * distance_strength + 0.4 * confidence_strength
 
                     # 确定关系类型（可以根据实体类型组合）
                     rel_type = self._determine_relation_type(ent1["type"], ent2["type"])
@@ -621,8 +776,23 @@ class KnowledgeGraphBuilder:
 
         # 添加节点（实体）
         for entity in entities:
-            entity_id = f"{entity['text']}_{entity['type']}"
-            self.graph.add_node(entity_id, **entity)
+            # 构建实体 ID：优先使用 text 字段，如果没有则使用 name
+            entity_text = entity.get('text', entity.get('name', ''))
+            entity_type = entity.get('type', 'UNKNOWN')
+            entity_id = f"{entity_text}_{entity_type}"
+
+            # 确保节点包含所有必要的字段
+            node_data = {
+                'text': entity_text,
+                'name': entity.get('name', entity_text),  # 保留 name 字段
+                'type': entity_type,
+                'score': entity.get('score', entity.get('confidence', 0.8)),
+                'method': entity.get('method', 'unknown'),
+                'description': entity.get('description', ''),  # 保留 description 字段
+                'start': entity.get('start', 0),
+                'end': entity.get('end', len(entity_text))
+            }
+            self.graph.add_node(entity_id, **node_data)
 
         # 添加边（关系）
         for relation in relations:
@@ -794,9 +964,12 @@ class KnowledgeGraphBuilder:
         for node, data in self.graph.nodes(data=True):
             graph_data["nodes"].append({
                 "id": node,
-                "label": data.get("text", node),
+                "label": data.get("text", data.get("name", node)),  # 优先使用 text，其次 name
+                "name": data.get("text", data.get("name", "")),  # 保留 name 字段供前端使用
                 "type": data.get("type", "未知"),
-                "score": float(data.get("score", 0))
+                "score": float(data.get("score", 0)),
+                "description": data.get("description", ""),  # 保留 description 字段（DeepSeek 返回）
+                "method": data.get("method", "unknown")  # 标注提取方法
             })
 
         # 边数据
@@ -824,7 +997,11 @@ def build_knowledge_graph_from_pdf(
     use_advanced_extractor: bool = True,
     use_keybert: bool = True,
     use_spacy: bool = True,
-    use_lexicon: bool = True
+    use_lexicon: bool = True,
+    # DeepSeek 配置
+    use_deepseek: bool = True,              # 默认使用 DeepSeek LLM
+    deepseek_model: str = "deepseek-chat",
+    deepseek_api_key: Optional[str] = None
 ) -> Dict[str, Any]:
     """
     从PDF文件构建知识图谱的便捷函数。
@@ -837,6 +1014,9 @@ def build_knowledge_graph_from_pdf(
         use_keybert: 是否使用KeyBERT提取关键词
         use_spacy: 是否使用spaCy提取名词短语
         use_lexicon: 是否使用领域词典
+        use_deepseek: 是否使用 DeepSeek LLM 提取实体和关系
+        deepseek_model: DeepSeek 模型名称 ("deepseek-chat" 或 "deepseek-v3")
+        deepseek_api_key: DeepSeek API 密钥
 
     Returns:
         图谱构建结果
@@ -866,7 +1046,10 @@ def build_knowledge_graph_from_pdf(
         use_advanced_extractor=use_advanced_extractor,
         use_keybert=use_keybert,
         use_spacy=use_spacy,
-        use_lexicon=use_lexicon
+        use_lexicon=use_lexicon,
+        use_deepseek=use_deepseek,
+        deepseek_model=deepseek_model,
+        deepseek_api_key=deepseek_api_key
     )
 
     try:
