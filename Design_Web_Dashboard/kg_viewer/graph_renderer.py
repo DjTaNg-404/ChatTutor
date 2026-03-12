@@ -6,7 +6,7 @@ import networkx as nx
 import plotly.graph_objects as go
 import numpy as np
 
-from config import ENTITY_TYPE_COLORS, RELATION_STYLES
+from config import ENTITY_TYPE_COLORS, RELATION_STYLES, get_entity_color_by_type
 
 
 def calculate_graph_layout(nodes: list, edges: list, layout_method: str = "force", is_3d: bool = False) -> tuple:
@@ -105,10 +105,13 @@ def create_plotly_figure(nodes: list, edges: list, pos: dict,
         x, y = pos.get(node["id"], (0, 0))
         node_x.append(x)
         node_y.append(y)
+        # 使用大类颜色进行着色
         node_colors.append(
-            ENTITY_TYPE_COLORS.get(node["type"], "#B0C4DE")
+            get_entity_color_by_type(node["type"])
         )
-        node_labels.append(node["label"])
+        # 优先使用 name 作为标签，如果没有则使用 label
+        display_label = node.get("name", node.get("label", node["id"]))
+        node_labels.append(display_label)
         node_types.append(node["type"])
         node_scores.append(node["score"])
 
@@ -133,34 +136,51 @@ def create_plotly_figure(nodes: list, edges: list, pos: dict,
         ]
     )
 
-    # 创建边线
-    edge_x, edge_y = [], []
-    edge_colors = []
-    edge_widths = []
-    edge_texts = []
+    # 如果有 description 字段，添加更丰富的 hover 信息
+    has_descriptions = any(node_map.get(n["id"], {}).get("description") for n in nodes)
+    if has_descriptions:
+        node_trace.hovertemplate = (
+            "<b>%{text}</b><br>"
+            "类型：%{customdata[0]}<br>"
+            "置信度：%{customdata[1]:.2f}<br>"
+            "描述：%{customdata[2]}<extra></extra>"
+        )
+        node_trace.customdata = [
+            [
+                node_map.get(n["id"], {}).get("type", ""),
+                node_map.get(n["id"], {}).get("score", 0),
+                node_map.get(n["id"], {}).get("description", "无描述")
+            ]
+            for n in nodes
+        ]
+
+    # 创建边线 - 为每条边创建单独的 trace 以支持不同的颜色
+    edge_traces = []
 
     for edge in edges:
         x0, y0 = pos.get(edge["source"], (0, 0))
         x1, y1 = pos.get(edge["target"], (0, 0))
-        edge_x.extend([x0, x1, None])
-        edge_y.extend([y0, y1, None])
 
-        style = RELATION_STYLES.get(edge.get("type", ""), {"color": "#888", "width": 1})
-        edge_colors.extend([style["color"], style["color"], None])
-        edge_widths.extend([style["width"], style["width"], None])
-        edge_texts.append(edge.get("type", "related"))
+        # 根据关系类型获取对应的颜色和宽度
+        edge_type = edge.get("type", "related")
+        style = RELATION_STYLES.get(edge_type, {"color": "#888", "width": 1})
 
-    edge_trace = go.Scatter(
-        x=edge_x, y=edge_y,
-        mode='lines',
-        line=dict(width=1, color='#888'),
-        hoverinfo='none',
-        opacity=0.6
-    )
+        # 每条边单独的 trace，这样才能使用不同的颜色
+        edge_trace = go.Scatter(
+            x=[x0, x1, None],
+            y=[y0, y1, None],
+            mode='lines',
+            line=dict(width=style["width"], color=style["color"]),
+            hoverinfo='text',
+            hovertext=edge_type,
+            hovertemplate='<b>%{text}</b><extra></extra>',
+            opacity=0.8
+        )
+        edge_traces.append(edge_trace)
 
-    # 创建图形
+    # 创建图形 - 将所有边 trace 和节点 trace 合并
     fig = go.Figure(
-        data=[edge_trace, node_trace],
+        data=edge_traces + [node_trace],
         layout=go.Layout(
             showlegend=False,
             hovermode='closest',

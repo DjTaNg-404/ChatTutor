@@ -44,13 +44,13 @@ def render_sidebar():
 
 def render_settings_panel(kg_file: str):
     """渲染设置面板"""
-    st.sidebar.markdown("---")
+    # st.sidebar.markdown("---")
     st.sidebar.subheader("🎯 置信度过滤")
     confidence_threshold = st.sidebar.slider(
         "实体置信度阈值",
         min_value=0.0,
         max_value=1.0,
-        value=0.0,
+        value=0.8,
         step=0.05,
         help="低于此阈值的节点将被隐藏"
     )
@@ -59,9 +59,9 @@ def render_settings_panel(kg_file: str):
     st.sidebar.subheader("🔗 关系过滤")
     relation_strength_threshold = st.sidebar.slider(
         "关系强度阈值",
-        min_value=0.9,
+        min_value=0.5,
         max_value=1.0,
-        value=0.9,
+        value=0.8,
         step=0.002,
         help="低于此强度的关系边将被隐藏"
     )
@@ -77,15 +77,19 @@ def render_settings_panel(kg_file: str):
 
 
 def render_entity_legend(entity_types: dict):
-    """渲染实体类型图例"""
-    from config import ENTITY_TYPE_COLORS
+    """渲染实体类型图例（直接使用基础类型）"""
+    from config import get_entity_color_by_type
 
     st.sidebar.markdown("---")
     st.sidebar.subheader("🏷️ 实体类型")
 
-    for etype, count in entity_types.items():
-        color = ENTITY_TYPE_COLORS.get(etype, "#B0C4DE")
-        col1, col2 = st.sidebar.columns([1, 3])
+    # 直接使用实体类型计数，不再聚合到大类
+    # 按计数排序
+    sorted_types = sorted(entity_types.items(), key=lambda x: x[1], reverse=True)
+
+    for etype, count in sorted_types:
+        color = get_entity_color_by_type(etype)
+        col1, col2 = st.sidebar.columns([1, 3], gap="small")
         with col1:
             st.markdown(
                 f"<div style='background-color:{color};width:20px;height:20px;"
@@ -103,11 +107,14 @@ def render_relation_legend(relation_types: dict):
     st.sidebar.markdown("---")
     st.sidebar.subheader("🔗 关系类型")
 
-    for rtype, count in relation_types.items():
+    # 按类型名称排序
+    sorted_types = sorted(relation_types.items(), key=lambda x: x[1], reverse=True)
+
+    for rtype, count in sorted_types:
         style = RELATION_STYLES.get(rtype, {"color": "#888", "width": 1})
-        col1, col2 = st.sidebar.columns([1, 3])
+        color = style["color"]
+        col1, col2 = st.sidebar.columns([1, 3], gap="small")
         with col1:
-            color = style["color"]
             st.markdown(
                 f"<div style='background-color:{color};"
                 f"width:20px;height:5px;display:inline-block;'></div>",

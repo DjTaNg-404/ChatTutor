@@ -1,7 +1,7 @@
 import { Calendar, Edit3, ExternalLink } from "lucide-react";
 import { Link } from "react-router";
 import { useLocation } from "react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8000/api/v1";
 
@@ -41,6 +41,7 @@ interface TaskPlan {
   masteryLevel?: { topic: string; level: number }[];
   milestones?: { date: string; achievement: string }[];
   plan?: string[] | string;
+  planChecklist?: { [key: string]: boolean };
 }
 
 export function SummaryPanel() {
@@ -56,6 +57,77 @@ export function SummaryPanel() {
   const [isLoading, setIsLoading] = useState(false);
   const [taskPlan, setTaskPlan] = useState<TaskPlan | null>(null);
   const [isPlanLoading, setIsPlanLoading] = useState(false);
+  const [planChecklist, setPlanChecklist] = useState<{ [key: string]: boolean }>({});
+
+  const normalizePlanSteps = useCallback((plan: TaskPlan | null): string[] => {
+    if (!plan) return [];
+    const raw = (plan as { plan?: unknown }).plan;
+    if (Array.isArray(raw)) {
+      const steps = raw.map((item) => String(item)).filter((item) => item.trim());
+      if (steps.length > 0) {
+        return steps;
+      }
+    }
+    if (typeof raw === "string") {
+      const steps = raw
+        .split(/\r?\n|[；;]+/)
+        .map((item) => item.trim())
+        .filter(Boolean);
+      if (steps.length > 0) {
+        return steps;
+      }
+    }
+    if (plan.overallSummary) {
+      return [plan.overallSummary];
+    }
+    return [];
+  }, []);
+
+  const planSteps = normalizePlanSteps(taskPlan);
+
+  // 找到第一个未完成的项目索引
+  const firstUncheckedIndex = planSteps.findIndex(
+    (_, idx) => !planChecklist[String(idx)]
+  );
+
+  // 保存学习计划打勾状态
+  const handleSavePlanChecklist = useCallback(async (checklist: { [key: string]: boolean }) => {
+    try {
+      console.log("保存打勾状态:", {
+        task_id: currentTaskId,
+        checklist,
+      });
+
+      const response = await fetch(`${API_BASE_URL}/notes/task/plan-checklist`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          task_id: currentTaskId,
+          checklist,
+        }),
+      });
+
+      console.log("保存响应状态:", response.status);
+
+      if (!response.ok) {
+        throw new Error(`保存进度失败（${response.status}）`);
+      }
+      // 触发任务计划更新事件，通知其他组件同步状态
+      window.dispatchEvent(new Event("task-plan-updated"));
+    } catch (error) {
+      console.error("保存学习计划进度失败:", error);
+    }
+  }, [currentTaskId]);
+
+  // 处理单个项目的打勾切换
+  const handleTogglePlanItem = useCallback((index: number) => {
+    const key = String(index);
+    const newChecklist = { ...planChecklist, [key]: !planChecklist[key] };
+    setPlanChecklist(newChecklist);
+    void handleSavePlanChecklist(newChecklist);
+  }, [planChecklist, handleSavePlanChecklist]);
 
   useEffect(() => {
     let cancelled = false;
@@ -109,10 +181,12 @@ export function SummaryPanel() {
           Boolean(data.plan && data.plan.length);
         if (!cancelled) {
           setTaskPlan(hasPlan ? data : null);
+          setPlanChecklist(data.planChecklist || {});
         }
       } catch {
         if (!cancelled) {
           setTaskPlan(null);
+          setPlanChecklist({});
         }
       } finally {
         if (!cancelled) {
@@ -139,32 +213,6 @@ export function SummaryPanel() {
       window.removeEventListener("timeline-updated", handleTimelineUpdated);
     };
   }, [currentTaskId]);
-
-  const normalizePlanSteps = (plan: TaskPlan | null): string[] => {
-    if (!plan) return [];
-    const raw = (plan as { plan?: unknown }).plan;
-    if (Array.isArray(raw)) {
-      const steps = raw.map((item) => String(item)).filter((item) => item.trim());
-      if (steps.length > 0) {
-        return steps;
-      }
-    }
-    if (typeof raw === "string") {
-      const steps = raw
-        .split(/\r?\n|[；;]+/)
-        .map((item) => item.trim())
-        .filter(Boolean);
-      if (steps.length > 0) {
-        return steps;
-      }
-    }
-    if (plan.overallSummary) {
-      return [plan.overallSummary];
-    }
-    return [];
-  };
-
-  const planSteps = normalizePlanSteps(taskPlan);
 
   return (
     <aside className="w-[300px] bg-white border-l border-gray-200 flex flex-col h-full">
@@ -317,15 +365,47 @@ export function SummaryPanel() {
             </div>
           )}
           {!isPlanLoading && taskPlan && planSteps.length > 0 && (
-            <div className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
-              <ul className="space-y-2 text-sm text-gray-700">
-                {planSteps.map((step, idx) => (
-                  <li key={idx} className="flex items-start gap-2">
-                    <span className="text-indigo-500 mt-1">•</span>
-                    <span className="flex-1">{step}</span>
-                  </li>
-                ))}
-              </ul>
+            <div className="space-y-2">
+              {planSteps.map((step, idx) => {
+                const key = String(idx);
+                const isChecked = planChecklist[key];
+                const isFirstIncomplete = idx === firstUncheckedIndex;
+                return (
+                  <div
+                    key={idx}
+                    className={`flex items-start gap-2 text-sm rounded-lg p-2 transition-all ${
+                      isChecked
+                        ? "bg-gray-100"
+                        : isFirstIncomplete
+                        ? "bg-white border border-indigo-200"
+                        : "bg-white"
+                    }`}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={isChecked || false}
+                      onChange={() => handleTogglePlanItem(idx)}
+                      className="mt-0.5 w-4 h-4 text-indigo-600 rounded border-gray-300 focus:ring-indigo-500 cursor-pointer flex-shrink-0"
+                    />
+                    <span
+                      className={`flex-1 ${
+                        isChecked
+                          ? "line-through text-gray-400"
+                          : isFirstIncomplete
+                          ? "font-bold text-gray-900"
+                          : "text-gray-700"
+                      }`}
+                    >
+                      {step}
+                    </span>
+                    {isFirstIncomplete && !isChecked && (
+                      <span className="text-xs text-indigo-600 font-medium px-1.5 py-0.5 bg-indigo-100 rounded-full flex-shrink-0">
+                        当前
+                      </span>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           )}
         </div>

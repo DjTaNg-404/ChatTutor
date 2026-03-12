@@ -573,7 +573,8 @@ class KGEntityExtractor:
             if concept in keyword:
                 return "CONCEPT"
 
-        return "GENERAL"
+        # 默认返回 CONCEPT 而不是 GENERAL
+        return "CONCEPT"
 
     def _determine_noun_phrase_type(self, chunk) -> str:
         """

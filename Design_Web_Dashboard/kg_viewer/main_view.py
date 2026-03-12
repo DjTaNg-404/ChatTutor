@@ -63,11 +63,12 @@ def render_main_view(kg_file: str, confidence_threshold: float,
         col4.metric("最高置信度", f"{stats['max_score']:.3f}")
 
         if stats["entity_types"]:
+            # 直接使用实体类型统计，不再聚合到大类
             types = list(stats["entity_types"].keys())
             counts = list(stats["entity_types"].values())
 
             fig = go.Figure(data=[
-                go.Bar(x=types, y=counts, marker_color="#3674BA", showlegend=False)
+                go.Bar(x=types, y=counts, marker_color='#3674BA', showlegend=False)
             ])
             fig.update_layout(
                 paper_bgcolor='rgba(0,0,0,0)',
@@ -78,13 +79,17 @@ def render_main_view(kg_file: str, confidence_threshold: float,
                 height=250
             )
             st.plotly_chart(fig, width='stretch', config={'displayModeBar': False})
+            st.caption("实体类型分布")
 
         if stats["relation_types"]:
+            # 关系类型统计 - 使用对应颜色
+            from config import RELATION_STYLES
             types = list(stats["relation_types"].keys())
             counts = list(stats["relation_types"].values())
+            colors = [RELATION_STYLES.get(t, {"color": "#888"})["color"] for t in types]
 
             fig = go.Figure(data=[
-                go.Bar(x=types, y=counts, marker_color='#FFA07A', showlegend=False)
+                go.Bar(x=types, y=counts, marker_color=colors, showlegend=False)
             ])
             fig.update_layout(
                 paper_bgcolor='rgba(0,0,0,0)',
@@ -99,11 +104,20 @@ def render_main_view(kg_file: str, confidence_threshold: float,
     # 数据表格（使用过滤后的数据）
     with st.expander("📋 原始数据"):
         st.subheader("节点列表")
-        # 格式化节点列表，type 列使用统一颜色
+        # 格式化节点列表，确保 name 和 description 字段正确显示
         nodes_df = pd.DataFrame(filtered_nodes)
-        if not nodes_df.empty and 'type' in nodes_df.columns:
+        if not nodes_df.empty:
+            # 确保 name 列存在（如果没有则从 label 复制）
+            if 'name' not in nodes_df.columns and 'label' in nodes_df.columns:
+                nodes_df['name'] = nodes_df['label']
+            # 确保 description 列存在
+            if 'description' not in nodes_df.columns:
+                nodes_df['description'] = ''
+            # 选择要显示的列
+            display_cols = ['name', 'type', 'description', 'score', 'method']
+            display_cols = [c for c in display_cols if c in nodes_df.columns]
             st.dataframe(
-                nodes_df.style.map(lambda _: 'color: #4ECDC4', subset=['type'])
+                nodes_df[display_cols].style.map(lambda _: 'color: #4ECDC4', subset=['type'])
             )
         else:
             st.dataframe(nodes_df)
