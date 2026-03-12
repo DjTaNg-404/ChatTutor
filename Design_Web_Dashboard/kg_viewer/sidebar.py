@@ -59,7 +59,7 @@ def render_settings_panel(kg_file: str):
     st.sidebar.subheader("🔗 关系过滤")
     relation_strength_threshold = st.sidebar.slider(
         "关系强度阈值",
-        min_value=0.9,
+        min_value=0.5,
         max_value=1.0,
         value=0.9,
         step=0.002,
@@ -77,15 +77,24 @@ def render_settings_panel(kg_file: str):
 
 
 def render_entity_legend(entity_types: dict):
-    """渲染实体类型图例"""
-    from config import ENTITY_TYPE_COLORS
+    """渲染实体类型图例（按大类聚合）"""
+    from config import get_entity_color_by_type, get_entity_category
 
     st.sidebar.markdown("---")
     st.sidebar.subheader("🏷️ 实体类型")
 
+    # 按大类聚合实体类型计数
+    category_counts = {}
     for etype, count in entity_types.items():
-        color = ENTITY_TYPE_COLORS.get(etype, "#B0C4DE")
-        col1, col2 = st.sidebar.columns([1, 3])
+        category = get_entity_category(etype)
+        category_counts[category] = category_counts.get(category, 0) + count
+
+    # 按计数排序
+    sorted_categories = sorted(category_counts.items(), key=lambda x: x[1], reverse=True)
+
+    for category, count in sorted_categories:
+        color = get_entity_color_by_type(category)
+        col1, col2 = st.sidebar.columns([1, 3], gap="small")
         with col1:
             st.markdown(
                 f"<div style='background-color:{color};width:20px;height:20px;"
@@ -93,7 +102,7 @@ def render_entity_legend(entity_types: dict):
                 unsafe_allow_html=True
             )
         with col2:
-            st.markdown(f"<span style='color:{color}'>{etype} ({count})</span>", unsafe_allow_html=True)
+            st.markdown(f"<span style='color:{color}'>{category} ({count})</span>", unsafe_allow_html=True)
 
 
 def render_relation_legend(relation_types: dict):
@@ -103,11 +112,14 @@ def render_relation_legend(relation_types: dict):
     st.sidebar.markdown("---")
     st.sidebar.subheader("🔗 关系类型")
 
-    for rtype, count in relation_types.items():
+    # 按类型名称排序
+    sorted_types = sorted(relation_types.items(), key=lambda x: x[1], reverse=True)
+
+    for rtype, count in sorted_types:
         style = RELATION_STYLES.get(rtype, {"color": "#888", "width": 1})
-        col1, col2 = st.sidebar.columns([1, 3])
+        color = style["color"]
+        col1, col2 = st.sidebar.columns([1, 3], gap="small")
         with col1:
-            color = style["color"]
             st.markdown(
                 f"<div style='background-color:{color};"
                 f"width:20px;height:5px;display:inline-block;'></div>",

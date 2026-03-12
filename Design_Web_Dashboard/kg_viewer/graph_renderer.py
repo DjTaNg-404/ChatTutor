@@ -6,7 +6,7 @@ import networkx as nx
 import plotly.graph_objects as go
 import numpy as np
 
-from config import ENTITY_TYPE_COLORS, RELATION_STYLES
+from config import ENTITY_TYPE_COLORS, RELATION_STYLES, get_entity_color_by_type
 
 
 def calculate_graph_layout(nodes: list, edges: list, layout_method: str = "force", is_3d: bool = False) -> tuple:
@@ -105,10 +105,13 @@ def create_plotly_figure(nodes: list, edges: list, pos: dict,
         x, y = pos.get(node["id"], (0, 0))
         node_x.append(x)
         node_y.append(y)
+        # 使用大类颜色进行着色
         node_colors.append(
-            ENTITY_TYPE_COLORS.get(node["type"], "#B0C4DE")
+            get_entity_color_by_type(node["type"])
         )
-        node_labels.append(node["label"])
+        # 优先使用 name 作为标签，如果没有则使用 label
+        display_label = node.get("name", node.get("label", node["id"]))
+        node_labels.append(display_label)
         node_types.append(node["type"])
         node_scores.append(node["score"])
 
@@ -132,6 +135,24 @@ def create_plotly_figure(nodes: list, edges: list, pos: dict,
             for label, ntype, score in zip(node_labels, node_types, node_scores)
         ]
     )
+
+    # 如果有 description 字段，添加更丰富的 hover 信息
+    has_descriptions = any(node_map.get(n["id"], {}).get("description") for n in nodes)
+    if has_descriptions:
+        node_trace.hovertemplate = (
+            "<b>%{text}</b><br>"
+            "类型：%{customdata[0]}<br>"
+            "置信度：%{customdata[1]:.2f}<br>"
+            "描述：%{customdata[2]}<extra></extra>"
+        )
+        node_trace.customdata = [
+            [
+                node_map.get(n["id"], {}).get("type", ""),
+                node_map.get(n["id"], {}).get("score", 0),
+                node_map.get(n["id"], {}).get("description", "无描述")
+            ]
+            for n in nodes
+        ]
 
     # 创建边线
     edge_x, edge_y = [], []

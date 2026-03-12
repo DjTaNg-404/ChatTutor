@@ -174,23 +174,43 @@ def _split_for_stream(text: str):
     return parts
 
 
+def _filter_reasoning_content(text: str) -> str:
+    """过滤掉模型的思考/推理内容"""
+    if not text:
+        return text
+
+    # 移除 <thinking>...</thinking> 标签内容
+    text = re.sub(r'<thinking>.*?</thinking>', '', text, flags=re.DOTALL | re.IGNORECASE)
+
+    # 移除 <|begin_of_thought|>...<|end_of_thought|> 等特殊标记
+    text = re.sub(r'<\|begin_of_thought\|>.*?<\|end_of_thought\|>', '', text, flags=re.DOTALL | re.IGNORECASE)
+
+    # 移除 Thought:、思考：、Reasoning: 等前缀行（整行）
+    text = re.sub(r'^(Thought:|思考：|Reasoning:|Reason:|分析：|推理：).*?$', '', text, flags=re.MULTILINE | re.IGNORECASE)
+
+    # 移除单独的 "Thought"、"Thinking" 等行
+    text = re.sub(r'^(Thought|Thinking|Reasoning|分析过程|推理过程)\s*$', '', text, flags=re.MULTILINE | re.IGNORECASE)
+
+    return text
+
+
 def _chunk_to_text(chunk: Any) -> str:
     if chunk is None:
         return ""
     content = getattr(chunk, "content", chunk)
     if isinstance(content, str):
-        return content
+        return _filter_reasoning_content(content)
     if isinstance(content, list):
         texts = []
         for item in content:
             if isinstance(item, str):
-                texts.append(item)
+                texts.append(_filter_reasoning_content(item))
             elif isinstance(item, dict):
                 text_val = item.get("text")
                 if text_val:
-                    texts.append(str(text_val))
+                    texts.append(_filter_reasoning_content(str(text_val)))
         return "".join(texts)
-    return str(content)
+    return _filter_reasoning_content(str(content))
 
 
 def _is_greeting(text: str) -> bool:

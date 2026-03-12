@@ -9,8 +9,16 @@ from datetime import datetime
 from pathlib import Path
 
 
-def list_kg_files(kg_dir: str = "kg_output") -> list:
+# 获取 kg_viewer 目录的父目录（项目根目录）
+KG_VIEWER_DIR = Path(__file__).parent
+PROJECT_ROOT = KG_VIEWER_DIR.parent.parent
+KG_OUTPUT_DIR = PROJECT_ROOT / "kg_output"
+
+
+def list_kg_files(kg_dir: str = None) -> list:
     """列出所有知识图谱 JSON 文件"""
+    if kg_dir is None:
+        kg_dir = str(KG_OUTPUT_DIR)
     pattern = os.path.join(kg_dir, "*.json")
     files = glob.glob(pattern)
     # 按修改时间排序，最新的在前

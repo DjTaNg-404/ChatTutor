@@ -27,7 +27,6 @@ def main():
     selected_file = render_sidebar()
 
     if selected_file is None:
-        st.title("🕸️ 知识图谱查看器")
         st.write("暂无可用的知识图谱数据")
         return
 

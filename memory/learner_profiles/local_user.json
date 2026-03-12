@@ -1,6 +1,6 @@
 {
   "learner_id": "local_user",
-  "updated_at": "2026-03-12T03:37:39",
+  "updated_at": "2026-03-12T22:07:24",
   "cards": [
     {
       "type": "learning_fact",
@@ -353,6 +353,15 @@
       },
       "source": "local_user",
       "ts": "2026-03-12T03:37:39"
+    },
+    {
+      "type": "learning_fact",
+      "fact_type": "goal",
+      "fields": {
+        "subject": "（如求职、项目需求）并据此设计结构化路径"
+      },
+      "source": "local_user",
+      "ts": "2026-03-12T20:57:36"
     }
   ]
 }
