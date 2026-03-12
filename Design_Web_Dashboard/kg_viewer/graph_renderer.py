@@ -1,0 +1,176 @@
+"""
+知识图谱查看器 - 图谱布局计算和 Plotly 渲染
+"""
+
+import networkx as nx
+import plotly.graph_objects as go
+import numpy as np
+
+from config import ENTITY_TYPE_COLORS, RELATION_STYLES
+
+
+def calculate_graph_layout(nodes: list, edges: list, layout_method: str = "force", is_3d: bool = False) -> tuple:
+    """
+    计算图谱节点布局
+
+    Args:
+        nodes: 节点列表
+        edges: 边列表
+        layout_method: 布局方法 ("force", "circular", "spring", "random", "shell")
+        is_3d: 是否使用 3D 布局
+
+    Returns:
+        包含节点坐标的字典 (2D 返回 (x,y), 3D 返回 (x,y,z))
+    """
+    # 构建 networkx 图
+    G = nx.Graph()
+
+    # 添加节点
+    for node in nodes:
+        G.add_node(
+            node["id"],
+            label=node["label"],
+            type=node["type"],
+            score=node["score"]
+        )
+
+    # 添加边
+    for edge in edges:
+        G.add_edge(
+            edge["source"],
+            edge["target"],
+            type=edge.get("type", "related"),
+            strength=edge.get("strength", 1.0)
+        )
+
+    # 计算布局
+    if layout_method == "circular":
+        if is_3d:
+            pos_2d = nx.circular_layout(G)
+            pos = {k: (*v, 0) for k, v in pos_2d.items()}
+        else:
+            pos = nx.circular_layout(G)
+    elif layout_method == "shell":
+        if is_3d:
+            pos_2d = nx.shell_layout(G)
+            pos = {k: (*v, 0) for k, v in pos_2d.items()}
+        else:
+            pos = nx.shell_layout(G)
+    elif layout_method == "spring":
+        if is_3d:
+            pos = nx.spring_layout(G, dim=3, k=2, iterations=50, seed=42)
+        else:
+            pos = nx.spring_layout(G, k=2, iterations=50, seed=42)
+    elif layout_method == "random":
+        if is_3d:
+            pos = {n: (np.random.rand(3) * 2 - 1) for n in G.nodes()}
+        else:
+            pos = nx.random_layout(G, seed=42)
+    else:  # force-directed (使用 spring 作为近似)
+        if is_3d:
+            pos = nx.spring_layout(G, dim=3, k=1.5, iterations=100, seed=42)
+        else:
+            pos = nx.spring_layout(G, k=1.5, iterations=100, seed=42)
+
+    return pos, G
+
+
+def create_plotly_figure(nodes: list, edges: list, pos: dict,
+                        show_labels: bool = True,
+                        node_size_factor: float = 1.0) -> go.Figure:
+    """
+    创建 Plotly 交互式图谱
+
+    Args:
+        nodes: 节点列表
+        edges: 边列表
+        pos: 节点位置字典
+        show_labels: 是否显示标签
+        node_size_factor: 节点大小系数
+
+    Returns:
+        Plotly Figure 对象
+    """
+    # 节点追踪列表
+    node_x, node_y = [], []
+    node_colors = []
+    node_labels = []
+    node_types = []
+    node_scores = []
+
+    # 构建节点 ID 到数据的映射
+    node_map = {n["id"]: n for n in nodes}
+
+    for node in nodes:
+        x, y = pos.get(node["id"], (0, 0))
+        node_x.append(x)
+        node_y.append(y)
+        node_colors.append(
+            ENTITY_TYPE_COLORS.get(node["type"], "#B0C4DE")
+        )
+        node_labels.append(node["label"])
+        node_types.append(node["type"])
+        node_scores.append(node["score"])
+
+    # 创建节点散点图
+    node_trace = go.Scatter(
+        x=node_x, y=node_y,
+        mode='markers+text' if show_labels else 'markers',
+        hoverinfo='text',
+        marker=dict(
+            showscale=False,
+            color=node_colors,
+            size=[15 + s * 20 for s in node_scores] if node_size_factor == 1.0
+                  else [15 + s * 20 * node_size_factor for s in node_scores],
+            line=dict(width=2, color='white')
+        ),
+        text=node_labels if show_labels else None,
+        textposition="top center",
+        textfont=dict(size=10, color='white'),
+        hovertext=[
+            f"<b>{label}</b><br>类型：{ntype}<br>置信度：{score:.2f}"
+            for label, ntype, score in zip(node_labels, node_types, node_scores)
+        ]
+    )
+
+    # 创建边线
+    edge_x, edge_y = [], []
+    edge_colors = []
+    edge_widths = []
+    edge_texts = []
+
+    for edge in edges:
+        x0, y0 = pos.get(edge["source"], (0, 0))
+        x1, y1 = pos.get(edge["target"], (0, 0))
+        edge_x.extend([x0, x1, None])
+        edge_y.extend([y0, y1, None])
+
+        style = RELATION_STYLES.get(edge.get("type", ""), {"color": "#888", "width": 1})
+        edge_colors.extend([style["color"], style["color"], None])
+        edge_widths.extend([style["width"], style["width"], None])
+        edge_texts.append(edge.get("type", "related"))
+
+    edge_trace = go.Scatter(
+        x=edge_x, y=edge_y,
+        mode='lines',
+        line=dict(width=1, color='#888'),
+        hoverinfo='none',
+        opacity=0.6
+    )
+
+    # 创建图形
+    fig = go.Figure(
+        data=[edge_trace, node_trace],
+        layout=go.Layout(
+            showlegend=False,
+            hovermode='closest',
+            margin=dict(b=0, l=0, r=0, t=0),
+            xaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
+            yaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
+            plot_bgcolor='rgba(0,0,0,0)',
+            paper_bgcolor='rgba(0,0,0,0)',
+            font=dict(color='white')
+        )
+    )
+
+    return fig
