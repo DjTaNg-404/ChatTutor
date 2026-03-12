@@ -224,10 +224,13 @@ async def update_plan_session(request: PlanSessionActionRequest):
             "pending_mode": "",
             "messages": [],
         }
+        session.pop("exit_from", None)
     elif request.action == "resume":
         if status == "paused":
             session["status"] = session.get("paused_from") or "collecting"
             session.pop("paused_from", None)
+        # 清理退出确认状态
+        session.pop("exit_from", None)
 
     updated_plan = dict(plan_data or {})
     updated_plan[PLAN_SESSION_KEY] = session

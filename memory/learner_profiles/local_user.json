@@ -1,6 +1,6 @@
 {
   "learner_id": "local_user",
-  "updated_at": "2026-03-12T19:55:56",
+  "updated_at": "2026-03-13T00:23:23",
   "cards": [
     {
       "type": "learning_fact",
@@ -362,6 +362,33 @@
       },
       "source": "local_user",
       "ts": "2026-03-12T19:55:56"
+    },
+    {
+      "type": "learning_fact",
+      "fact_type": "goal",
+      "fields": {
+        "subject": "习机器学习"
+      },
+      "source": "local_user",
+      "ts": "2026-03-12T22:35:12"
+    },
+    {
+      "type": "learning_fact",
+      "fact_type": "goal",
+      "fields": {
+        "subject": "我深入解释一下吗"
+      },
+      "source": "local_user",
+      "ts": "2026-03-12T23:52:46"
+    },
+    {
+      "type": "learning_fact",
+      "fact_type": "goal",
+      "fields": {
+        "subject": "更直接地聚焦于机器学习本身"
+      },
+      "source": "local_user",
+      "ts": "2026-03-13T00:23:23"
     }
   ]
 }

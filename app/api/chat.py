@@ -246,7 +246,15 @@ async def chat_endpoint(request: ChatRequest):
     is_first_message = len(current_state.get("messages", [])) <= 1
     plan_data = memory.get_task_plan_data(task_id)
     plan_session = plan_data.get(PLAN_SESSION_KEY) if isinstance(plan_data, dict) else None
-    offer_shown = bool(isinstance(plan_session, dict) and plan_session.get("status") == "offer_shown")
+    plan_status = plan_session.get("status") if isinstance(plan_session, dict) else None
+    offer_shown = plan_status in {
+        "offer_shown",
+        "await_offer",
+        "await_confirm",
+        "await_plan_confirm",
+        "collecting",
+        "paused",
+    }
     if _should_offer_plan(request.message, is_first_message, memory.has_task_plan(task_id), offer_shown):
         reply_content = (
             reply_content.rstrip()
@@ -255,7 +263,7 @@ async def chat_endpoint(request: ChatRequest):
         try:
             memory.save_task_plan(
                 task_id=task_id,
-                plan={PLAN_SESSION_KEY: {"status": "offer_shown"}},
+                plan={PLAN_SESSION_KEY: {"status": "await_offer"}},
             )
         except Exception:
             pass
@@ -403,14 +411,22 @@ async def chat_stream_endpoint(request: ChatRequest):
             is_first_message = len(current_state.get("messages", [])) <= 1
             plan_data = memory.get_task_plan_data(task_id)
             plan_session = plan_data.get(PLAN_SESSION_KEY) if isinstance(plan_data, dict) else None
-            offer_shown = bool(isinstance(plan_session, dict) and plan_session.get("status") == "offer_shown")
+            plan_status = plan_session.get("status") if isinstance(plan_session, dict) else None
+            offer_shown = plan_status in {
+                "offer_shown",
+                "await_offer",
+                "await_confirm",
+                "await_plan_confirm",
+                "collecting",
+                "paused",
+            }
             if _should_offer_plan(request.message, is_first_message, memory.has_task_plan(task_id), offer_shown):
                 offer_text = '\n\n如果你需要我帮你制定学习计划，直接回复“需要”即可。'
                 reply_content = reply_content.rstrip() + offer_text
                 try:
                     memory.save_task_plan(
                         task_id=task_id,
-                        plan={PLAN_SESSION_KEY: {"status": "offer_shown"}},
+                        plan={PLAN_SESSION_KEY: {"status": "await_offer"}},
                     )
                 except Exception:
                     pass

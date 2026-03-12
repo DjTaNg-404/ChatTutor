@@ -5,7 +5,7 @@ import asyncio
 import json
 from typing import Any, Dict, List, Optional
 
-from langchain_core.messages import HumanMessage
+from langchain_core.messages import HumanMessage, AIMessage
 
 from app.core.task_plan.prompts import (
     DEFAULT_INIT_QUESTIONS,
@@ -19,6 +19,7 @@ from app.core.task_plan.prompts import (
     LEARN_INTENT_KEYWORDS,
     YES_KEYWORDS,
     NO_KEYWORDS,
+    EXIT_PLAN_KEYWORDS,
 )
 from app.core.task_plan.utils import _extract_plan_hints
 
@@ -51,7 +52,11 @@ def _is_exit_intent(text: str) -> bool:
     """检测用户是否有退出计划流程的意图"""
     if not text:
         return False
-    return text.strip() == "暂不调整计划"
+    trimmed = text.strip()
+    # 如果明确在提更新/时间细节，不视为退出
+    if _has_update_points(trimmed):
+        return False
+    return any(k in trimmed for k in EXIT_PLAN_KEYWORDS)
 
 
 def _is_update_intent(text: str) -> bool:
@@ -87,6 +92,24 @@ def _build_plan_dialogue_text(plan_session: Dict[str, Any]) -> str:
         tag = "User" if role == "user" else "Assistant"
         parts.append(f"{tag}: {content}")
     return "\n".join(parts)
+
+
+def _extract_recent_dialogue(history_messages: Optional[List[Any]], limit: int = 12) -> List[Dict[str, str]]:
+    if not history_messages:
+        return []
+    items: List[Dict[str, str]] = []
+    for msg in reversed(history_messages):
+        if isinstance(msg, HumanMessage):
+            content = (msg.content or "").strip()
+            if content:
+                items.append({"role": "user", "content": content})
+        elif isinstance(msg, AIMessage):
+            content = (msg.content or "").strip()
+            if content:
+                items.append({"role": "assistant", "content": content})
+        if len(items) >= limit:
+            break
+    return list(reversed(items))
 
 
 def _has_time_signal(text: str) -> bool:
@@ -144,14 +167,37 @@ def _pick_init_first_question(user_message: str) -> str:
 
 def _normalize_plan_session(plan_session: Optional[Dict[str, Any]]) -> Dict[str, Any]:
     base = dict(plan_session or {})
-    base.setdefault("status", "idle")  # idle | await_offer | await_confirm | collecting | await_plan_confirm
+    # 兼容旧状态
+    if base.get("status") == "offer_shown":
+        base["status"] = "await_offer"
+    base.setdefault("status", "idle")  # idle | await_offer | await_confirm | collecting | await_plan_confirm | await_exit_confirm
     base.setdefault("mode", "")
     base.setdefault("turns", 0)
     base.setdefault("max_turns", 0)
     base.setdefault("messages", [])
     base.setdefault("pending_mode", "")
     base.setdefault("draft_plan", None)
+    base.setdefault("exit_from", "")
+    base.setdefault("context_messages", [])
     return base
+
+
+def _is_exit_confirm_yes(text: str) -> bool:
+    if not text:
+        return False
+    trimmed = text.strip()
+    return any(k in trimmed for k in ["结束", "退出", "是的", "确认结束", "确定"])
+
+
+def _is_exit_confirm_no(text: str) -> bool:
+    if not text:
+        return False
+    trimmed = text.strip()
+    return any(k in trimmed for k in ["继续", "不结束", "不退出", "继续调整", "先继续"])
+
+
+def _should_exit_plan_by_keywords(user_message: str) -> bool:
+    return _is_exit_intent(user_message)
 
 
 async def _generate_followup_question(
@@ -177,6 +223,7 @@ async def _generate_followup_question(
         sys_prompt = (
             "你是学习计划助手，需要用最简洁的一个问题继续收集计划信息。"
             "只请一个问题，不要列表，不要多个问号，中文回答。"
+            "收集要点：学习目标/范围、时间周期、日常投入、重点主题或约束。"
             "如果当前模式是 init，请先用 1-2 句简单的入门解释帮助用户对主题有初步了解，然后提一个问题。"
             "如果当前模式是 update，直接提问。"
             f"\n当前模式：{mode}."
@@ -212,47 +259,53 @@ async def handle_plan_chat(
     status = session.get("status", "idle")
     mode = session.get("mode", "")
 
-    # Awaiting user response to a soft plan offer
-    if status == "await_offer":
-        if _is_yes(user_message):
-            mode = "update" if has_plan else "init"
-            session.update(
-                {
-                    "status": "collecting",
-                    "mode": mode,
-                    "turns": 0,
-                    "max_turns": 5 if mode == "init" else 3,
-                    "messages": [],
-                }
-            )
-            if mode == "init":
-                question = _pick_init_first_question(user_message)
-            else:
-                question = await _generate_followup_question(mode, 0, session, has_plan, existing_plan)
-            session["messages"].append({"role": "assistant", "content": question})
+    # Awaiting exit confirmation
+    if status == "await_exit_confirm":
+        if _is_exit_confirm_yes(user_message):
+            session.update({"status": "idle", "mode": "", "turns": 0, "pending_mode": "", "messages": [], "exit_from": ""})
             return {
                 "handled": True,
-                "reply": question,
+                "reply": "好的，已结束学习计划规划。需要时随时告诉我。",
                 "plan_proposal": None,
                 "plan_session": session,
             }
-        if _is_no(user_message):
-            session.update({"status": "idle", "mode": "", "turns": 0, "pending_mode": "", "messages": []})
+        if _is_exit_confirm_no(user_message):
+            session["status"] = session.get("exit_from") or "collecting"
+            session["exit_from"] = ""
             return {
                 "handled": True,
-                "reply": "好的，如果需要学习计划，随时告诉我。",
+                "reply": "好的，我们继续调整学习计划。请告诉我你想修改哪些内容。",
                 "plan_proposal": None,
                 "plan_session": session,
             }
         return {
             "handled": True,
-            "reply": "如果你需要学习计划，回复'需要'就可以开始。",
+            "reply": "是否结束学习计划规划？回复“结束”或“继续”。",
+            "plan_proposal": None,
+            "plan_session": session,
+        }
+
+    # Awaiting user response to a soft plan offer
+    if status == "await_offer":
+        # 软引导阶段交给 Analyzer 判断是否进入计划流程
+        session.update({"status": "idle", "mode": "", "turns": 0, "pending_mode": "", "messages": []})
+        return {
+            "handled": False,
             "plan_proposal": None,
             "plan_session": session,
         }
 
     # Awaiting plan confirmation prompt
     if status == "await_confirm":
+        if _is_exit_intent(user_message) or _should_exit_plan_by_keywords(user_message):
+            session["exit_from"] = status
+            session["status"] = "await_exit_confirm"
+            return {
+                "handled": True,
+                "reply": "是否结束学习计划规划？回复“结束”或“继续”。",
+                "plan_proposal": None,
+                "plan_session": session,
+            }
         pending_mode = session.get("pending_mode") or ("update" if has_plan else "init")
         if _is_yes(user_message):
             mode = pending_mode
@@ -291,8 +344,17 @@ async def handle_plan_chat(
 
     # Awaiting user confirmation after plan proposal
     if status == "await_plan_confirm":
+        if _is_exit_intent(user_message) or _should_exit_plan_by_keywords(user_message):
+            session["exit_from"] = status
+            session["status"] = "await_exit_confirm"
+            return {
+                "handled": True,
+                "reply": "是否结束学习计划规划？回复“结束”或“继续”。",
+                "plan_proposal": None,
+                "plan_session": session,
+            }
         # If user 提出新诉求，回到更新流程
-        if _is_update_intent(user_message) or _is_learn_intent(user_message):
+        if _is_update_intent(user_message) or _is_learn_intent(user_message) or _has_update_points(user_message):
             session.update(
                 {
                     "status": "collecting",
@@ -329,12 +391,13 @@ async def handle_plan_chat(
 
     # Active collection flow
     if status == "collecting":
-        # 检测用户是否想退出
-        if _is_exit_intent(user_message):
-            session.update({"status": "idle", "mode": "", "turns": 0, "pending_mode": "", "messages": []})
+        # 检测用户是否想退出（需要二次确认）
+        if _is_exit_intent(user_message) or _should_exit_plan_by_keywords(user_message):
+            session["exit_from"] = status
+            session["status"] = "await_exit_confirm"
             return {
                 "handled": True,
-                "reply": "好的，已取消学习计划。需要时随时告诉我。",
+                "reply": "是否结束学习计划规划？回复“结束”或“继续”。",
                 "plan_proposal": None,
                 "plan_session": session,
             }
@@ -347,7 +410,26 @@ async def handle_plan_chat(
             session["max_turns"] = 5 if mode == "init" else 3
 
         dialogue_text = _build_plan_dialogue_text(session)
-        should_generate = _has_enough_info(dialogue_text, mode) or session["turns"] >= session["max_turns"]
+        async def _should_generate_plan_llm(text: str) -> bool:
+            try:
+                from app.core.task_plan.generator import _get_chat_model
+                model = _get_chat_model()
+                sys_prompt = (
+                    "你是学习计划信息判断器。"
+                    "判断当前对话是否已经足够生成完整学习计划。"
+                    "关注目标/范围、时间周期、日常投入、重点主题或约束。"
+                    "只回答 READY 或 NOT_READY。"
+                )
+                user_prompt = f"对话内容:\n{text}"
+                response = await model.ainvoke(
+                    [HumanMessage(content=sys_prompt), HumanMessage(content=user_prompt)]
+                )
+                content = (getattr(response, "content", "") or "").strip().upper()
+                return "READY" in content
+            except Exception:
+                return False
+
+        should_generate = await _should_generate_plan_llm(dialogue_text) or session["turns"] >= session["max_turns"]
 
         if should_generate:
             base_plan = existing_plan or {}
@@ -411,62 +493,30 @@ async def handle_plan_chat(
         }
 
     # Idle: detect intent
-    # 优先检测退出意图，给出明确回复
-    if _is_exit_intent(user_message):
-        # 如果当前没有进行中的计划流程，直接回复
-        if status == "idle":
-            return {
-                "handled": True,
-                "reply": "当前没有进行中的学习计划。如需制定学习计划，随时告诉我。",
-                "plan_proposal": None,
-                "plan_session": session,
-            }
-
-    intent = _detect_plan_intent(user_message, has_plan)
-    if intent == "learn":
-        mode = "update" if has_plan else "init"
-        session.update(
-            {
-                "status": "collecting",
-                "mode": mode,
-                "turns": 0,
-                "max_turns": 5 if mode == "init" else 3,
-                "messages": [],
-            }
-        )
-        if seed_user_message and seed_user_message.strip() and seed_user_message.strip() != (user_message or "").strip():
-            session["messages"].append({"role": "user", "content": seed_user_message.strip()})
-        if mode == "init":
-            question = _pick_init_first_question(user_message)
-        else:
-            question = await _generate_followup_question(mode, 0, session, has_plan, existing_plan)
-        session["messages"].append({"role": "assistant", "content": question})
-        return {
-            "handled": True,
-            "reply": question,
-            "plan_proposal": None,
-            "plan_session": session,
+    # 由 Analyzer 决定进入 plan 节点后，直接按是否已有计划选择 init/update
+    mode = "update" if has_plan else "init"
+    session["context_messages"] = _extract_recent_dialogue(history_messages, 12)
+    session.update(
+        {
+            "status": "collecting",
+            "mode": mode,
+            "turns": 0,
+            "max_turns": 5 if mode == "init" else 3,
+            "messages": [],
         }
-    if intent in {"init", "update"}:
-        mode = intent
-        session.update(
-            {
-                "status": "collecting",
-                "mode": mode,
-                "turns": 0,
-                "max_turns": 5 if mode == "init" else 3,
-                "messages": [],
-            }
-        )
-        if seed_user_message and seed_user_message.strip() and seed_user_message.strip() != (user_message or "").strip():
-            session["messages"].append({"role": "user", "content": seed_user_message.strip()})
+    )
+    if seed_user_message and seed_user_message.strip() and seed_user_message.strip() != (user_message or "").strip():
+        session["messages"].append({"role": "user", "content": seed_user_message.strip()})
+    if mode == "init":
+        question = _pick_init_first_question(user_message)
+    else:
         question = await _generate_followup_question(mode, 0, session, has_plan, existing_plan)
-        session["messages"].append({"role": "assistant", "content": question})
-        return {
-            "handled": True,
-            "reply": question,
-            "plan_proposal": None,
-            "plan_session": session,
-        }
+    session["messages"].append({"role": "assistant", "content": question})
+    return {
+        "handled": True,
+        "reply": question,
+        "plan_proposal": None,
+        "plan_session": session,
+    }
 
     return {"handled": False}

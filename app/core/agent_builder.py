@@ -199,7 +199,21 @@ async def analyzer_node(state: AgentState) -> Dict[str, Any]:
         # ?? has_task_plan ?????????????????? await_offer ???
         has_existing_plan = memory_io.has_task_plan(task_id) or isinstance(draft_plan, dict)
         plan_session = existing_plan.get(PLAN_SESSION_KEY) if existing_plan else None
-        if plan_session and plan_session.get("status") in {"await_confirm", "await_plan_confirm", "collecting"}:
+        status = ""
+        if isinstance(plan_session, dict):
+            status = str(plan_session.get("status") or "")
+            # 兼容旧状态 offer_shown
+            if status == "offer_shown":
+                plan_session["status"] = "await_offer"
+                status = "await_offer"
+                updated_plan = dict(existing_plan or {})
+                updated_plan[PLAN_SESSION_KEY] = plan_session
+                try:
+                    memory_io.save_task_plan(task_id, updated_plan)
+                except Exception:
+                    pass
+
+        if plan_session and status in {"await_confirm", "await_plan_confirm", "collecting"}:
             exit_plan_dialog = await _should_exit_plan_dialog_llm(
                 user_message=last_user_msg,
                 plan_session=plan_session,
@@ -219,27 +233,19 @@ async def analyzer_node(state: AgentState) -> Dict[str, Any]:
                 except Exception:
                     pass
                 plan_session = None
-        if plan_session and plan_session.get("status") in {"await_confirm", "await_plan_confirm", "collecting", "paused"}:
-            is_plan_related = await _is_plan_related_llm(
-                user_message=last_user_msg,
-                plan_session=plan_session,
-                has_plan=has_existing_plan,
-            )
-            status = plan_session.get("status")
+        if plan_session and status == "await_offer":
+            # 软引导阶段：下一轮交由 plan 节点处理（若用户未响应，将放行普通对话）
+            plan_force_request = True
+        elif plan_session and status in {"await_confirm", "await_plan_confirm", "collecting", "paused"}:
             if status == "paused":
-                if is_plan_related:
-                    plan_session["status"] = plan_session.get("paused_from") or "collecting"
-                    plan_session.pop("paused_from", None)
-                    updated_plan = dict(existing_plan or {})
-                    updated_plan[PLAN_SESSION_KEY] = plan_session
-                    try:
-                        memory_io.save_task_plan(task_id, updated_plan)
-                    except Exception:
-                        pass
-                    plan_force_request = True
-                else:
-                    plan_should_pause = True
+                # 挂起后的恢复仅由前端按钮控制
+                plan_should_pause = True
             else:
+                is_plan_related = await _is_plan_related_llm(
+                    user_message=last_user_msg,
+                    plan_session=plan_session,
+                    has_plan=has_existing_plan,
+                )
                 if not is_plan_related:
                     plan_session["paused_from"] = status
                     plan_session["status"] = "paused"
@@ -526,6 +532,15 @@ async def plan_node(state: AgentState) -> Dict[str, Any]:
     if plan_session and plan_session.get("status") in {"await_confirm", "await_plan_confirm", "collecting"}:
         # Use plan-session dialogue only to avoid mixing normal QA context.
         history_messages = []
+        for item in plan_session.get("context_messages", []) or []:
+            role = item.get("role")
+            content = item.get("content") or ""
+            if not content:
+                continue
+            if role == "user":
+                history_messages.append(HumanMessage(content=content))
+            else:
+                history_messages.append(AIMessage(content=content))
         for item in plan_session.get("messages", []) or []:
             role = item.get("role")
             content = item.get("content") or ""
@@ -597,6 +612,13 @@ async def plan_node(state: AgentState) -> Dict[str, Any]:
         history_messages=history_messages,
         seed_user_message=seed_user_message,
     )
+    if result.get("plan_session"):
+        updated_plan = plan_data or {}
+        updated_plan[PLAN_SESSION_KEY] = result["plan_session"]
+        try:
+            memory.save_task_plan(task_id, updated_plan)
+        except Exception:
+            pass
     if not result.get("handled"):
         plan = state.get("plan")
         if plan and getattr(plan, "request_plan", False):
@@ -605,14 +627,6 @@ async def plan_node(state: AgentState) -> Dict[str, Any]:
             "plan": plan,
             "plan_handled": False,
         }
-
-    if result.get("plan_session"):
-        updated_plan = plan_data or {}
-        updated_plan[PLAN_SESSION_KEY] = result["plan_session"]
-        try:
-            memory.save_task_plan(task_id, updated_plan)
-        except Exception:
-            pass
 
     if result.get("plan_proposal"):
         try:
@@ -742,7 +756,7 @@ async def aggregator_node(state: AgentState) -> Dict[str, Any]:
                     status = plan_session.get("status")
                     suffix = "当前处于计划调整中，继续提问即可；如需退出可回复“暂不调整计划”。"
                     if status == "paused":
-                        suffix = "计划已挂起，回复“继续调整计划”可继续；如需退出可回复“暂不调整计划”。"
+                        suffix = "计划已挂起，可在界面上继续调整或结束计划。"
                     final_response.content = (
                         (final_response.content or "").rstrip()
                         + f"\n\n{suffix}"
