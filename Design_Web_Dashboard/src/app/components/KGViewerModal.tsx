@@ -105,7 +105,7 @@ export function KGViewerModal({ taskId, isOpen, onClose }: KGViewerModalProps) {
           </div>
           <div className="flex items-center gap-3">
             <a
-              href={STREAMLIT_KG_URL}
+              href={`${STREAMLIT_KG_URL}/?task_id=${taskId}`}
               target="_blank"
               rel="noopener noreferrer"
               className="flex items-center gap-2 px-4 py-2 bg-gray-700 text-white rounded-lg hover:bg-gray-600 transition-colors"
@@ -154,7 +154,7 @@ export function KGViewerModal({ taskId, isOpen, onClose }: KGViewerModalProps) {
             </div>
           ) : (
             <iframe
-              src={`${STREAMLIT_KG_URL}?task_id=${taskId}`}
+              src={`${STREAMLIT_KG_URL}/?task_id=${taskId}`}
               className="w-full h-full border-0"
               title="Knowledge Graph Viewer"
               allow="fullscreen"
