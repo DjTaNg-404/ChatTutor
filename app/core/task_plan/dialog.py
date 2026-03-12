@@ -51,9 +51,7 @@ def _is_exit_intent(text: str) -> bool:
     """检测用户是否有退出计划流程的意图"""
     if not text:
         return False
-    text = text.strip()
-    exit_keywords = ["退出", "取消", "不要了", "算了", "不必了", "先这样", "下次再说", "不需要了", "停止", "结束"]
-    return any(k in text for k in exit_keywords)
+    return text.strip() == "暂不调整计划"
 
 
 def _is_update_intent(text: str) -> bool:
@@ -208,6 +206,7 @@ async def handle_plan_chat(
     has_plan: bool,
     conversation_summary: str = "",
     history_messages: Optional[List[Any]] = None,
+    seed_user_message: Optional[str] = None,
 ) -> Dict[str, Any]:
     session = _normalize_plan_session(plan_session)
     status = session.get("status", "idle")
@@ -313,7 +312,7 @@ async def handle_plan_chat(
                 "plan_session": session,
             }
         # 用户拒绝或想退出
-        if _is_no(user_message) or _is_exit_intent(user_message):
+        if _is_exit_intent(user_message):
             session.update({"status": "idle", "mode": "", "turns": 0, "pending_mode": "", "messages": []})
             return {
                 "handled": True,
@@ -331,7 +330,7 @@ async def handle_plan_chat(
     # Active collection flow
     if status == "collecting":
         # 检测用户是否想退出
-        if _is_no(user_message) or _is_exit_intent(user_message):
+        if _is_exit_intent(user_message):
             session.update({"status": "idle", "mode": "", "turns": 0, "pending_mode": "", "messages": []})
             return {
                 "handled": True,
@@ -377,11 +376,12 @@ async def handle_plan_chat(
             # 生成计划后自动退出计划模块
             session.update(
                 {
-                    "status": "idle",
+                    "status": "await_plan_confirm",
                     "mode": "",
                     "turns": 0,
                     "messages": [],
                     "pending_mode": "",
+                    "draft_plan": plan,
                 }
             )
             reply = "学习计划已生成！如果需要调整，请告诉我你想改哪些内容。"
@@ -434,6 +434,8 @@ async def handle_plan_chat(
                 "messages": [],
             }
         )
+        if seed_user_message and seed_user_message.strip() and seed_user_message.strip() != (user_message or "").strip():
+            session["messages"].append({"role": "user", "content": seed_user_message.strip()})
         if mode == "init":
             question = _pick_init_first_question(user_message)
         else:
@@ -456,6 +458,8 @@ async def handle_plan_chat(
                 "messages": [],
             }
         )
+        if seed_user_message and seed_user_message.strip() and seed_user_message.strip() != (user_message or "").strip():
+            session["messages"].append({"role": "user", "content": seed_user_message.strip()})
         question = await _generate_followup_question(mode, 0, session, has_plan, existing_plan)
         session["messages"].append({"role": "assistant", "content": question})
         return {

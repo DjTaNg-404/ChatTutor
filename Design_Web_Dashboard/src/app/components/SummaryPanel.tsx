@@ -299,23 +299,33 @@ export function SummaryPanel() {
           {isPlanLoading && (
             <div className="text-xs text-gray-500">计划加载中...</div>
           )}
-          {!isPlanLoading && !taskPlan && (
-            <div className="text-xs text-gray-500">暂无详细学习计划</div>
+          {!isPlanLoading && (!taskPlan || planSteps.length === 0) && (
+            <div className="flex flex-col items-center justify-center gap-3 text-center text-xs text-gray-500 py-8">
+              <div>暂无详细学习计划</div>
+              <button
+                onClick={() =>
+                  window.dispatchEvent(
+                    new CustomEvent("request-plan", {
+                      detail: { taskId: currentTaskId },
+                    })
+                  )
+                }
+                className="px-3 py-1.5 text-xs font-medium bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+              >
+                生成一个计划
+              </button>
+            </div>
           )}
-          {!isPlanLoading && taskPlan && (
+          {!isPlanLoading && taskPlan && planSteps.length > 0 && (
             <div className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
-              {planSteps.length > 0 ? (
-                <ul className="space-y-2 text-sm text-gray-700">
-                  {planSteps.map((step, idx) => (
-                    <li key={idx} className="flex items-start gap-2">
-                      <span className="text-indigo-500 mt-1">•</span>
-                      <span className="flex-1">{step}</span>
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <div className="text-xs text-gray-500">暂无详细学习计划</div>
-              )}
+              <ul className="space-y-2 text-sm text-gray-700">
+                {planSteps.map((step, idx) => (
+                  <li key={idx} className="flex items-start gap-2">
+                    <span className="text-indigo-500 mt-1">•</span>
+                    <span className="flex-1">{step}</span>
+                  </li>
+                ))}
+              </ul>
             </div>
           )}
         </div>
