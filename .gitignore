@@ -1,27 +1,50 @@
+# OS / IDE
+.DS_Store
+.vscode/
+.idea/
+
 # Python
 __pycache__/
 *.py[cod]
 *$py.class
+.pytest_cache/
+.mypy_cache/
 
-# Environments
-.env
-.venv
-env/
+# Python virtual environments
+.venv/
 venv/
+env/
 ENV/
 
-# Mac OS
-.DS_Store
+# Environment files
+.env
+.env.*
+!.env.example
+web/.env
+web/.env.*
+!web/.env.example
 
-# IDEs
-.vscode/
-.idea/
+# Local config with secrets
+app/core/config.py
 
-# Project Specific Data (Runtime Data)
-memory/sessions/*
-!memory/sessions/.gitkeep
-memory/notes/*
-!memory/notes/.gitkeep
-
-# Logs
+# Logs / archives
 *.log
+*.zip
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Frontend build artifacts (Vite)
+web/node_modules/
+web/dist/
+web/.vite/
+
+# Generic node_modules (if added elsewhere)
+node_modules/
+
+# Runtime generated data
+kg_output/
+memory/sessions/
+memory/notes/
+memory/task_index/

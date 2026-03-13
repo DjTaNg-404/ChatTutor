@@ -1,4 +1,4 @@
-from typing import Annotated, Literal, Optional, List, TypedDict
+from typing import Annotated, Literal, Optional, List, Dict, Any, TypedDict
 from pydantic import BaseModel, Field
 from langgraph.graph.message import add_messages
 from langchain_core.messages import AnyMessage
@@ -12,6 +12,7 @@ class ExecutionPlan(BaseModel):
     needs_judge: bool = Field(description="是否需要评估用户的观点/答案")
     needs_inquiry: bool = Field(description="是否需要进一步提问/探究")
     request_summary: bool = Field(description="用户是否要求总结当前的对话内容")
+    request_plan: bool = Field(description="用户是否要求制定学习计划")
     is_concluding: bool = Field(description="用户是否想要结束/退出对话")
     thought_process: str = Field(description="做出此计划的简短思考过程")
 
@@ -24,6 +25,7 @@ class AgentState(TypedDict):
     messages: Annotated[List[AnyMessage], add_messages]
     
     # 基础元数据
+    task_id: Optional[str]
     current_topic: Optional[str]
     session_id: str
     
@@ -45,6 +47,15 @@ class AgentState(TypedDict):
     
     # 临时字段
     last_intent: Optional[str]
+
+    # 计划节点是否已处理
+    plan_handled: Optional[bool]
+
+    # 用户标识（供 profile_store 识别学习画像）
+    user_id: Optional[str]
+
+    # 缓存命中追踪（每轮清零，不持久化）
+    _cache_trace: Optional[Dict[str, Any]]
 
 
 # --- 2. Structured Output Models (LLM的结构化输出) ---
