@@ -795,12 +795,40 @@ class KnowledgeGraphBuilder:
             self.graph.add_node(entity_id, **node_data)
 
         # 添加边（关系）
+        # 先构建 text -> node_id 的映射，方便查找
+        text_to_node = {}
+        for node_id, node_data in self.graph.nodes(data=True):
+            text = node_data.get('text', '')
+            if text:
+                if text not in text_to_node:
+                    text_to_node[text] = []
+                text_to_node[text].append(node_id)
+
         for relation in relations:
-            source_id = f"{relation['source']}_{relation['source_type']}"
-            target_id = f"{relation['target']}_{relation['target_type']}"
+            source_text = relation['source']
+            target_text = relation['target']
+
+            # 尝试直接使用 source_type 构建 ID
+            source_id = f"{source_text}_{relation['source_type']}"
+            target_id = f"{target_text}_{relation['target_type']}"
+
+            # 如果找不到，尝试使用 text_to_node 映射查找
+            if source_id not in self.graph and source_text in text_to_node:
+                # 选择第一个匹配的节点 ID
+                source_id = text_to_node[source_text][0]
+
+            if target_id not in self.graph and target_text in text_to_node:
+                target_id = text_to_node[target_text][0]
 
             if source_id in self.graph and target_id in self.graph:
                 self.graph.add_edge(source_id, target_id, **relation)
+            else:
+                # 调试信息：记录无法添加的边
+                print(f"[DEBUG] 无法添加边：{source_text} -> {target_text}, source_id={source_id}, target_id={target_id}")
+                if source_id not in self.graph:
+                    print(f"  - source_id '{source_id}' 不在图中")
+                if target_id not in self.graph:
+                    print(f"  - target_id '{target_id}' 不在图中")
 
         # 应用优化（如果启用）
         optimization_stats = {}

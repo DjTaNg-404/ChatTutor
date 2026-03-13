@@ -59,7 +59,7 @@ def render_settings_panel(kg_file: str):
     st.sidebar.subheader("🔗 关系过滤")
     relation_strength_threshold = st.sidebar.slider(
         "关系强度阈值",
-        min_value=0.5,
+        min_value=0.0,
         max_value=1.0,
         value=0.8,
         step=0.002,
