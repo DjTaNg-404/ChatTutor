@@ -110,13 +110,16 @@ HTML_TEMPLATE = r"""
         window.renderMarkdownAndMath = function(text) {
             let html = text;
             try {
+                // 👇 核心修复：过滤掉大模型的深度思考标签（如 <think>）及其内部的所有流式文字
+                let temp = text.replace(/<(think|thought)>[\s\S]*?(<\/\1>|$)/gi, '').trim();
+
                 let mathBlocks = [];
-                let temp = text.replace(/(\$\$[\s\S]+?\$\$|\\\[[\s\S]+?\\\])/g, function(match) {
+                temp = temp.replace(/(\$\$[\s\S]+?\$\$|\\\[[\s\S]+?\\\])/g, function(match) {
                     let content = match.startsWith('$$') ? match.slice(2, -2) : match.slice(2, -2);
                     mathBlocks.push({ display: true, math: content });
                     return '@@MATH_TOKEN_' + (mathBlocks.length - 1) + '@@';
                 });
-                temp = temp.replace(/(\$[^$\n]+?\$|\\\( [\s\S]+?\\\))/g, function(match) {
+                temp = temp.replace(/(\$[^$\n]+?\$|\\\([\s\S]+?\\\))/g, function(match) {
                     let content = match.startsWith('$') ? match.slice(1, -1) : match.slice(2, -2);
                     mathBlocks.push({ display: false, math: content });
                     return '@@MATH_TOKEN_' + (mathBlocks.length - 1) + '@@';
@@ -205,6 +208,9 @@ HTML_TEMPLATE = r"""
             const container = document.getElementById('chat-container');
 
             if (isUser) {
+                // 全局记录下用户最后一次发送的提问文本
+                window._lastUserQuestion = text;
+
                 const card = document.createElement('div');
                 card.className = 'card';
                 card.innerHTML = `
@@ -238,11 +244,25 @@ HTML_TEMPLATE = r"""
         };
 
         window.startAssistantMessage = function(messageId) {
+            // 尝试复用最后一张卡片（也就是用户刚刚提问生成的那张）
+            if (cards.length > 0) {
+                const lastCard = cards[cards.length - 1];
+                // 如果最后一张卡片还没有绑定 data-id，说明它正是等待回答的提问卡片
+                if (!lastCard.hasAttribute('data-id')) {
+                    if (messageId) lastCard.setAttribute('data-id', messageId);
+                    return; // 成功复用，直接退出，不再生成多余的新卡片
+                }
+            }
+
+            // 保底逻辑：只有在特殊情况（没有旧卡片）时，才创建新卡片
             const card = document.createElement('div');
             card.className = 'card';
-            // 初始显示一个空状态，等待 node 事件或 delta 事件更新
+            
+            // 获取刚才记录的用户问题（如果没有记录到，则保底显示 'AI 回答'）
+            const questionTitle = window._lastUserQuestion || 'AI 回答';
+
             card.innerHTML = `
-                <div class="question-header">💬 AI 回答</div>
+                <div class="question-header">💬 ${questionTitle}</div>
                 <div class="answer-body" data-node="waiting"><span style="color:#22c55e; font-style:italic;">💭 处理中...</span></div>
             `;
 
@@ -255,6 +275,9 @@ HTML_TEMPLATE = r"""
             container.appendChild(card);
             cards.push(card);
             if (messageId) card.setAttribute('data-id', messageId);
+            
+            activeIndex = cards.length - 1;
+            
             updateStack();
         };
 
@@ -274,12 +297,10 @@ HTML_TEMPLATE = r"""
             // 只更新 AI 卡片（通过 messageId 查找），不更新用户卡片
             let card = null;
 
-            // 首先尝试通过 data-id 查找
             if (messageId) {
                 card = document.querySelector(`.card[data-id="${messageId}"]`);
             }
 
-            // 如果没找到，尝试找最新的有 data-id 的卡片（AI 卡片）
             if (!card) {
                 for (let i = cards.length - 1; i >= 0; i--) {
                     if (cards[i].hasAttribute('data-id')) {
@@ -289,7 +310,6 @@ HTML_TEMPLATE = r"""
                 }
             }
 
-            // 如果还是没找到，可能 AI 卡片还没创建，使用最新的卡片
             if (!card) {
                 card = cards[cards.length - 1];
             }
