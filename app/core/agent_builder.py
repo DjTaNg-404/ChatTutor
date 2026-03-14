@@ -635,6 +635,7 @@ async def plan_node(state: AgentState) -> Dict[str, Any]:
             pass
 
     reply = result.get("reply") or "请告诉我你的学习计划需求，比如目标和时间安排。"
+    suggested_replies = result.get("suggested_replies")
     if result.get("plan_session"):
         session = result["plan_session"]
         if session.get("status") in {"collecting", "await_plan_confirm"} and not session.get("reminded"):
@@ -653,6 +654,7 @@ async def plan_node(state: AgentState) -> Dict[str, Any]:
         "messages": [ai_reply],
         "plan_proposal": result.get("plan_proposal"),
         "plan_handled": True,
+        "suggested_replies": suggested_replies,
         "conversation_summary": temp_state.get("conversation_summary"),
         "summarized_msg_count": temp_state.get("summarized_msg_count"),
     }

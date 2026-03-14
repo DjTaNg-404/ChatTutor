@@ -1,8 +1,30 @@
+# desk_pet/code/pet_controller.py
 import random
 import ctypes
-from ctypes.wintypes import RECT
+from ctypes import wintypes
+from ctypes.wintypes import RECT, BOOL, HWND, LPARAM
 from PyQt6.QtCore import QObject, QTimer, pyqtSignal, QPoint
 from PyQt6.QtWidgets import QApplication
+
+# ================= C 函数签名与 EnumWindows =================
+user32 = ctypes.windll.user32
+dwmapi = ctypes.windll.dwmapi
+
+WNDENUMPROC = ctypes.WINFUNCTYPE(BOOL, HWND, LPARAM)
+
+user32.EnumWindows.argtypes = [WNDENUMPROC, LPARAM]
+user32.EnumWindows.restype = BOOL
+user32.IsWindowVisible.argtypes = [HWND]
+user32.IsWindowVisible.restype = BOOL
+user32.IsIconic.argtypes = [HWND]
+user32.IsIconic.restype = BOOL
+user32.GetClassNameW.argtypes = [HWND, ctypes.c_wchar_p, ctypes.c_int]
+user32.GetClassNameW.restype = ctypes.c_int
+user32.GetWindowRect.argtypes = [HWND, ctypes.POINTER(RECT)]
+user32.GetWindowRect.restype = BOOL
+dwmapi.DwmGetWindowAttribute.argtypes = [HWND, wintypes.DWORD, ctypes.c_void_p, wintypes.DWORD]
+dwmapi.DwmGetWindowAttribute.restype = ctypes.c_long
+# =========================================================
 
 class PetController(QObject):
     position_changed = pyqtSignal(int, int)  
@@ -30,20 +52,29 @@ class PetController(QObject):
         self.stand_has_acted = False 
         self.is_chatting = False
         
+        # ====== 记录拖拽时的轨迹，用于计算抛掷速度 ======
+        self._drag_last_x = self.pet_x
+        self._drag_last_y = self.pet_y
+        # ====================================================
+        
         self.game_timer = QTimer(self)
         self.game_timer.timeout.connect(self.game_loop)
         self.game_timer.start(50)
 
     def start_drag(self):
         self.change_state("DRAGGED")
+        self._drag_last_x = self.pet_x
+        self._drag_last_y = self.pet_y
+        self.vx = 0.0
+        self.vy = 0.0
         
     def drag_to(self, x, y):
         self.pet_x, self.pet_y = float(x), float(y)
         self.position_changed.emit(int(self.pet_x), int(self.pet_y))
         
     def end_drag(self):
-        self.vx, self.vy = 0.0, 0.0
         if self.is_chatting:
+            self.vx, self.vy = 0.0, 0.0
             self.change_state("THINKING", 9999) 
         else:
             self.change_state("FALLING")
@@ -56,66 +87,77 @@ class PetController(QObject):
         else:
             self.change_state("STAND", 20)
 
-    # ================= 核心修复：分离所有窗口与可踩踏窗口 =================
     def get_all_visible_windows(self, screen_geo, ratio):
-        user32 = ctypes.windll.user32
-        dwmapi = ctypes.windll.dwmapi 
-        
-        hwnd = user32.GetTopWindow(None)
         windows_info = []
-        
         DWMWA_EXTENDED_FRAME_BOUNDS = 9
         DWMWA_CLOAKED = 14
         
-        while hwnd:
-            if hwnd != self.win_id and user32.IsWindowVisible(hwnd) and not user32.IsIconic(hwnd):
+        def enum_window_proc(hwnd, lParam):
+            if hwnd == self.win_id or not user32.IsWindowVisible(hwnd) or user32.IsIconic(hwnd):
+                return True 
                 
-                cloaked = ctypes.wintypes.DWORD()
-                res = dwmapi.DwmGetWindowAttribute(
-                    hwnd, DWMWA_CLOAKED, ctypes.byref(cloaked), ctypes.sizeof(cloaked)
-                )
-                if res == 0 and cloaked.value != 0:
-                    hwnd = user32.GetWindow(hwnd, 2)
-                    continue 
+            cloaked = wintypes.DWORD()
+            res = dwmapi.DwmGetWindowAttribute(
+                hwnd, DWMWA_CLOAKED, ctypes.byref(cloaked), ctypes.sizeof(cloaked)
+            )
+            if res == 0 and cloaked.value != 0:
+                return True 
 
-                class_name = ctypes.create_unicode_buffer(256)
-                user32.GetClassNameW(hwnd, class_name, 256)
-                c_name = class_name.value
-                
-                if c_name not in ["WorkerW", "Progman", "Shell_TrayWnd", "Windows.UI.Core.CoreWindow"]:
-                    rect = RECT()
-                    res = dwmapi.DwmGetWindowAttribute(
-                        hwnd, DWMWA_EXTENDED_FRAME_BOUNDS, ctypes.byref(rect), ctypes.sizeof(rect)
-                    )
-                    if res != 0: 
-                        user32.GetWindowRect(hwnd, ctypes.byref(rect))
-                    
-                    rect.left = int(rect.left / ratio)
-                    rect.right = int(rect.right / ratio)
-                    rect.top = int(rect.top / ratio)
-                    rect.bottom = int(rect.bottom / ratio)
-                    
-                    width = rect.right - rect.left
-                    height = rect.bottom - rect.top
-                    
-                    if width > 0 and height > 0:
-                        # 判断是否为全屏/最大化窗口（它们不能作为地板，但必须作为遮挡物）
-                        is_fullscreen = (width >= screen_geo.width() - 20) and (height >= screen_geo.height() - 20)
-                        # 判断是否是可以踩踏的有效小窗口
-                        is_valid_floor = not is_fullscreen and width > 100 and height > 50
-                        
-                        windows_info.append({
-                            "rect": rect,
-                            "is_valid_floor": is_valid_floor
-                        })
-                        
-            hwnd = user32.GetWindow(hwnd, 2) 
+            class_name = ctypes.create_unicode_buffer(256)
+            user32.GetClassNameW(hwnd, class_name, 256)
+            c_name = class_name.value
             
+            ignore_classes = [
+                "WorkerW", "Progman", "Shell_TrayWnd", 
+                "Windows.UI.Core.CoreWindow", "PopupHost",
+                "CEF-OSC-WIDGET", "SystemTray_Main" 
+            ]
+            
+            if c_name not in ignore_classes:
+                rect = RECT()
+                res = dwmapi.DwmGetWindowAttribute(
+                    hwnd, DWMWA_EXTENDED_FRAME_BOUNDS, ctypes.byref(rect), ctypes.sizeof(rect)
+                )
+                if res != 0: 
+                    user32.GetWindowRect(hwnd, ctypes.byref(rect))
+                
+                rect.left = int(rect.left / ratio)
+                rect.right = int(rect.right / ratio)
+                rect.top = int(rect.top / ratio)
+                rect.bottom = int(rect.bottom / ratio)
+                
+                width = rect.right - rect.left
+                height = rect.bottom - rect.top
+                
+                if width > 0 and height > 0:
+                    is_fullscreen = (width >= screen_geo.width() - 20) and (height >= screen_geo.height() - 20)
+                    is_valid_floor = not is_fullscreen and width > 100 and height > 50
+                    
+                    windows_info.append({
+                        "rect": rect,
+                        "is_valid_floor": is_valid_floor
+                    })
+            
+            return True 
+            
+        enum_proc = WNDENUMPROC(enum_window_proc)
+        user32.EnumWindows(enum_proc, 0)
+        
         return windows_info
-    # ======================================================================
 
     def game_loop(self):
         if self.state == "DRAGGED": 
+            # ================= 核心：计算抛掷时的瞬时速度 =================
+            self.vx = (self.pet_x - self._drag_last_x) * 0.4
+            
+            # 【修改】剥夺阿城的垂直抛出能力，强制设为 0。松手时只会自然下落。
+            self.vy = 0.0
+            
+            self.vx = max(-40.0, min(40.0, self.vx))
+            
+            self._drag_last_x = self.pet_x
+            self._drag_last_y = self.pet_y
+            # ==============================================================
             return 
             
         if self.is_chatting:
@@ -137,7 +179,6 @@ class PetController(QObject):
             
         screen_floor_y = screen_geo.bottom() - self.pet_height
 
-        # 获取带有地板属性标记的窗口列表
         all_windows_info = self.get_all_visible_windows(screen_geo, ratio)
         
         highest_floor_y = screen_floor_y
@@ -146,14 +187,12 @@ class PetController(QObject):
         
         if self.state != "DRAGGED":
             for i, win_data in enumerate(all_windows_info):
-                # 只有非全屏的有效窗口，才有资格做地板
                 if not win_data["is_valid_floor"]:
                     continue
                     
                 rect = win_data["rect"]
                 if rect.left <= pet_center_x <= rect.right:
                     is_occluded = False
-                    # 遍历上方所有窗口（包含全屏大窗口）检测遮挡
                     for j in range(i):
                         hw = all_windows_info[j]["rect"]
                         if hw.left <= pet_center_x <= hw.right and hw.top <= rect.top <= hw.bottom:
@@ -162,7 +201,6 @@ class PetController(QObject):
                     
                     if not is_occluded:
                         window_top_y = rect.top - self.pet_height + 25 
-                        
                         if self.vy >= 0: 
                             if self.pet_y <= window_top_y + 80: 
                                 if window_top_y < highest_floor_y:
@@ -176,31 +214,57 @@ class PetController(QObject):
 
         target_floor_y = highest_floor_y
 
+        # ================= 核心：弹跳与动能损耗物理引擎 =================
         if self.pet_y < target_floor_y - 5:  
-            self.vy += 2.0  
+            self.vy += 2.0  # 施加重力
+            self.vx *= 0.95 # 空气阻力减速水平移动
+            
             if self.state not in ["FALLING", "FELL", "JUMP"]: 
                 self.change_state("FALLING")
-        elif self.pet_y < target_floor_y:
+                
+        elif self.pet_y < target_floor_y: # 轻微陷入地板
             self.pet_y = target_floor_y
-            self.vy = 0
-            if self.state == "FALLING":
-                self.change_state("FELL")
-            elif self.state == "JUMP": 
-                self.change_state("STAND", random.randint(100, 200))
-        else:
+            if self.vy > 20.0:  
+                self.vy = -self.vy * 0.25 
+                self.vx *= 0.2            
+                self.change_state("FALLING")
+            else:
+                self.vy = 0
+                if self.state == "FALLING":
+                    self.vx = 0 
+                    self.change_state("FELL")
+                elif self.state == "JUMP": 
+                    self.vx = 0
+                    self.change_state("STAND", random.randint(100, 200))
+        else: # 正常踩在地板上
             self.pet_y = target_floor_y
-            self.vy = 0
-            if self.state == "FALLING":
-                self.change_state("FELL")
-            elif self.state == "JUMP": 
-                self.change_state("STAND", random.randint(100, 200))
+            if self.vy > 20.0:  
+                self.vy = -self.vy * 0.25
+                self.vx *= 0.2 
+                self.change_state("FALLING")
+            else:
+                self.vy = 0
+                if self.state == "FALLING":
+                    self.vx = 0
+                    self.change_state("FELL")
+                elif self.state == "JUMP": 
+                    self.vx = 0
+                    self.change_state("STAND", random.randint(100, 200))
 
+        # 【左右边缘弹跳引擎】
         if self.pet_x < screen_geo.left(): 
             self.pet_x = screen_geo.left()
-            self.vx = abs(self.vx)  
+            self.vx = abs(self.vx) * 0.15   
         elif self.pet_x > screen_geo.right() - self.pet_width: 
             self.pet_x = screen_geo.right() - self.pet_width
-            self.vx = -abs(self.vx) 
+            self.vx = -abs(self.vx) * 0.15  
+
+        # 【天花板限制】（虽然不会往上飞了，但防止越界还是保留）
+        if self.pet_y < screen_geo.top():
+            self.pet_y = screen_geo.top()
+            if self.vy < 0:
+                self.vy = abs(self.vy) * 0.2 
+        # ==============================================================
 
         new_flipped = self.is_flipped
         if self.vx > 0:
@@ -285,7 +349,6 @@ class PetController(QObject):
                         center_x = (tw.left + tw.right) / 2
                         is_occluded = False
                         
-                        # 同样在决定跳跃目标时，做严格的遮挡剔除
                         for j in range(i):
                             hw = all_windows_info[j]["rect"]
                             if hw.left <= center_x <= hw.right and hw.top <= tw.top <= hw.bottom:
@@ -313,9 +376,8 @@ class PetController(QObject):
                             self.change_state("JUMP", 9999) 
                             return
 
-            # ================= 新增逻辑：在窗口上时有概率主动跳下来 =================
             elif on_window:
-                if r < 0.20: # 20% 的概率待腻了想跳下去
+                if r < 0.20: 
                     safe_left = screen_geo.left() + 50
                     safe_right = screen_geo.right() - int(self.pet_width) - 50
                     
@@ -331,7 +393,6 @@ class PetController(QObject):
                         
                         self.change_state("JUMP", 9999) 
                         return
-            # ====================================================================
 
             r2 = random.random()
             

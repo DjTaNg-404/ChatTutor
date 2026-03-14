@@ -1,6 +1,6 @@
 """
-知识图谱查看器 - ChatTutor
-用于可视化和浏览 ChatTutor 生成的知识图谱
+知识图谱查看器 - 阿城
+用于可视化和浏览 阿城 生成的知识图谱
 """
 
 from .app import main

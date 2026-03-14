@@ -15,6 +15,7 @@ interface Message {
   planProposal?: TaskPlan;
   planConfirmed?: boolean;
   planError?: string;
+  suggestedReplies?: string[];
 }
 
 interface OutletContext {
@@ -167,7 +168,7 @@ export function TutorSession() {
   const readStreamResponse = async (
     response: Response,
     assistantId: string,
-  ): Promise<{ sessionId?: string; isConcluded?: boolean; planProposal?: TaskPlan | null; intentDisplay?: string; planStatus?: string | null }> => {
+  ): Promise<{ sessionId?: string; isConcluded?: boolean; planProposal?: TaskPlan | null; intentDisplay?: string; planStatus?: string | null; suggestedReplies?: string[] }> => {
     const reader = response.body?.getReader();
     if (!reader) {
       throw new Error("流式响应不可读");
@@ -180,6 +181,7 @@ export function TutorSession() {
     let finalPlan: TaskPlan | null = null;
     let finalIntentDisplay: string | undefined;
     let finalPlanStatus: string | null | undefined;
+    let finalSuggestedReplies: string[] | undefined;
     let interrupted = false;
 
     while (true) {
@@ -243,6 +245,9 @@ export function TutorSession() {
             if (typeof evt.data?.plan_status !== "undefined") {
               finalPlanStatus = evt.data.plan_status as string | null;
             }
+            if (Array.isArray(evt.data?.suggested_replies)) {
+              finalSuggestedReplies = evt.data.suggested_replies.map((item: any) => String(item));
+            }
             if (evt.data?.intent_display) {
               finalIntentDisplay = String(evt.data.intent_display);
             }
@@ -265,7 +270,7 @@ export function TutorSession() {
       return { sessionId: finalSessionId, isConcluded: false, planProposal: null, intentDisplay: "" };
     }
 
-    return { sessionId: finalSessionId, isConcluded: finalConcluded, planProposal: finalPlan, intentDisplay: finalIntentDisplay, planStatus: finalPlanStatus };
+    return { sessionId: finalSessionId, isConcluded: finalConcluded, planProposal: finalPlan, intentDisplay: finalIntentDisplay, planStatus: finalPlanStatus, suggestedReplies: finalSuggestedReplies };
   };
 
   const fallbackSendMessage = async (messageText: string) => {
@@ -300,6 +305,9 @@ export function TutorSession() {
     const assistantMessage = makeMessage("assistant", replyText);
     if (data?.plan_proposal) {
       assistantMessage.planProposal = data.plan_proposal as TaskPlan;
+    }
+    if (Array.isArray(data?.suggested_replies)) {
+      assistantMessage.suggestedReplies = data.suggested_replies.map((item: any) => String(item));
     }
     setMessages((prev) => [...prev, assistantMessage]);
 
@@ -356,7 +364,7 @@ export function TutorSession() {
     let cancelled = false;
     const fallbackTitle = taskId
       ? taskTitles[rawTaskId] || taskTitles[taskId] || "学习任务"
-      : "欢迎使用 ChatTutor";
+      : "欢迎使用 阿城";
 
     if (isDraftTask) {
       setTaskTitleDisplay(draftTask?.title || "新的学习");
@@ -607,6 +615,13 @@ export function TutorSession() {
         setMessages((prev) =>
           prev.map((m) =>
             m.id === assistantId ? { ...m, planProposal: streamResult.planProposal } : m
+          )
+        );
+      }
+      if (streamResult.suggestedReplies && streamResult.suggestedReplies.length > 0) {
+        setMessages((prev) =>
+          prev.map((m) =>
+            m.id === assistantId ? { ...m, suggestedReplies: streamResult.suggestedReplies } : m
           )
         );
       }
@@ -904,20 +919,55 @@ export function TutorSession() {
 
       {/* Chat Messages Area */}
       <div className="flex-1 overflow-y-auto bg-gray-50 p-6">
-        <div className="max-w-4xl mx-auto space-y-6">
-          {isLoadingHistory && (
-            <div className="rounded-lg border border-gray-200 bg-white px-4 py-3 text-sm text-gray-600">
-              正在加载历史对话...
+        <div className="max-w-4xl mx-auto relative min-h-[60vh]">
+          {!isLoadingHistory && !errorText && isDraftTask && (
+            <div className="pointer-events-none absolute inset-0 flex items-center justify-center z-0">
+              <div className="w-full max-w-xl rounded-3xl border border-indigo-100/80 bg-white/70 px-8 py-6 text-center shadow-sm backdrop-blur-sm">
+                <div className="grid grid-cols-1 gap-3 text-sm text-gray-600">
+                  <div className="flex items-center justify-center gap-3">
+                    <span className="flex h-6 w-6 items-center justify-center rounded-full bg-indigo-50 text-xs font-semibold text-indigo-600">
+                      01
+                    </span>
+                    <span className="font-medium text-gray-700">说出你的学习目标</span>
+                  </div>
+                  <div className="flex items-center justify-center gap-3">
+                    <span className="flex h-6 w-6 items-center justify-center rounded-full bg-indigo-50 text-xs font-semibold text-indigo-600">
+                      02
+                    </span>
+                    <span className="font-medium text-gray-700">AI 生成学习路径与节奏</span>
+                  </div>
+                  <div className="flex items-center justify-center gap-3">
+                    <span className="flex h-6 w-6 items-center justify-center rounded-full bg-indigo-50 text-xs font-semibold text-indigo-600">
+                      03
+                    </span>
+                    <span className="font-medium text-gray-700">调整计划，开始学习</span>
+                  </div>
+                  <div className="flex items-center justify-center gap-3">
+                    <span className="flex h-6 w-6 items-center justify-center rounded-full bg-indigo-50 text-xs font-semibold text-indigo-600">
+                      04
+                    </span>
+                    <span className="font-medium text-gray-700">每日记录与复盘</span>
+                  </div>
+                </div>
+                <div className="mt-4 text-xs text-gray-400">或者只是和阿城聊聊天吧</div>
+              </div>
             </div>
           )}
 
-          {errorText && (
-            <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-              {errorText}
-            </div>
-          )}
+          <div className="relative z-10 space-y-6">
+            {isLoadingHistory && (
+              <div className="rounded-lg border border-gray-200 bg-white px-4 py-3 text-sm text-gray-600">
+                正在加载历史对话...
+              </div>
+            )}
 
-          {messages.map((message) => {
+            {errorText && (
+              <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                {errorText}
+              </div>
+            )}
+
+            {messages.map((message) => {
             // 渲染分割线
             if (message.role === "divider") {
               return (
@@ -1002,6 +1052,23 @@ export function TutorSession() {
                   >
                     {message.timestamp}
                   </div>
+
+                  {message.role === "assistant" &&
+                    message.suggestedReplies &&
+                    message.suggestedReplies.length > 0 && (
+                      <div className="mt-3 flex flex-wrap gap-2">
+                        {message.suggestedReplies.map((item, idx) => (
+                          <button
+                            key={`${message.id}-suggest-${idx}`}
+                            onClick={() => void sendMessage(item)}
+                            disabled={isSending || showIntentDisplay}
+                            className="rounded-full border border-gray-200 bg-gray-50 px-3 py-1 text-xs text-gray-700 hover:bg-gray-100 disabled:opacity-50"
+                          >
+                            {item}
+                          </button>
+                        ))}
+                      </div>
+                    )}
 
                   {message.role === "assistant" && message.planProposal && (
                     <div className="mt-3 border-t border-gray-200 pt-3">
@@ -1088,6 +1155,7 @@ export function TutorSession() {
               </button>
             </div>
           )}
+          </div>
         </div>
       </div>
 

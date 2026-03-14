@@ -9,6 +9,7 @@ __pycache__/
 env/
 venv/
 ENV/
+chattutor/
 app/core/config.py
 # Mac OS
 .DS_Store

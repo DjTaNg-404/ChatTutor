@@ -15,7 +15,7 @@ from stats_utils import calculate_stats
 def main():
     """主函数"""
     st.set_page_config(
-        page_title="ChatTutor 知识图谱查看器",
+        page_title="阿城 知识图谱查看器",
         page_icon="🕸️",
         layout="wide",
         initial_sidebar_state="expanded"

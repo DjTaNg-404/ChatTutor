@@ -40,6 +40,7 @@ class ChatResponse(BaseModel):
     is_concluded: bool
     plan_proposal: Optional[dict] = None
     plan_status: Optional[str] = None
+    suggested_replies: Optional[list[str]] = None
 
 
 class StreamEvent(BaseModel):
@@ -305,6 +306,7 @@ async def chat_endpoint(request: ChatRequest):
             print(f"⚠️ 会话 {session_id} 已经在生成总结中，跳过重复请求")
 
     plan_proposal = final_state.get("plan_proposal") if isinstance(final_state, dict) else None
+    suggested_replies = final_state.get("suggested_replies") if isinstance(final_state, dict) else None
     plan_data = memory.get_task_plan_data(task_id)
     plan_session = plan_data.get(PLAN_SESSION_KEY) if isinstance(plan_data, dict) else None
     plan_status = plan_session.get("status") if isinstance(plan_session, dict) else None
@@ -316,6 +318,7 @@ async def chat_endpoint(request: ChatRequest):
         is_concluded=is_concluded,
         plan_proposal=plan_proposal,
         plan_status=plan_status,
+        suggested_replies=suggested_replies,
     )
 
 
@@ -336,7 +339,7 @@ async def chat_stream_endpoint(request: ChatRequest):
             yield _event_line("start", {"task_id": task_id, "session_id": session_id})
 
             # 发送意图识别开始事件
-            yield _event_line("intent", {"status": "analyzing", "text": "正在进行意图识别..."})
+            yield _event_line("intent", {"status": "analyzing", "text": "get!阿城正在思考中..."})
 
             current_state = _build_state(request, task_id, session_id)
             final_state = None
@@ -476,6 +479,7 @@ async def chat_stream_endpoint(request: ChatRequest):
                 asyncio.create_task(_call_summary_agent(session_id, task_id, summary_from_agent))
 
             plan_proposal = final_state.get("plan_proposal") if isinstance(final_state, dict) else None
+            suggested_replies = final_state.get("suggested_replies") if isinstance(final_state, dict) else None
             plan_data = memory.get_task_plan_data(task_id)
             plan_session = plan_data.get(PLAN_SESSION_KEY) if isinstance(plan_data, dict) else None
             plan_status = plan_session.get("status") if isinstance(plan_session, dict) else None
@@ -486,6 +490,7 @@ async def chat_stream_endpoint(request: ChatRequest):
                 "is_concluded": is_concluded,
                 "plan_proposal": plan_proposal,
                 "plan_status": plan_status,
+                "suggested_replies": suggested_replies,
             })
         except HTTPException as e:
             yield _event_line("error", {"message": str(e.detail), "status": e.status_code})

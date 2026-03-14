@@ -1,6 +1,6 @@
 {
   "learner_id": "local_user",
-  "updated_at": "2026-03-13T00:23:23",
+  "updated_at": "2026-03-15T00:20:43",
   "cards": [
     {
       "type": "learning_fact",
@@ -389,6 +389,114 @@
       },
       "source": "local_user",
       "ts": "2026-03-13T00:23:23"
+    },
+    {
+      "type": "learning_fact",
+      "fact_type": "goal",
+      "fields": {
+        "subject": "习一下机器学习"
+      },
+      "source": "local_user",
+      "ts": "2026-03-14T14:14:11"
+    },
+    {
+      "type": "learning_fact",
+      "fact_type": "goal",
+      "fields": {
+        "subject": "来看"
+      },
+      "source": "local_user",
+      "ts": "2026-03-14T14:14:39"
+    },
+    {
+      "type": "learning_fact",
+      "fact_type": "goal",
+      "fields": {
+        "subject": "直接沉淀知识"
+      },
+      "source": "local_user",
+      "ts": "2026-03-14T18:26:29"
+    },
+    {
+      "type": "learning_fact",
+      "fact_type": "goal",
+      "fields": {
+        "subject": "学习从输入特征到已知输出标签的映射"
+      },
+      "source": "local_user",
+      "ts": "2026-03-14T21:09:13"
+    },
+    {
+      "type": "learning_fact",
+      "fact_type": "goal",
+      "fields": {
+        "subject": "什么"
+      },
+      "source": "local_user",
+      "ts": "2026-03-14T21:15:55"
+    },
+    {
+      "type": "learning_fact",
+      "fact_type": "goal",
+      "fields": {
+        "subject": "让计算机能像人一样“看懂”图像和视频"
+      },
+      "source": "local_user",
+      "ts": "2026-03-14T22:14:17"
+    },
+    {
+      "type": "learning_fact",
+      "fact_type": "goal",
+      "fields": {
+        "subject": "习一下深度学习"
+      },
+      "source": "local_user",
+      "ts": "2026-03-14T22:18:02"
+    },
+    {
+      "type": "learning_fact",
+      "fact_type": "goal",
+      "fields": {
+        "subject": "习一下计算机视觉的基础知识"
+      },
+      "source": "local_user",
+      "ts": "2026-03-14T22:30:39"
+    },
+    {
+      "type": "learning_fact",
+      "fact_type": "goal",
+      "fields": {
+        "subject": "让机器能够“看懂”图像和视频的内容"
+      },
+      "source": "local_user",
+      "ts": "2026-03-14T22:37:33"
+    },
+    {
+      "type": "learning_fact",
+      "fact_type": "goal",
+      "fields": {
+        "subject": "实现流畅的人机自然交互"
+      },
+      "source": "local_user",
+      "ts": "2026-03-14T23:07:16"
+    },
+    {
+      "type": "learning_fact",
+      "fact_type": "goal",
+      "fields": {
+        "subject": "让机器能够像人一样处理文本和语音"
+      },
+      "source": "local_user",
+      "ts": "2026-03-14T23:20:34"
+    },
+    {
+      "type": "learning_fact",
+      "fact_type": "goal",
+      "fields": {
+        "subject": "习一下计算机视觉相关的知识"
+      },
+      "source": "local_user",
+      "ts": "2026-03-15T00:20:43"
     }
   ]
 }

@@ -57,6 +57,8 @@ HTML_TEMPLATE = r"""
         border-radius: 14px 14px 0 0;
         border-bottom: 1px solid rgba(134, 239, 172, 0.4);
         white-space: nowrap;
+        overflow-wrap: anywhere;
+        word-break: break-word;
         overflow: hidden;
         text-overflow: ellipsis;
         flex-shrink: 0;
@@ -73,6 +75,8 @@ HTML_TEMPLATE = r"""
         color: #333;
         padding: 12px 14px;
         overflow-y: auto;
+        overflow-wrap: anywhere;
+        word-break: break-word;
         flex-grow: 1;
     }
     
@@ -85,9 +89,59 @@ HTML_TEMPLATE = r"""
     .answer-body p { margin: 0 0 8px 0; }
     .answer-body p:last-child { margin: 0; }
     .katex-display { overflow-x: auto; overflow-y: hidden; padding: 5px 0; margin: 0; }
+
+    .plan-proposal {
+        margin-top: 10px;
+        padding-top: 10px;
+        border-top: 1px dashed rgba(134, 239, 172, 0.7);
+        font-size: 12px;
+        color: #14532d;
+    }
+    .plan-title { font-weight: 700; margin-bottom: 4px; color: #166534; }
+    .plan-summary { color: #166534; opacity: 0.85; margin-bottom: 6px; }
+    .plan-meta { font-size: 11px; color: #166534; opacity: 0.75; margin-bottom: 6px; }
+    .plan-list { padding-left: 14px; margin: 0 0 6px 0; }
+    .plan-list li { margin: 0 0 4px 0; }
+    .plan-actions { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 6px; }
+    .plan-btn {
+        border: 1px solid rgba(34, 197, 94, 0.5);
+        background: #ecfdf3;
+        color: #166534;
+        border-radius: 10px;
+        padding: 4px 8px;
+        font-size: 11px;
+        cursor: pointer;
+    }
+    .plan-btn[disabled] { opacity: 0.6; cursor: default; }
+    .plan-status { font-size: 11px; color: #166534; opacity: 0.8; margin-top: 4px; }
+    .plan-banner {
+        display: none;
+        margin-bottom: 8px;
+        padding: 8px 10px;
+        border-radius: 10px;
+        background: #ecfdf3;
+        border: 1px solid rgba(34, 197, 94, 0.4);
+        color: #166534;
+        font-size: 12px;
+    }
+    .plan-banner-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+    }
+    .plan-banner-actions { display: flex; gap: 6px; flex-wrap: wrap; }
+    .plan-actions { display: none; }
+    .plan-banner-actions { display: none; }
 </style>
 </head>
 <body>
+    <div id="plan-status-banner" class="plan-banner">
+        <div class="plan-banner-row">
+            <span class="plan-banner-text"></span>
+            <div class="plan-banner-actions"></div>
+        </div>
+    </div>
     <div id="chat-container"></div>
     <script>
         window.onload = function() {
@@ -101,8 +155,11 @@ HTML_TEMPLATE = r"""
             if (cards.length === 0 || activeIndex < 0) return;
             const activeCard = cards[activeIndex];
             const visible_behind = Math.min(activeIndex, 4);
-            const totalHeight = (visible_behind * 35) + activeCard.offsetHeight + 10;
-            
+            const banner = document.getElementById('plan-status-banner');
+            const bannerVisible = banner && banner.style.display !== 'none';
+            const bannerHeight = bannerVisible ? (banner.offsetHeight + 8) : 0;
+            const totalHeight = bannerHeight + (visible_behind * 35) + activeCard.offsetHeight + 10;
+
             document.getElementById('chat-container').style.height = totalHeight + 'px';
             document.title = "HEIGHT:" + totalHeight; 
         }
@@ -227,7 +284,6 @@ HTML_TEMPLATE = r"""
                 container.appendChild(card);
                 cards.push(card);
                 activeIndex = cards.length - 1; 
-                
                 updateStack();
             } else {
                 if (cards.length === 0) return;
@@ -279,6 +335,14 @@ HTML_TEMPLATE = r"""
             activeIndex = cards.length - 1;
             
             updateStack();
+        };
+
+        window.clearChat = function() {
+            cards = [];
+            activeIndex = -1;
+            const container = document.getElementById('chat-container');
+            if (container) container.innerHTML = '';
+            recalculateHeight();
         };
 
         window.appendAssistantDelta = function(messageId, chunk) {
@@ -369,6 +433,163 @@ HTML_TEMPLATE = r"""
             // 设置为最终状态，不再被覆盖
             aDiv.setAttribute('data-node', 'intent_done');
             aDiv.innerHTML = `<span style="color:#22c55e; font-weight:600;">✅ ${displayText}</span>`;
+            recalculateHeight();
+        };
+        function findAssistantCard(messageId) {
+            if (messageId) {
+                const byId = document.querySelector(`.card[data-id="${messageId}"]`);
+                if (byId) return byId;
+            }
+            for (let i = cards.length - 1; i >= 0; i--) {
+                if (cards[i].hasAttribute('data-id')) return cards[i];
+            }
+            return cards[cards.length - 1] || null;
+        }
+
+        function renderPlanStatus(status) {
+            if (!status) return "";
+            const statusMap = {
+                "await_confirm": "计划待确认",
+                "await_plan_confirm": "计划待确认",
+                "collecting": "计划调整中",
+                "paused": "计划已挂起"
+            };
+            return statusMap[status] || status;
+        }
+
+        window.updatePlanStatusBanner = function(status) {
+            const banner = document.getElementById('plan-status-banner');
+            if (!banner) return;
+            const textEl = banner.querySelector('.plan-banner-text');
+            const actionsEl = banner.querySelector('.plan-banner-actions');
+            if (!textEl || !actionsEl) return;
+
+            if (!status || status === "idle") {
+                banner.style.display = "none";
+                textEl.textContent = "";
+                actionsEl.innerHTML = "";
+                recalculateHeight();
+                return;
+            }
+
+            let text = "";
+            const actions = [];
+            if (status === "paused") {
+                text = "计划已挂起，可继续调整或结束计划。";
+                actions.push(`<button class="plan-btn" onclick="window._petPlanAction('resume', this)">继续调整</button>`);
+                actions.push(`<button class="plan-btn" onclick="window._petPlanAction('exit', this)">结束计划</button>`);
+            } else if (status === "await_confirm" || status === "await_plan_confirm" || status === "collecting") {
+                text = "当前处于计划调整中，可随时结束计划。";
+                actions.push(`<button class="plan-btn" onclick="window._petPlanAction('exit', this)">结束计划</button>`);
+            } else {
+                text = `计划状态：${renderPlanStatus(status)}`;
+            }
+
+            textEl.textContent = text;
+            actionsEl.innerHTML = actions.join("");
+            banner.style.display = "block";
+            recalculateHeight();
+        };
+
+        window.updatePlanStatus = function(status, messageId) {
+            const card = findAssistantCard(messageId);
+            if (!card) return;
+            const wrap = card.querySelector('.plan-proposal');
+            if (!wrap) return;
+            const statusEl = wrap.querySelector('.plan-status');
+            if (!statusEl) return;
+            const label = renderPlanStatus(status);
+            statusEl.textContent = label ? `状态：${label}` : "";
+            recalculateHeight();
+        };
+
+        window.updatePlanConfirmState = function(ok, errorText, messageId) {
+            const card = findAssistantCard(messageId);
+            if (!card) return;
+            const wrap = card.querySelector('.plan-proposal');
+            if (!wrap) return;
+            const btn = wrap.querySelector('[data-action="confirm"]');
+            const msg = wrap.querySelector('.plan-confirm-msg');
+            if (ok) {
+                if (btn) btn.setAttribute('disabled', 'true');
+                if (msg) msg.textContent = "已更新";
+            } else {
+                if (btn) btn.removeAttribute('disabled');
+                if (msg) msg.textContent = errorText ? String(errorText) : "更新失败";
+            }
+            recalculateHeight();
+        };
+
+        window._petPlanAction = function(action, btn) {
+            const card = btn ? btn.closest('.card') : findAssistantCard();
+            const messageId = card ? (card.getAttribute('data-id') || "") : "";
+            if (action === "confirm" && btn) {
+                btn.setAttribute('disabled', 'true');
+                const msg = card ? card.querySelector('.plan-confirm-msg') : null;
+                if (msg) msg.textContent = "更新中...";
+            }
+            const mid = messageId ? `?mid=${encodeURIComponent(messageId)}` : "";
+            window.location.href = `pet://plan/${action}${mid}`;
+        };
+
+        window.updatePlanCard = function(plan, status, messageId) {
+            const card = findAssistantCard(messageId);
+            if (!card) return;
+            if (messageId) {
+                card.setAttribute('data-id', messageId);
+            } else if (!card.getAttribute('data-id')) {
+                card.setAttribute('data-id', `plan-${Date.now()}`);
+            }
+            const aDiv = card.querySelector('.answer-body');
+            if (!aDiv) return;
+
+            let wrap = aDiv.querySelector('.plan-proposal');
+            if (!wrap) {
+                wrap = document.createElement('div');
+                wrap.className = 'plan-proposal';
+                aDiv.appendChild(wrap);
+            }
+
+            const hasPlan = plan && typeof plan === 'object';
+            const stepsRaw = hasPlan ? plan.plan : null;
+            let steps = [];
+            if (Array.isArray(stepsRaw)) {
+                steps = stepsRaw.map((i) => String(i)).filter((i) => i.trim());
+            } else if (typeof stepsRaw === 'string') {
+                steps = stepsRaw.split(/\r?\n|[；;]+/).map((i) => i.trim()).filter(Boolean);
+            }
+
+            const title = hasPlan ? (plan.taskTitle || "学习计划") : "学习计划";
+            const summary = hasPlan ? (plan.overallSummary || "") : "";
+            const totalDays = hasPlan && plan.totalDays ? `${plan.totalDays} 天` : "";
+            const totalHours = hasPlan && plan.totalHours ? `${plan.totalHours} 小时` : "";
+            const meta = [totalDays, totalHours].filter(Boolean).join(" · ");
+            const statusLabel = renderPlanStatus(status);
+
+            const listHtml = steps.length
+                ? `<ul class="plan-list">${steps.map((s) => `<li>• ${s}</li>`).join("")}</ul>`
+                : "";
+
+            const actions = [];
+            if (hasPlan) {
+                actions.push(`<button class="plan-btn" data-action="confirm" onclick="window._petPlanAction('confirm', this)">确认更新</button>`);
+            }
+            if (status === "paused") {
+                actions.push(`<button class="plan-btn" onclick="window._petPlanAction('resume', this)">继续调整</button>`);
+                actions.push(`<button class="plan-btn" onclick="window._petPlanAction('exit', this)">结束计划</button>`);
+            } else if (status === "await_confirm" || status === "await_plan_confirm" || status === "collecting") {
+                actions.push(`<button class="plan-btn" onclick="window._petPlanAction('exit', this)">结束计划</button>`);
+            }
+
+            wrap.innerHTML = `
+                <div class="plan-title">${title}</div>
+                ${summary ? `<div class="plan-summary">${summary}</div>` : ""}
+                ${meta ? `<div class="plan-meta">${meta}</div>` : ""}
+                ${listHtml}
+                <div class="plan-actions">${actions.join("")}</div>
+                <div class="plan-status">${statusLabel ? `状态：${statusLabel}` : ""}</div>
+                <div class="plan-confirm-msg" style="font-size:11px;color:#166534;opacity:0.8;"></div>
+            `;
             recalculateHeight();
         };
     </script>
