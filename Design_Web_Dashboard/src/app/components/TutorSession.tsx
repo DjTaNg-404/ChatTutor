@@ -747,19 +747,21 @@ export function TutorSession() {
       if (!latestSummary.trim()) {
         throw new Error("Summary content is empty");
       }
-      const taskSummaryResp = await fetch(`${API_BASE_URL}/notes/task`, {
+      const todayDate = new Date().toISOString().slice(0, 10);
+      const taskSummaryResp = await fetch(`${API_BASE_URL}/notes/daily`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
           task_id: currentTaskId,
+          date: todayDate,
           content: latestSummary,
         }),
       });
 
       if (!taskSummaryResp.ok) {
-        throw new Error(`Failed to update task note: ${taskSummaryResp.status}`);
+        throw new Error(`Failed to update daily note: ${taskSummaryResp.status}`);
       }
 
       window.dispatchEvent(new Event("task-plan-updated"));

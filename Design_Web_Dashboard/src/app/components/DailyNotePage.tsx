@@ -89,15 +89,15 @@ export function DailyNotePage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
 
-  const noteData = date ? dailyNotesData[date] : null;
+  const noteData = null;
   const resolvedDate = date || new Date().toISOString().slice(0, 10);
   const resolvedTaskId = searchParams.get("task_id") || "task_1";
-  const [userNotes, setUserNotes] = useState(noteData?.userNotes || "");
+  const [userNotes, setUserNotes] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isGeneratingSummary, setIsGeneratingSummary] = useState(false);
   const [saveHint, setSaveHint] = useState<string | null>(null);
-  const [aiSummary, setAiSummary] = useState<DailyNote["aiSummary"]>(noteData?.aiSummary || { keyLearnings: [], reviewAreas: [], achievements: [] });
+  const [aiSummary, setAiSummary] = useState<DailyNote["aiSummary"]>({ keyLearnings: [], reviewAreas: [], achievements: [] });
   const [isPreviewMode, setIsPreviewMode] = useState(false);
 
   useEffect(() => {
@@ -115,13 +115,13 @@ export function DailyNotePage() {
         }
         const data: DailyNoteApiResponse = await response.json();
         if (!cancelled) {
-          setUserNotes(data.content || noteData?.userNotes || "");
+          setUserNotes(data.content || "");
         }
       } catch (error) {
         if (!cancelled) {
           const message = error instanceof Error ? error.message : "加载每日笔记失败";
           setSaveHint(message);
-          setUserNotes(noteData?.userNotes || "");
+          setUserNotes("");
         }
       } finally {
         if (!cancelled) {

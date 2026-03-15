@@ -153,7 +153,13 @@ export function SummaryPanel() {
       const response = await fetch(
         `${API_BASE_URL}/notes/daily?task_id=${encodeURIComponent(currentTaskId)}&date=${encodeURIComponent(dateKey)}`
       );
-      setHasDailyNote(response.ok);
+      if (!response.ok) {
+        setHasDailyNote(false);
+        return;
+      }
+      const data = await response.json().catch(() => null);
+      const content = typeof data?.content === "string" ? data.content.trim() : "";
+      setHasDailyNote(Boolean(content));
     } catch {
       setHasDailyNote(false);
     } finally {
