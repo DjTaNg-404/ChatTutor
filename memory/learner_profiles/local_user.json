@@ -1,6 +1,6 @@
 {
   "learner_id": "local_user",
-  "updated_at": "2026-03-15T00:20:43",
+  "updated_at": "2026-03-15T11:20:34",
   "cards": [
     {
       "type": "learning_fact",
@@ -497,6 +497,60 @@
       },
       "source": "local_user",
       "ts": "2026-03-15T00:20:43"
+    },
+    {
+      "type": "learning_fact",
+      "fact_type": "goal",
+      "fields": {
+        "subject": "建立对向量和矩阵的直观理解"
+      },
+      "source": "local_user",
+      "ts": "2026-03-15T09:13:38"
+    },
+    {
+      "type": "learning_fact",
+      "fact_type": "goal",
+      "fields": {
+        "subject": "找到一个函数 $f$"
+      },
+      "source": "local_user",
+      "ts": "2026-03-15T10:24:12"
+    },
+    {
+      "type": "learning_fact",
+      "fact_type": "goal",
+      "fields": {
+        "subject": "**从带标签的数据中学习一个映射函数**"
+      },
+      "source": "local_user",
+      "ts": "2026-03-15T10:25:04"
+    },
+    {
+      "type": "learning_fact",
+      "fact_type": "goal",
+      "fields": {
+        "subject": "找到一个在**可用时间**与**学习强度**之间取得平衡的可"
+      },
+      "source": "local_user",
+      "ts": "2026-03-15T10:36:43"
+    },
+    {
+      "type": "learning_fact",
+      "fact_type": "goal",
+      "fields": {
+        "subject": "我针对某个具体层次展开讲解"
+      },
+      "source": "local_user",
+      "ts": "2026-03-15T11:05:49"
+    },
+    {
+      "type": "learning_fact",
+      "fact_type": "goal",
+      "fields": {
+        "subject": "的框架"
+      },
+      "source": "local_user",
+      "ts": "2026-03-15T11:06:35"
     }
   ]
 }

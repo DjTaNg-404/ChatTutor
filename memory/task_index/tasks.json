@@ -1,19 +1,27 @@
 [
   {
+    "id": "task_mmr669pl",
+    "created_at": "2026-03-15T11:03:24.477674",
+    "title": "机器学习数学基础（线性代数核心）",
+    "icon": "📊",
+    "status": "active",
+    "updated_at": "2026-03-15T11:20:52.667043"
+  },
+  {
+    "id": "task_mmr3r2fb",
+    "created_at": "2026-03-15T09:55:35.977249",
+    "title": "机器学习基础（线性代数入门）",
+    "icon": "📈",
+    "status": "active",
+    "updated_at": "2026-03-15T10:35:12.513704"
+  },
+  {
     "id": "task_mmqmwpn2",
     "created_at": "2026-03-15T02:03:59.025638",
     "title": "线性代数三日速成",
     "icon": "📊",
     "status": "active",
-    "updated_at": "2026-03-15T02:08:46.681489"
-  },
-  {
-    "id": "task_mmqmto1q",
-    "created_at": "2026-03-15T02:01:49.079381",
-    "title": "新的学习",
-    "icon": "✨",
-    "status": "active",
-    "updated_at": "2026-03-15T02:01:49.079381"
+    "updated_at": "2026-03-15T10:37:25.581019"
   },
   {
     "id": "task_mmqmi82o",
@@ -38,14 +46,6 @@
     "icon": "✨",
     "status": "active",
     "updated_at": "2026-03-15T01:02:19.846023"
-  },
-  {
-    "id": "task_mmqk4gta",
-    "created_at": "2026-03-15T00:45:58.752101",
-    "title": "机器学习线性代数基础7天速成计划",
-    "icon": "📊",
-    "status": "active",
-    "updated_at": "2026-03-15T00:50:30.303585"
   },
   {
     "id": "task_mmq6jqel",
@@ -80,14 +80,6 @@
     "updated_at": "2026-03-12T01:33:57.218337"
   },
   {
-    "id": "3",
-    "created_at": "2026-03-10T17:17:26.001297",
-    "title": "React Hooks 深入",
-    "icon": "⚛️",
-    "status": "active",
-    "updated_at": "2026-03-10T18:09:15.142895"
-  },
-  {
     "id": "6",
     "created_at": "2026-03-10T17:17:14.560386",
     "title": "SQL 查询优化",
@@ -102,13 +94,5 @@
     "icon": "🐍",
     "status": "archived",
     "updated_at": "2026-03-10T18:09:21.796307"
-  },
-  {
-    "id": "task_mmj3eqxr",
-    "created_at": "2026-03-09T19:23:25.796206",
-    "title": "SQL专项学习计划",
-    "icon": "🗃️",
-    "status": "active",
-    "updated_at": "2026-03-12T22:09:10.104170"
   }
 ]

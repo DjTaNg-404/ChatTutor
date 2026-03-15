@@ -1,6 +1,6 @@
 import { useParams, useOutletContext } from "react-router";
 import { Send, CheckCircle, PanelRightClose, PanelRightOpen, BookOpen, Square } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router";
 import ReactMarkdown from "react-markdown";
 import remarkMath from "remark-math";
@@ -72,6 +72,8 @@ interface TaskPlan {
 }
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8000/api/v1";
+
+const SUMMARY_TRIGGER = "\u751f\u6210\u5b66\u4e60\u603b\u7ed3";
 const ENABLE_STREAMING = (import.meta.env.VITE_ENABLE_STREAMING ?? "true").toString().toLowerCase() !== "false";
 const TASK_DRAFT_KEY = "task_draft";
 
@@ -142,10 +144,13 @@ export function TutorSession() {
   const [abortController, setAbortController] = useState<AbortController | null>(null);
   const [showAcceptNoteButton, setShowAcceptNoteButton] = useState(false);
   const [isAcceptingNote, setIsAcceptingNote] = useState(false);
+  const [latestSummary, setLatestSummary] = useState("");
   const [draftTask, setDraftTask] = useState<{ id: string; title: string; icon: string } | null>(() =>
     loadDraftTask()
   );
   const [planStatus, setPlanStatus] = useState<string | null>(null);
+  const summaryAssistantIdRef = useRef<string | null>(null);
+  const summaryBufferRef = useRef<string>("");
 
   const normalizePlanSteps = (plan?: TaskPlan | null): string[] => {
     if (!plan) return [];
@@ -201,6 +206,9 @@ export function TutorSession() {
               setMessages((prev) =>
                 prev.map((m) => (m.id === assistantId ? { ...m, content: m.content + delta } : m)),
               );
+              if (summaryAssistantIdRef.current === assistantId) {
+                summaryBufferRef.current += delta;
+              }
             }
           } else if (evt.event === "intent") {
             // 意图识别事件
@@ -296,6 +304,10 @@ export function TutorSession() {
     }
 
     const replyText = data?.reply || "抱歉，我暂时没有生成有效回复。";
+
+    if (messageText === SUMMARY_TRIGGER) {
+      setLatestSummary(replyText);
+    }
     if (data?.session_id) {
       setActiveSessionId(data.session_id);
     }
@@ -327,8 +339,8 @@ export function TutorSession() {
       setIsSummarizing(false);
       setShowAcceptNoteButton(true);
     } else {
-      // 备用逻辑：如果用户发送的是"生成学习总结"，也显示按钮
-      if (messageText === "生成学习总结") {
+      // 备用逻辑：如果用户发送的是SUMMARY_TRIGGER，也显示按钮
+      if (messageText === SUMMARY_TRIGGER) {
         setShowAcceptNoteButton(true);
       }
     }
@@ -472,12 +484,12 @@ export function TutorSession() {
               historyMessages[idx] = { ...historyMessages[idx], planProposal: draftPlan };
             }
           } else {
-            const draftMsg = makeMessage("assistant", "?????????????????");
+            const draftMsg = makeMessage("assistant", "学习计划已加载，继续调整即可。");
             draftMsg.planProposal = draftPlan;
             historyMessages.push(draftMsg);
           }
         } else if (draftPlan && historyMessages.length === 0) {
-          const draftMsg = makeMessage("assistant", "?????????????????");
+          const draftMsg = makeMessage("assistant", "学习计划已加载，继续调整即可。");
           draftMsg.planProposal = draftPlan;
           historyMessages.push(draftMsg);
         }
@@ -562,7 +574,7 @@ export function TutorSession() {
     setIsSending(true);
 
     // 如果是生成学习总结的消息，先隐藏按钮
-    if (messageText === "生成学习总结") {
+    if (messageText === SUMMARY_TRIGGER) {
       setShowAcceptNoteButton(false);
     }
 
@@ -577,6 +589,11 @@ export function TutorSession() {
       }
 
       const assistantId = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+      if (messageText === SUMMARY_TRIGGER) {
+        summaryAssistantIdRef.current = assistantId;
+        summaryBufferRef.current = "";
+        setLatestSummary("");
+      }
       setMessages((prev) => [
         ...prev,
         {
@@ -640,10 +657,13 @@ export function TutorSession() {
         setIsSummarizing(false);
         setShowAcceptNoteButton(true);
       } else {
-        // 备用逻辑：如果用户发送的是"生成学习总结"，也显示按钮
-        if (messageText === "生成学习总结") {
+        // 备用逻辑：如果用户发送的是SUMMARY_TRIGGER，也显示按钮
+        if (messageText === SUMMARY_TRIGGER) {
           setShowAcceptNoteButton(true);
         }
+      }
+      if (summaryAssistantIdRef.current === assistantId) {
+        setLatestSummary(summaryBufferRef.current);
       }
     } catch (error) {
       try {
@@ -709,14 +729,14 @@ export function TutorSession() {
     const dividerMessage: Message = {
       id: `${Date.now()}-divider`,
       role: "divider",
-      content: "-------------------生成学习总结-------------------",
+      content: `-------------------${SUMMARY_TRIGGER}-------------------`,
       timestamp: formatTime(),
     };
     setMessages((prev) => [...prev, dividerMessage]);
 
     setIsSummarizing(true);
     setShowAcceptNoteButton(false); // 重置按钮状态
-    await sendMessage("生成学习总结");
+    await sendMessage(SUMMARY_TRIGGER);
     // 注意：isSummarizing 会在总结完成后由 stream 结果自动重置
   };
 
@@ -724,31 +744,26 @@ export function TutorSession() {
     setIsAcceptingNote(true);
     setShowAcceptNoteButton(false);
     try {
-      // 调用后端任务总结 API（对整个任务的所有对话生成总结）
-      const taskSummaryResp = await fetch(
-        `${API_BASE_URL}/history/tasks/${currentTaskId}/summary`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            task_id: currentTaskId,
-          }),
-        }
-      );
+      if (!latestSummary.trim()) {
+        throw new Error("Summary content is empty");
+      }
+      const taskSummaryResp = await fetch(`${API_BASE_URL}/notes/task`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          task_id: currentTaskId,
+          content: latestSummary,
+        }),
+      });
 
       if (!taskSummaryResp.ok) {
-        throw new Error(`获取任务总结失败（${taskSummaryResp.status}）`);
+        throw new Error(`Failed to update task note: ${taskSummaryResp.status}`);
       }
 
-      // 等待后端保存完成
-      await new Promise(resolve => setTimeout(resolve, 500));
-
-      // 触发任务计划更新事件
       window.dispatchEvent(new Event("task-plan-updated"));
 
-      // 结束计划状态（如果当前处于计划中）
       if (planStatus && ["await_confirm", "await_plan_confirm", "collecting", "paused"].includes(planStatus)) {
         await applyPlanSessionAction("exit");
         setPlanStatus(null);
@@ -771,6 +786,7 @@ export function TutorSession() {
         timestamp: formatTime(),
       };
       setMessages((prev) => [...prev, errorMessage]);
+      setShowAcceptNoteButton(true);
     } finally {
       setIsAcceptingNote(false);
     }
