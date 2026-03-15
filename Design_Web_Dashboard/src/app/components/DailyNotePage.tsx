@@ -37,33 +37,73 @@ interface DailyNote {
   userNotes: string;
 }
 
+// 模拟每日笔记数据
+const dailyNotesData: { [key: string]: DailyNote } = {
+  "2026-03-02": {
+    date: "2026-03-02",
+    taskTitle: "掌握随机森林算法",
+    aiSummary: {
+      keyLearnings: [
+        "理解随机森林的集成学习原理，包括 Bootstrap 采样和特征随机性",
+        "掌握特征重要性的计算方法（基于不纯度降低）",
+        "学习超参数调优的关键参数和网格搜索方法",
+        "对比随机森林与其他算法的优缺点",
+      ],
+      reviewAreas: [
+        "过拟合问题的解决方案需要实践加深理解",
+        "交叉验证的具体实现细节",
+        "特征工程与随机森林结合的最佳实践",
+      ],
+      achievements: [
+        "完成了随机森林核心概念的学习",
+        "理解了特征重要性评估的原理",
+        "掌握了基本的超参数调优方法",
+      ],
+    },
+    userNotes: "今天的学习非常充实，特别是特征重要性的部分讲解很清楚。明天需要找一个实际数据集练习，加深对超参数调优的理解。\n\n重点记录：\n- n_estimators 建议从100开始\n- max_depth 通常在10-20之间\n- 使用 GridSearchCV 进行参数搜索\n\n下一步计划：\n1. 使用 Kaggle 的泰坦尼克数据集练习\n2. 对比随机森林和 XGBoost 的效果\n3. 学习特征工程技巧",
+  },
+  "2026-03-01": {
+    date: "2026-03-01",
+    taskTitle: "掌握随机森林算法",
+    aiSummary: {
+      keyLearnings: [
+        "复习了决策树的基本构建流程",
+        "理解了信息增益与基尼系数的计算方法",
+        "学习了 CART 算法的实现原理",
+      ],
+      reviewAreas: [
+        "特征选择的优化策略",
+        "决策树剪枝的具体方法",
+      ],
+      achievements: [
+        "巩固了决策树基础知识",
+        "为学习随机森林打下了良好基础",
+      ],
+    },
+    userNotes: "复习了决策树的核心概念，为明天学习随机森林做准备。信息熵的计算需要多练习。",
+  },
+};
+
 export function DailyNotePage() {
   const { date } = useParams<{ date: string }>();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
 
+  const noteData = date ? dailyNotesData[date] : null;
   const resolvedDate = date || new Date().toISOString().slice(0, 10);
-  const resolvedTaskId = searchParams.get("task_id") || "";
-  const hasTaskId = Boolean(resolvedTaskId);
-  const [userNotes, setUserNotes] = useState("");
+  const resolvedTaskId = searchParams.get("task_id") || "task_1";
+  const [userNotes, setUserNotes] = useState(noteData?.userNotes || "");
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isGeneratingSummary, setIsGeneratingSummary] = useState(false);
   const [saveHint, setSaveHint] = useState<string | null>(null);
-  const [aiSummary, setAiSummary] = useState<DailyNote["aiSummary"]>({ keyLearnings: [], reviewAreas: [], achievements: [] });
+  const [aiSummary, setAiSummary] = useState<DailyNote["aiSummary"]>(noteData?.aiSummary || { keyLearnings: [], reviewAreas: [], achievements: [] });
   const [isPreviewMode, setIsPreviewMode] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
 
     const loadDailyNote = async () => {
-      if (!hasTaskId) {
-        setUserNotes("");
-        setAiSummary({ keyLearnings: [], reviewAreas: [], achievements: [] });
-        setSaveHint("缺少 task_id，无法加载笔记。");
-        return;
-      }
-
       setIsLoading(true);
       setSaveHint(null);
       try {
@@ -75,13 +115,13 @@ export function DailyNotePage() {
         }
         const data: DailyNoteApiResponse = await response.json();
         if (!cancelled) {
-          setUserNotes(data.content || "");
+          setUserNotes(data.content || noteData?.userNotes || "");
         }
       } catch (error) {
         if (!cancelled) {
           const message = error instanceof Error ? error.message : "加载每日笔记失败";
           setSaveHint(message);
-          setUserNotes("");
+          setUserNotes(noteData?.userNotes || "");
         }
       } finally {
         if (!cancelled) {
@@ -94,14 +134,9 @@ export function DailyNotePage() {
     return () => {
       cancelled = true;
     };
-  }, [resolvedTaskId, resolvedDate, hasTaskId]);
+  }, [resolvedTaskId, resolvedDate]);
 
   const handleSave = async () => {
-    if (!hasTaskId) {
-      setSaveHint("缺少 task_id，无法保存。");
-      return;
-    }
-
     setIsSaving(true);
     setSaveHint(null);
     try {
@@ -130,11 +165,6 @@ export function DailyNotePage() {
   };
 
   const handleGenerateSummary = async () => {
-    if (!hasTaskId) {
-      setSaveHint("缺少 task_id，无法生成总结。");
-      return;
-    }
-
     setIsGeneratingSummary(true);
     setSaveHint(null);
     try {
@@ -180,7 +210,7 @@ export function DailyNotePage() {
     return `${year}年${month}月${day}日`;
   };
 
-  const displayData: DailyNote = {
+  const displayData: DailyNote = noteData || {
     date: resolvedDate,
     taskTitle: "学习任务",
     aiSummary: aiSummary,
@@ -219,7 +249,7 @@ export function DailyNotePage() {
 
             <button
               onClick={() => void handleSave()}
-              disabled={isSaving || isLoading || !hasTaskId}
+              disabled={isSaving || isLoading}
               className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 transition-colors"
             >
               <Save className="w-4 h-4" />
@@ -245,7 +275,7 @@ export function DailyNotePage() {
 
               <button
                 onClick={() => void handleGenerateSummary()}
-                disabled={isGeneratingSummary || isLoading || !hasTaskId}
+                disabled={isGeneratingSummary || isLoading}
                 className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm font-medium"
               >
                 <Wand2 className="w-4 h-4" />

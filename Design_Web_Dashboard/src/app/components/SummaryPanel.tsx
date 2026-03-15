@@ -1,7 +1,7 @@
-import { Calendar, Edit3, ExternalLink } from "lucide-react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Link } from "react-router";
 import { useLocation } from "react-router";
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useMemo, useRef } from "react";
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8000/api/v1";
 
@@ -58,6 +58,15 @@ export function SummaryPanel() {
   const [taskPlan, setTaskPlan] = useState<TaskPlan | null>(null);
   const [isPlanLoading, setIsPlanLoading] = useState(false);
   const [planChecklist, setPlanChecklist] = useState<{ [key: string]: boolean }>({});
+  const [currentMonth, setCurrentMonth] = useState(() => {
+    const now = new Date();
+    return new Date(now.getFullYear(), now.getMonth(), 1);
+  });
+  const [selectedDate, setSelectedDate] = useState<string | null>(null);
+  const [hasDailyNote, setHasDailyNote] = useState<boolean | null>(null);
+  const [isCheckingNote, setIsCheckingNote] = useState(false);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const toastTimerRef = useRef<number | null>(null);
 
   const normalizePlanSteps = useCallback((plan: TaskPlan | null): string[] => {
     if (!plan) return [];
@@ -70,7 +79,7 @@ export function SummaryPanel() {
     }
     if (typeof raw === "string") {
       const steps = raw
-        .split(/\r?\n|[；;]+/)
+        .split(/\r?\n|[\\uFF0C,]+/)
         .map((item) => item.trim())
         .filter(Boolean);
       if (steps.length > 0) {
@@ -84,6 +93,84 @@ export function SummaryPanel() {
   }, []);
 
   const planSteps = normalizePlanSteps(taskPlan);
+
+  const timelineCountMap = useMemo(() => {
+    const map = new Map<string, number>();
+    dailySummaries.forEach((item) => {
+      map.set(item.date, item.messageCount || 0);
+    });
+    return map;
+  }, [dailySummaries]);
+
+  const formatDateKey = (year: number, monthIndex: number, day: number) => {
+    const month = `${monthIndex + 1}`.padStart(2, "0");
+    const date = `${day}`.padStart(2, "0");
+    return `${year}-${month}-${date}`;
+  };
+
+  const monthLabel = useMemo(() => {
+    return currentMonth.toLocaleString("zh-CN", {
+      year: "numeric",
+      month: "long",
+    });
+  }, [currentMonth]);
+
+  const calendarCells = useMemo(() => {
+    const year = currentMonth.getFullYear();
+    const monthIndex = currentMonth.getMonth();
+    const firstDay = new Date(year, monthIndex, 1);
+    const lastDay = new Date(year, monthIndex + 1, 0);
+    const startWeekday = firstDay.getDay();
+    const daysInMonth = lastDay.getDate();
+    const totalCells = Math.ceil((startWeekday + daysInMonth) / 7) * 7;
+    return Array.from({ length: totalCells }, (_, idx) => {
+      const day = idx - startWeekday + 1;
+      if (day < 1 || day > daysInMonth) return null;
+      const dateKey = formatDateKey(year, monthIndex, day);
+      const count = timelineCountMap.get(dateKey) || 0;
+      return { day, dateKey, count };
+    });
+  }, [currentMonth, timelineCountMap]);
+
+  const getIntensityClass = (count: number) => {
+    if (count <= 0) return "bg-gray-100";
+    if (count <= 2) return "bg-emerald-100";
+    if (count <= 5) return "bg-emerald-200";
+    if (count <= 10) return "bg-emerald-300";
+    return "bg-emerald-500";
+  };
+
+  const handleMonthChange = (delta: number) => {
+    setCurrentMonth((prev) => new Date(prev.getFullYear(), prev.getMonth() + delta, 1));
+    setSelectedDate(null);
+    setHasDailyNote(null);
+  };
+
+  const checkDailyNote = async (dateKey: string) => {
+    setIsCheckingNote(true);
+    setHasDailyNote(null);
+    try {
+      const response = await fetch(
+        `${API_BASE_URL}/notes/daily?task_id=${encodeURIComponent(currentTaskId)}&date=${encodeURIComponent(dateKey)}`
+      );
+      setHasDailyNote(response.ok);
+    } catch {
+      setHasDailyNote(false);
+    } finally {
+      setIsCheckingNote(false);
+    }
+  };
+
+  const showToast = (message: string) => {
+    if (toastTimerRef.current) {
+      window.clearTimeout(toastTimerRef.current);
+    }
+    setToastMessage(message);
+    toastTimerRef.current = window.setTimeout(() => {
+      setToastMessage(null);
+      toastTimerRef.current = null;
+    }, 2000);
+  };
 
   // 找到第一个未完成的项目索引
   const firstUncheckedIndex = planSteps.findIndex(
@@ -231,111 +318,92 @@ export function SummaryPanel() {
             <div className="text-sm text-gray-500 px-2 pb-3">暂无该任务的时间线数据</div>
           )}
 
-          <div className="relative">
-            <div className="absolute left-4 top-3 bottom-3 w-px bg-gradient-to-b from-indigo-200 via-indigo-200 to-transparent"></div>
+          <div className="relative bg-white border border-gray-200 rounded-2xl p-4 shadow-sm">
+            {toastMessage && (
+              <div className="absolute right-3 top-3 z-10 rounded-lg bg-gray-900/90 px-3 py-1.5 text-[11px] text-white shadow">
+                {toastMessage}
+              </div>
+            )}
+            <div className="flex items-center justify-between mb-4">
+              <button
+                type="button"
+                onClick={() => handleMonthChange(-1)}
+                className="p-2 rounded-lg text-gray-500 hover:text-gray-700 hover:bg-gray-100 transition"
+              >
+                <ChevronLeft className="w-4 h-4" />
+              </button>
+              <div className="text-sm font-semibold text-gray-700">{monthLabel}</div>
+              <button
+                type="button"
+                onClick={() => handleMonthChange(1)}
+                className="p-2 rounded-lg text-gray-500 hover:text-gray-700 hover:bg-gray-100 transition"
+              >
+                <ChevronRight className="w-4 h-4" />
+              </button>
+            </div>
 
-            <div className="space-y-6">
-              {dailySummaries.map((summary, index) => (
-                <div key={summary.id} className="relative pl-10">
-                  <div
-                    className={`absolute left-0 top-1.5 w-8 h-8 rounded-full flex items-center justify-center ${
-                      index === 0
-                        ? "bg-indigo-600 shadow-lg shadow-indigo-200"
-                        : "bg-indigo-100"
-                    }`}
-                  >
-                    <Calendar
-                      className={`w-4 h-4 ${
-                        index === 0 ? "text-white" : "text-indigo-600"
-                      }`}
-                    />
-                  </div>
-
-                  <div
-                    className={`bg-white rounded-xl border p-4 hover:shadow-md transition-all ${
-                      index === 0
-                        ? "border-indigo-200 shadow-sm"
-                        : "border-gray-200"
-                    }`}
-                  >
-                    <div className="flex items-center justify-between mb-3">
-                      <h3
-                        className={`font-semibold ${
-                          index === 0 ? "text-indigo-600" : "text-gray-900"
-                        }`}
-                      >
-                        {summary.displayDate}
-                      </h3>
-                      {index === 0 && (
-                        <span className="text-xs px-2 py-0.5 bg-indigo-100 text-indigo-700 rounded-full font-medium">
-                          今天
-                        </span>
-                      )}
-                    </div>
-
-                    <div className="text-xs text-gray-500 mb-3">
-                      {summary.sessionCount} 个会话 · {summary.messageCount} 条消息
-                    </div>
-
-                    <div className="mb-3">
-                      <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
-                        关键学习点
-                      </h4>
-                      <ul className="space-y-1.5">
-                        {summary.keyLearnings.map((learning, idx) => (
-                          <li
-                            key={idx}
-                            className="text-sm text-gray-700 flex items-start gap-2"
-                          >
-                            <span className="text-indigo-500 mt-1">•</span>
-                            <span className="flex-1">{learning}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-
-                    {summary.reviewAreas.length > 0 && (
-                      <div className="mb-3">
-                        <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
-                          待复习
-                        </h4>
-                        <ul className="space-y-1.5">
-                          {summary.reviewAreas.map((area, idx) => (
-                            <li
-                              key={idx}
-                              className="text-sm text-amber-700 flex items-start gap-2"
-                            >
-                              <span className="text-amber-500 mt-1">•</span>
-                              <span className="flex-1">{area}</span>
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    )}
-
-                    <div className="flex items-center gap-2 mt-2">
-                      <Link
-                        to={`/history/${summary.date}?task_id=${currentTaskId}`}
-                        className="flex items-center gap-1.5 text-xs text-indigo-600 hover:text-indigo-700 font-medium"
-                      >
-                        <span>查看完整对话记录</span>
-                        <ExternalLink className="w-3 h-3" />
-                      </Link>
-                      <span className="text-gray-300">|</span>
-                      <Link
-                        to={`/daily-note/${summary.date}?task_id=${currentTaskId}`}
-                        className="flex items-center gap-1.5 text-xs text-purple-600 hover:text-purple-700 font-medium"
-                      >
-                        <Edit3 className="w-3 h-3" />
-                        <span>笔记</span>
-                      </Link>
-                    </div>
-                  </div>
-                </div>
+            <div className="grid grid-cols-7 gap-1 text-[10px] text-gray-400 mb-2">
+              {["\u65e5", "\u4e00", "\u4e8c", "\u4e09", "\u56db", "\u4e94", "\u516d"].map((label) => (
+                <div key={label} className="text-center">{label}</div>
               ))}
             </div>
+
+            <div className="grid grid-cols-7 gap-1">
+              {calendarCells.map((cell, idx) => {
+                if (!cell) {
+                  return <div key={`empty-${idx}`} className="h-6" />;
+                }
+                const isSelected = selectedDate === cell.dateKey;
+                return (
+                  <div key={cell.dateKey} className="relative group flex justify-center">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSelectedDate(cell.dateKey);
+                        void checkDailyNote(cell.dateKey);
+                      }}
+                      className={`h-6 w-6 rounded-sm ${getIntensityClass(cell.count)} text-[9px] font-medium text-gray-700 flex items-center justify-center ${
+                        isSelected ? "ring-2 ring-emerald-500" : "hover:ring-2 hover:ring-emerald-300"
+                      } transition`}
+                      aria-label={`${cell.dateKey} 消息数 ${cell.count}`}
+                    >
+                      {cell.day}
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+
+            {selectedDate && (
+              <div className="mt-4 flex flex-wrap justify-center gap-2">
+                <Link
+                  to={`/history/${selectedDate}?task_id=${currentTaskId}`}
+                  onClick={(event) => {
+                    const count = timelineCountMap.get(selectedDate) || 0;
+                    if (count <= 0) {
+                      event.preventDefault();
+                      showToast("当日暂无对话记录");
+                    }
+                  }}
+                  className="px-4 py-2 text-xs font-medium bg-gray-800 text-white rounded-full hover:bg-gray-700 transition"
+                >
+                  跳转记录
+                </Link>
+                {hasDailyNote && (
+                  <Link
+                    to={`/daily-note/${selectedDate}?task_id=${currentTaskId}`}
+                    className="px-4 py-2 text-xs font-medium bg-indigo-600 text-white rounded-full hover:bg-indigo-700 transition"
+                  >
+                    查看当日学习笔记
+                  </Link>
+                )}
+              </div>
+            )}
+            {selectedDate && isCheckingNote && (
+              <div className="mt-3 text-center text-xs text-gray-400">正在检查当日笔记...</div>
+            )}
           </div>
-        </div>
+</div>
       </section>
 
       <section className="flex-1 min-h-0 flex flex-col border-t border-gray-200">

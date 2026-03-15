@@ -49,7 +49,7 @@ export function MarkdownPreview({ content, className = "" }: MarkdownPreviewProp
             if (inline) {
               return (
                 <code
-                  className="bg-gray-100 rounded px-1.5 py-0.5 text-sm font-mono text-indigo-600"
+                  className="rounded px-1.5 py-0.5 text-sm font-mono text-indigo-600"
                   {...props}
                 />
               );

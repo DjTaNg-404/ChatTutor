@@ -122,7 +122,7 @@ export function SettingsPage() {
                 </label>
                 <input
                   type="password"
-                  placeholder="输入 OpenAI API Key"
+                  placeholder="sk-..."
                   className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-100 focus:border-indigo-400 outline-none font-mono text-sm"
                 />
               </div>
@@ -133,7 +133,7 @@ export function SettingsPage() {
                 </label>
                 <input
                   type="password"
-                  placeholder="输入 Anthropic API Key"
+                  placeholder="sk-ant-..."
                   className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-100 focus:border-indigo-400 outline-none font-mono text-sm"
                 />
               </div>
@@ -144,7 +144,7 @@ export function SettingsPage() {
                 </label>
                 <input
                   type="password"
-                  placeholder="输入 Google API Key"
+                  placeholder="AIza..."
                   className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-100 focus:border-indigo-400 outline-none font-mono text-sm"
                 />
               </div>

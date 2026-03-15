@@ -154,6 +154,38 @@ def _next_default_question(mode: str, turns: int) -> str:
     return DEFAULT_INIT_QUESTIONS[idx]
 
 
+def _build_suggested_replies(question: str, mode: str) -> List[str]:
+    text = (question or "").strip()
+    has_time = _contains_keywords(text, TIME_KEYWORDS) or any(k in text for k in ["时间", "多久", "每天", "每周", "周期", "小时", "天", "周", "月"])
+    has_content = _contains_keywords(text, CONTENT_KEYWORDS) or any(k in text for k in ["主题", "重点", "范围", "章节"])
+    has_depth = _contains_keywords(text, DEPTH_KEYWORDS) or any(k in text for k in ["程度", "目标", "达到"])
+    has_intensity = _contains_keywords(text, INTENSITY_KEYWORDS) or any(k in text for k in ["强度", "节奏", "进度"])
+
+    signals = sum([has_time, has_content, has_depth, has_intensity])
+    if mode == "update":
+        if signals > 1:
+            return ["调整时间安排", "增加实战项目", "降低学习强度"]
+        if has_time:
+            return ["把周期改成4周，每天1小时", "每周学习3天，每次2小时", "时间不变，想调整内容"]
+        if has_content:
+            return ["增加实战项目，减少理论", "重点放在面试相关内容", "想把某些章节删掉"]
+        if has_intensity:
+            return ["节奏放慢一点", "进度加快一些", "保持当前强度"]
+        return ["调整时间安排", "增加实战项目", "降低学习强度"]
+
+    if signals > 1:
+        return ["想入门，能看懂基础概念", "计划学4周，每天1小时", "目前没有特别限制"]
+    if has_time:
+        return ["计划学4周，每天1小时", "两个月，每周4天，每次1.5小时", "时间比较紧，每天30分钟"]
+    if has_depth:
+        return ["想入门，能看懂基础概念", "想系统掌握，能独立做项目", "准备面试，需要深入理解"]
+    if has_content:
+        return ["重点想学核心原理和基础概念", "更关注实战项目和案例", "希望覆盖从入门到进阶的主要模块"]
+    if has_intensity:
+        return ["强度适中，保证持续学习", "希望进度快一些", "希望节奏慢一点"]
+    return ["想入门，能看懂基础概念", "计划学4周，每天1小时", "目前没有特别限制"]
+
+
 def _pick_init_first_question(user_message: str) -> str:
     text = (user_message or "").strip()
     if not text:
@@ -287,6 +319,49 @@ async def handle_plan_chat(
 
     # Awaiting user response to a soft plan offer
     if status == "await_offer":
+        if _is_yes(user_message):
+            mode = "update" if has_plan else "init"
+            session["context_messages"] = _extract_recent_dialogue(history_messages, 12)
+            session.update(
+                {
+                    "status": "collecting",
+                    "mode": mode,
+                    "turns": 0,
+                    "max_turns": 5 if mode == "init" else 3,
+                    "pending_mode": "",
+                    "messages": [],
+                }
+            )
+            seed_text = (seed_user_message or "").strip()
+            if not seed_text and history_messages:
+                last_user = None
+                prior_user = None
+                for msg in reversed(history_messages):
+                    if isinstance(msg, HumanMessage):
+                        content = (msg.content or "").strip()
+                        if not content:
+                            continue
+                        if last_user is None:
+                            last_user = content
+                        else:
+                            prior_user = content
+                            break
+                seed_text = (prior_user or "").strip()
+            if seed_text:
+                session["messages"].append({"role": "user", "content": seed_text})
+            current_text = (user_message or "").strip()
+            if current_text:
+                if not session["messages"] or session["messages"][-1].get("content") != current_text:
+                    session["messages"].append({"role": "user", "content": current_text})
+            question = await _generate_followup_question(mode, 0, session, has_plan, existing_plan)
+            session["messages"].append({"role": "assistant", "content": question})
+            return {
+                "handled": True,
+                "reply": question,
+                "plan_proposal": None,
+                "plan_session": session,
+                "suggested_replies": _build_suggested_replies(question, mode),
+            }
         # 软引导阶段交给 Analyzer 判断是否进入计划流程
         session.update({"status": "idle", "mode": "", "turns": 0, "pending_mode": "", "messages": []})
         return {
@@ -326,6 +401,7 @@ async def handle_plan_chat(
                 "reply": question,
                 "plan_proposal": None,
                 "plan_session": session,
+                "suggested_replies": _build_suggested_replies(question, mode),
             }
         if _is_no(user_message):
             session.update({"status": "idle", "mode": "", "turns": 0, "pending_mode": "", "messages": []})
@@ -372,6 +448,7 @@ async def handle_plan_chat(
                 "reply": question,
                 "plan_proposal": None,
                 "plan_session": session,
+                "suggested_replies": _build_suggested_replies(question, "update"),
             }
         # 用户拒绝或想退出
         if _is_exit_intent(user_message):
@@ -490,6 +567,7 @@ async def handle_plan_chat(
             "reply": question,
             "plan_proposal": None,
             "plan_session": session,
+            "suggested_replies": _build_suggested_replies(question, mode),
         }
 
     # Idle: detect intent
@@ -517,6 +595,7 @@ async def handle_plan_chat(
         "reply": question,
         "plan_proposal": None,
         "plan_session": session,
+        "suggested_replies": _build_suggested_replies(question, mode),
     }
 
     return {"handled": False}

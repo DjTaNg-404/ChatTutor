@@ -1,6 +1,6 @@
 import { useParams, useOutletContext } from "react-router";
 import { Send, CheckCircle, PanelRightClose, PanelRightOpen, BookOpen, Square } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router";
 import ReactMarkdown from "react-markdown";
 import remarkMath from "remark-math";
@@ -15,6 +15,7 @@ interface Message {
   planProposal?: TaskPlan;
   planConfirmed?: boolean;
   planError?: string;
+  suggestedReplies?: string[];
 }
 
 interface OutletContext {
@@ -71,6 +72,8 @@ interface TaskPlan {
 }
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8000/api/v1";
+
+const SUMMARY_TRIGGER = "\u751f\u6210\u5b66\u4e60\u603b\u7ed3";
 const ENABLE_STREAMING = (import.meta.env.VITE_ENABLE_STREAMING ?? "true").toString().toLowerCase() !== "false";
 const TASK_DRAFT_KEY = "task_draft";
 
@@ -117,6 +120,13 @@ function makeMessage(role: "user" | "assistant", content: string): Message {
   };
 }
 
+const taskTitles: { [key: string]: string } = {
+  "1": "掌握随机森林算法",
+  "2": "雅思口语备考",
+  "3": "React Hooks 深入",
+  "4": "机器学习数学基础",
+};
+
 export function TutorSession() {
   const { taskId } = useParams();
   const context = useOutletContext<OutletContext>();
@@ -134,10 +144,13 @@ export function TutorSession() {
   const [abortController, setAbortController] = useState<AbortController | null>(null);
   const [showAcceptNoteButton, setShowAcceptNoteButton] = useState(false);
   const [isAcceptingNote, setIsAcceptingNote] = useState(false);
+  const [latestSummary, setLatestSummary] = useState("");
   const [draftTask, setDraftTask] = useState<{ id: string; title: string; icon: string } | null>(() =>
     loadDraftTask()
   );
   const [planStatus, setPlanStatus] = useState<string | null>(null);
+  const summaryAssistantIdRef = useRef<string | null>(null);
+  const summaryBufferRef = useRef<string>("");
 
   const normalizePlanSteps = (plan?: TaskPlan | null): string[] => {
     if (!plan) return [];
@@ -160,7 +173,7 @@ export function TutorSession() {
   const readStreamResponse = async (
     response: Response,
     assistantId: string,
-  ): Promise<{ sessionId?: string; isConcluded?: boolean; planProposal?: TaskPlan | null; intentDisplay?: string; planStatus?: string | null }> => {
+  ): Promise<{ sessionId?: string; isConcluded?: boolean; planProposal?: TaskPlan | null; intentDisplay?: string; planStatus?: string | null; suggestedReplies?: string[] }> => {
     const reader = response.body?.getReader();
     if (!reader) {
       throw new Error("流式响应不可读");
@@ -173,6 +186,7 @@ export function TutorSession() {
     let finalPlan: TaskPlan | null = null;
     let finalIntentDisplay: string | undefined;
     let finalPlanStatus: string | null | undefined;
+    let finalSuggestedReplies: string[] | undefined;
     let interrupted = false;
 
     while (true) {
@@ -192,6 +206,9 @@ export function TutorSession() {
               setMessages((prev) =>
                 prev.map((m) => (m.id === assistantId ? { ...m, content: m.content + delta } : m)),
               );
+              if (summaryAssistantIdRef.current === assistantId) {
+                summaryBufferRef.current += delta;
+              }
             }
           } else if (evt.event === "intent") {
             // 意图识别事件
@@ -236,6 +253,9 @@ export function TutorSession() {
             if (typeof evt.data?.plan_status !== "undefined") {
               finalPlanStatus = evt.data.plan_status as string | null;
             }
+            if (Array.isArray(evt.data?.suggested_replies)) {
+              finalSuggestedReplies = evt.data.suggested_replies.map((item: any) => String(item));
+            }
             if (evt.data?.intent_display) {
               finalIntentDisplay = String(evt.data.intent_display);
             }
@@ -258,7 +278,7 @@ export function TutorSession() {
       return { sessionId: finalSessionId, isConcluded: false, planProposal: null, intentDisplay: "" };
     }
 
-    return { sessionId: finalSessionId, isConcluded: finalConcluded, planProposal: finalPlan, intentDisplay: finalIntentDisplay, planStatus: finalPlanStatus };
+    return { sessionId: finalSessionId, isConcluded: finalConcluded, planProposal: finalPlan, intentDisplay: finalIntentDisplay, planStatus: finalPlanStatus, suggestedReplies: finalSuggestedReplies };
   };
 
   const fallbackSendMessage = async (messageText: string) => {
@@ -284,6 +304,10 @@ export function TutorSession() {
     }
 
     const replyText = data?.reply || "抱歉，我暂时没有生成有效回复。";
+
+    if (messageText === SUMMARY_TRIGGER) {
+      setLatestSummary(replyText);
+    }
     if (data?.session_id) {
       setActiveSessionId(data.session_id);
     }
@@ -293,6 +317,9 @@ export function TutorSession() {
     const assistantMessage = makeMessage("assistant", replyText);
     if (data?.plan_proposal) {
       assistantMessage.planProposal = data.plan_proposal as TaskPlan;
+    }
+    if (Array.isArray(data?.suggested_replies)) {
+      assistantMessage.suggestedReplies = data.suggested_replies.map((item: any) => String(item));
     }
     setMessages((prev) => [...prev, assistantMessage]);
 
@@ -312,8 +339,8 @@ export function TutorSession() {
       setIsSummarizing(false);
       setShowAcceptNoteButton(true);
     } else {
-      // 备用逻辑：如果用户发送的是"生成学习总结"，也显示按钮
-      if (messageText === "生成学习总结") {
+      // 备用逻辑：如果用户发送的是SUMMARY_TRIGGER，也显示按钮
+      if (messageText === SUMMARY_TRIGGER) {
         setShowAcceptNoteButton(true);
       }
     }
@@ -323,6 +350,7 @@ export function TutorSession() {
   const isPanelOpen = context?.isPanelOpen ?? true;
   const setIsPanelOpen = context?.setIsPanelOpen ?? (() => {});
 
+  const rawTaskId = taskId ? (taskId.startsWith("task_") ? taskId.slice(5) : taskId) : "";
   const currentTaskId = taskId ? (taskId.startsWith("task_") ? taskId : `task_${taskId}`) : "task_default";
   const isDraftTask = Boolean(draftTask && currentTaskId === draftTask.id);
   const isPlanActive = Boolean(
@@ -346,7 +374,9 @@ export function TutorSession() {
   }, []);
   useEffect(() => {
     let cancelled = false;
-    const fallbackTitle = taskId ? "学习任务" : "欢迎使用 ChatTutor";
+    const fallbackTitle = taskId
+      ? taskTitles[rawTaskId] || taskTitles[taskId] || "学习任务"
+      : "欢迎使用 阿城";
 
     if (isDraftTask) {
       setTaskTitleDisplay(draftTask?.title || "新的学习");
@@ -377,7 +407,7 @@ export function TutorSession() {
     return () => {
       cancelled = true;
     };
-  }, [currentTaskId, taskId]);
+  }, [currentTaskId, rawTaskId, taskId]);
   useEffect(() => {
     let isCancelled = false;
 
@@ -454,12 +484,12 @@ export function TutorSession() {
               historyMessages[idx] = { ...historyMessages[idx], planProposal: draftPlan };
             }
           } else {
-            const draftMsg = makeMessage("assistant", "?????????????????");
+            const draftMsg = makeMessage("assistant", "学习计划已加载，继续调整即可。");
             draftMsg.planProposal = draftPlan;
             historyMessages.push(draftMsg);
           }
         } else if (draftPlan && historyMessages.length === 0) {
-          const draftMsg = makeMessage("assistant", "?????????????????");
+          const draftMsg = makeMessage("assistant", "学习计划已加载，继续调整即可。");
           draftMsg.planProposal = draftPlan;
           historyMessages.push(draftMsg);
         }
@@ -544,7 +574,7 @@ export function TutorSession() {
     setIsSending(true);
 
     // 如果是生成学习总结的消息，先隐藏按钮
-    if (messageText === "生成学习总结") {
+    if (messageText === SUMMARY_TRIGGER) {
       setShowAcceptNoteButton(false);
     }
 
@@ -559,6 +589,11 @@ export function TutorSession() {
       }
 
       const assistantId = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+      if (messageText === SUMMARY_TRIGGER) {
+        summaryAssistantIdRef.current = assistantId;
+        summaryBufferRef.current = "";
+        setLatestSummary("");
+      }
       setMessages((prev) => [
         ...prev,
         {
@@ -600,6 +635,13 @@ export function TutorSession() {
           )
         );
       }
+      if (streamResult.suggestedReplies && streamResult.suggestedReplies.length > 0) {
+        setMessages((prev) =>
+          prev.map((m) =>
+            m.id === assistantId ? { ...m, suggestedReplies: streamResult.suggestedReplies } : m
+          )
+        );
+      }
       // 设置意图识别展示文字
       if (streamResult.intentDisplay) {
         setIntentDisplay(streamResult.intentDisplay);
@@ -615,10 +657,13 @@ export function TutorSession() {
         setIsSummarizing(false);
         setShowAcceptNoteButton(true);
       } else {
-        // 备用逻辑：如果用户发送的是"生成学习总结"，也显示按钮
-        if (messageText === "生成学习总结") {
+        // 备用逻辑：如果用户发送的是SUMMARY_TRIGGER，也显示按钮
+        if (messageText === SUMMARY_TRIGGER) {
           setShowAcceptNoteButton(true);
         }
+      }
+      if (summaryAssistantIdRef.current === assistantId) {
+        setLatestSummary(summaryBufferRef.current);
       }
     } catch (error) {
       try {
@@ -684,14 +729,14 @@ export function TutorSession() {
     const dividerMessage: Message = {
       id: `${Date.now()}-divider`,
       role: "divider",
-      content: "-------------------生成学习总结-------------------",
+      content: `-------------------${SUMMARY_TRIGGER}-------------------`,
       timestamp: formatTime(),
     };
     setMessages((prev) => [...prev, dividerMessage]);
 
     setIsSummarizing(true);
     setShowAcceptNoteButton(false); // 重置按钮状态
-    await sendMessage("生成学习总结");
+    await sendMessage(SUMMARY_TRIGGER);
     // 注意：isSummarizing 会在总结完成后由 stream 结果自动重置
   };
 
@@ -699,31 +744,26 @@ export function TutorSession() {
     setIsAcceptingNote(true);
     setShowAcceptNoteButton(false);
     try {
-      // 调用后端任务总结 API（对整个任务的所有对话生成总结）
-      const taskSummaryResp = await fetch(
-        `${API_BASE_URL}/history/tasks/${currentTaskId}/summary`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            task_id: currentTaskId,
-          }),
-        }
-      );
+      if (!latestSummary.trim()) {
+        throw new Error("Summary content is empty");
+      }
+      const taskSummaryResp = await fetch(`${API_BASE_URL}/notes/task`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          task_id: currentTaskId,
+          content: latestSummary,
+        }),
+      });
 
       if (!taskSummaryResp.ok) {
-        throw new Error(`获取任务总结失败（${taskSummaryResp.status}）`);
+        throw new Error(`Failed to update task note: ${taskSummaryResp.status}`);
       }
 
-      // 等待后端保存完成
-      await new Promise(resolve => setTimeout(resolve, 500));
-
-      // 触发任务计划更新事件
       window.dispatchEvent(new Event("task-plan-updated"));
 
-      // 结束计划状态（如果当前处于计划中）
       if (planStatus && ["await_confirm", "await_plan_confirm", "collecting", "paused"].includes(planStatus)) {
         await applyPlanSessionAction("exit");
         setPlanStatus(null);
@@ -746,6 +786,7 @@ export function TutorSession() {
         timestamp: formatTime(),
       };
       setMessages((prev) => [...prev, errorMessage]);
+      setShowAcceptNoteButton(true);
     } finally {
       setIsAcceptingNote(false);
     }
@@ -894,20 +935,55 @@ export function TutorSession() {
 
       {/* Chat Messages Area */}
       <div className="flex-1 overflow-y-auto bg-gray-50 p-6">
-        <div className="max-w-4xl mx-auto space-y-6">
-          {isLoadingHistory && (
-            <div className="rounded-lg border border-gray-200 bg-white px-4 py-3 text-sm text-gray-600">
-              正在加载历史对话...
+        <div className="max-w-4xl mx-auto relative min-h-[60vh]">
+          {!isLoadingHistory && !errorText && isDraftTask && (
+            <div className="pointer-events-none absolute inset-0 flex items-center justify-center z-0">
+              <div className="w-full max-w-xl rounded-3xl border border-indigo-100/80 bg-white/70 px-8 py-6 text-center shadow-sm backdrop-blur-sm">
+                <div className="grid grid-cols-1 gap-3 text-sm text-gray-600">
+                  <div className="flex items-center justify-center gap-3">
+                    <span className="flex h-6 w-6 items-center justify-center rounded-full bg-indigo-50 text-xs font-semibold text-indigo-600">
+                      01
+                    </span>
+                    <span className="font-medium text-gray-700">说出你的学习目标</span>
+                  </div>
+                  <div className="flex items-center justify-center gap-3">
+                    <span className="flex h-6 w-6 items-center justify-center rounded-full bg-indigo-50 text-xs font-semibold text-indigo-600">
+                      02
+                    </span>
+                    <span className="font-medium text-gray-700">AI 生成学习路径与节奏</span>
+                  </div>
+                  <div className="flex items-center justify-center gap-3">
+                    <span className="flex h-6 w-6 items-center justify-center rounded-full bg-indigo-50 text-xs font-semibold text-indigo-600">
+                      03
+                    </span>
+                    <span className="font-medium text-gray-700">调整计划，开始学习</span>
+                  </div>
+                  <div className="flex items-center justify-center gap-3">
+                    <span className="flex h-6 w-6 items-center justify-center rounded-full bg-indigo-50 text-xs font-semibold text-indigo-600">
+                      04
+                    </span>
+                    <span className="font-medium text-gray-700">每日记录与复盘</span>
+                  </div>
+                </div>
+                <div className="mt-4 text-xs text-gray-400">或者只是和阿城聊聊天吧</div>
+              </div>
             </div>
           )}
 
-          {errorText && (
-            <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-              {errorText}
-            </div>
-          )}
+          <div className="relative z-10 space-y-6">
+            {isLoadingHistory && (
+              <div className="rounded-lg border border-gray-200 bg-white px-4 py-3 text-sm text-gray-600">
+                正在加载历史对话...
+              </div>
+            )}
 
-          {messages.map((message) => {
+            {errorText && (
+              <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                {errorText}
+              </div>
+            )}
+
+            {messages.map((message) => {
             // 渲染分割线
             if (message.role === "divider") {
               return (
@@ -992,6 +1068,23 @@ export function TutorSession() {
                   >
                     {message.timestamp}
                   </div>
+
+                  {message.role === "assistant" &&
+                    message.suggestedReplies &&
+                    message.suggestedReplies.length > 0 && (
+                      <div className="mt-3 flex flex-wrap gap-2">
+                        {message.suggestedReplies.map((item, idx) => (
+                          <button
+                            key={`${message.id}-suggest-${idx}`}
+                            onClick={() => void sendMessage(item)}
+                            disabled={isSending || showIntentDisplay}
+                            className="rounded-full border border-gray-200 bg-gray-50 px-3 py-1 text-xs text-gray-700 hover:bg-gray-100 disabled:opacity-50"
+                          >
+                            {item}
+                          </button>
+                        ))}
+                      </div>
+                    )}
 
                   {message.role === "assistant" && message.planProposal && (
                     <div className="mt-3 border-t border-gray-200 pt-3">
@@ -1078,6 +1171,7 @@ export function TutorSession() {
               </button>
             </div>
           )}
+          </div>
         </div>
       </div>
 

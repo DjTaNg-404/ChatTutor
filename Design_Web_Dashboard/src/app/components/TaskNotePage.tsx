@@ -54,25 +54,106 @@ interface TaskNote {
   planChecklist?: { [key: string]: boolean }; // 学习计划打勾状态
 }
 
+// 模拟任务笔记数据
+const taskNotesData: { [key: string]: TaskNote } = {
+  "1": {
+    taskId: "1",
+    taskTitle: "掌握随机森林算法",
+    taskIcon: "🌳",
+    startDate: "2026-02-25",
+    totalDays: 6,
+    totalHours: 8.5,
+    progress: 75,
+    overallSummary:
+      "本任务旨在全面掌握随机森林算法的理论基础和实践应用。通过系统学习，已经理解了集成学习的核心思想、特征重要性评估方法、超参数调优技巧，以及与其他算法的对比分析。目前已完成理论学习阶段，正在进入实践应用阶段。",
+    coreKnowledge: [
+      "集成学习原理（Ensemble Learning）",
+      "Bootstrap 采样与特征随机性",
+      "特征重要性计算（Gini Importance）",
+      "超参数调优（n_estimators, max_depth, min_samples_split）",
+      "随机森林 vs XGBoost vs 决策树对比",
+      "过拟合控制与交叉验证",
+    ],
+    masteryLevel: [
+      { topic: "理论基础", level: 85 },
+      { topic: "特征重要性", level: 80 },
+      { topic: "超参数调优", level: 70 },
+      { topic: "实践应用", level: 50 },
+      { topic: "优化技巧", level: 45 },
+    ],
+    milestones: [
+      { date: "2026-02-25", achievement: "开始学习随机森林，了解基本概念" },
+      { date: "2026-02-28", achievement: "完成决策树基础复习" },
+      { date: "2026-03-01", achievement: "深入理解信息增益与基尼系数" },
+      { date: "2026-03-02", achievement: "掌握特征重要性和超参数调优" },
+    ],
+    plan: [
+      "使用 Kaggle 泰坦尼克数据集进行实践练习",
+      "对比随机森林与 XGBoost 在真实数据上的表现",
+      "学习特征工程技巧并应用到模型中",
+      "研究随机森林在不平衡数据上的处理方法",
+      "尝试调优复杂场景下的超参数",
+    ],
+    userNotes:
+      "## 个人心得\n\n随机森林是一个非常实用的算法，理解起来相对简单，但要用好需要大量实践。\n\n## 重点难点\n\n1. 特征重要性的计算原理需要反复理解\n2. 超参数之间的相互影响需要实践总结\n3. 如何避免过拟合是关键\n\n## 参考资源\n\n- Scikit-learn 官方文档\n- 《统计学习方法》李航\n- Kaggle 相关竞赛案例\n\n## 实践项目计划\n\n- [ ] 泰坦尼克生存预测\n- [ ] 房价预测项目\n- [ ] 信用卡欺诈检测",
+  },
+  "2": {
+    taskId: "2",
+    taskTitle: "雅思口语备考",
+    taskIcon: "🗣️",
+    startDate: "2026-02-20",
+    totalDays: 11,
+    totalHours: 15.5,
+    progress: 60,
+    overallSummary: "系统性地准备雅思口语考试，重点提升流利度和词汇丰富度。",
+    coreKnowledge: [
+      "Part 1 常见话题应对策略",
+      "Part 2 长篇陈述结构",
+      "Part 3 深度讨论技巧",
+    ],
+    masteryLevel: [
+      { topic: "发音", level: 75 },
+      { topic: "流利度", level: 65 },
+      { topic: "词汇", level: 70 },
+      { topic: "语法", level: 80 },
+    ],
+    milestones: [
+      { date: "2026-02-20", achievement: "开始口语备考计划" },
+      { date: "2026-02-25", achievement: "完成 Part 1 基础话题练习" },
+    ],
+    plan: [
+      "每天练习 Part 2 话题",
+      "积累高分词汇和表达",
+      "进行模拟考试",
+    ],
+    userNotes: "需要多练习，提高自信心。",
+  },
+};
+
 function mergeTaskNote(
-  api: TaskNoteApiResponse,
+  fallback: TaskNote | null,
+  api: TaskNoteApiResponse | null,
   taskId: string | undefined
 ): TaskNote | null {
+  if (!fallback && !api) {
+    return null;
+  }
+
   return {
-    taskId: api.task_id || taskId || "task_default",
-    taskTitle: api.taskTitle || "Task Plan",
-    taskIcon: api.taskIcon || "*",
-    startDate: api.startDate || "",
-    totalDays: api.totalDays ?? 0,
-    totalHours: api.totalHours ?? 0,
-    progress: api.progress ?? 0,
-    overallSummary: api.overallSummary || "",
-    coreKnowledge: api.coreKnowledge || [],
-    masteryLevel: api.masteryLevel || [],
-    milestones: api.milestones || [],
-    plan: api.plan || [],
-    userNotes: api.userNotes || api.content || "",
-    planChecklist: api.planChecklist || {},
+    taskId: api?.task_id || fallback?.taskId || taskId || "task_default",
+    taskTitle: api?.taskTitle || fallback?.taskTitle || "Task Plan",
+    taskIcon: api?.taskIcon || fallback?.taskIcon || "*",
+    startDate: api?.startDate || fallback?.startDate || "",
+    totalDays: api?.totalDays ?? fallback?.totalDays ?? 0,
+    totalHours: api?.totalHours ?? fallback?.totalHours ?? 0,
+    progress: api?.progress ?? fallback?.progress ?? 0,
+    overallSummary: api?.overallSummary || fallback?.overallSummary || "",
+    coreKnowledge: api?.coreKnowledge || fallback?.coreKnowledge || [],
+    masteryLevel: api?.masteryLevel || fallback?.masteryLevel || [],
+    milestones: api?.milestones || fallback?.milestones || [],
+    plan: api?.plan || fallback?.plan || [],
+    userNotes: api?.userNotes || api?.content || fallback?.userNotes || "",
+    planChecklist: api?.planChecklist || fallback?.planChecklist || {},
   };
 }
 
@@ -80,12 +161,15 @@ export function TaskNotePage() {
   const { taskId } = useParams<{ taskId: string }>();
   const navigate = useNavigate();
 
+  const noteData = taskId ? taskNotesData[taskId] : null;
   const resolvedTaskId = taskId
     ? taskId.startsWith("task_")
       ? taskId
       : `task_${taskId}`
     : "task_default";
-  const [taskNote, setTaskNote] = useState<TaskNote | null>(null);
+  const [taskNote, setTaskNote] = useState<TaskNote | null>(
+    mergeTaskNote(noteData, null, taskId)
+  );
   const [userNotes, setUserNotes] = useState(taskNote?.userNotes || "");
   const [isPreviewMode, setIsPreviewMode] = useState(false);
 
@@ -126,7 +210,7 @@ export function TaskNotePage() {
       }
       const data: TaskNoteApiResponse = await response.json();
       if (!cancelled) {
-        const merged = mergeTaskNote(data, taskId);
+        const merged = mergeTaskNote(noteData, data, taskId);
         setTaskNote(merged);
         setUserNotes(merged?.userNotes || "");
         setPlanChecklist(merged?.planChecklist || {});
@@ -136,16 +220,17 @@ export function TaskNotePage() {
       if (!cancelled) {
         const message = error instanceof Error ? error.message : "加载任务笔记失败";
         setSaveHint(message);
-        setTaskNote(null);
-        setUserNotes("");
-        setPlanChecklist({});
+        const merged = mergeTaskNote(noteData, null, taskId);
+        setTaskNote(merged);
+        setUserNotes(merged?.userNotes || "");
+        setPlanChecklist(merged?.planChecklist || {});
       }
     } finally {
       if (!cancelled) {
         setIsLoading(false);
       }
     }
-  }, [resolvedTaskId, taskId]);
+  }, [resolvedTaskId, taskId, noteData]);
 
   // 保存学习计划打勾状态
   const handleSavePlanChecklist = async (checklist: { [key: string]: boolean }) => {

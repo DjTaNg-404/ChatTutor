@@ -9,8 +9,10 @@ class AgentWorker(QThread):
     chunk_ready = pyqtSignal(str, str)
     stream_finished = pyqtSignal(str)
     response_ready = pyqtSignal(str, bool)
+    session_ready = pyqtSignal(str)
     node_changed = pyqtSignal(str, str)  # (message_id, node_name)
     intent_changed = pyqtSignal(str)  # (intent_text)
+    plan_ready = pyqtSignal(object, object)  # (plan_proposal, plan_status)
     
     def __init__(self, api_base_url, session_id, topic, user_input, task_id=None):
         super().__init__()
@@ -26,8 +28,7 @@ class AgentWorker(QThread):
         # ==================================================
 
     def _plan_hint(self) -> bool:
-        keywords = ["计划", "目标", "安排", "进度", "时间", "每天", "每周", "每月", "完成", "调整", "改成", "更新"]
-        return any(k in self.user_input for k in keywords)
+        return False
 
     def _fallback_chat(self):
         response = requests.post(
@@ -46,6 +47,14 @@ class AgentWorker(QThread):
             self.response_ready.emit(f"接口失败：{response.status_code}", False)
             return
         data = response.json()
+        session_id = data.get("session_id")
+        if session_id:
+            self.session_id = session_id
+            self.session_ready.emit(session_id)
+        plan_proposal = data.get("plan_proposal")
+        plan_status = data.get("plan_status")
+        if plan_proposal is not None or (plan_status not in (None, "", "idle")):
+            self.plan_ready.emit(plan_proposal, plan_status)
         self.response_ready.emit(data.get("reply", ""), bool(data.get("is_concluded", False)))
 
     def run(self):
@@ -81,6 +90,10 @@ class AgentWorker(QThread):
                 if event_type == "start":
                     # ====== 【核心修复】：使用刚生成的唯一 UUID ======
                     stream_message_id = f"ai-{data.get('session_id', self.session_id)}-{self.worker_id}"
+                    session_id = data.get("session_id")
+                    if session_id:
+                        self.session_id = session_id
+                        self.session_ready.emit(session_id)
                     # ================================================
                     self.stream_started.emit(stream_message_id)
                 elif event_type == "delta":
@@ -91,6 +104,10 @@ class AgentWorker(QThread):
                             self.chunk_ready.emit(stream_message_id, chunk)
                 elif event_type == "done":
                     is_concluded = bool(data.get("is_concluded", False))
+                    plan_proposal = data.get("plan_proposal")
+                    plan_status = data.get("plan_status")
+                    if plan_proposal is not None or (plan_status not in (None, "", "idle")):
+                        self.plan_ready.emit(plan_proposal, plan_status)
                 elif event_type == "node":
                     # 节点变更事件，更新思考状态显示
                     node_name = data.get("node_name", "")

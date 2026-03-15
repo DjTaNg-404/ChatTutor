@@ -299,7 +299,7 @@ export function NewTaskPage() {
                 <input
                   value={taskTitle}
                   onChange={(event) => setTaskTitle(event.target.value)}
-                  placeholder="输入任务名称（简洁描述你的学习主题）"
+                  placeholder="例如：掌握随机森林算法、雅思口语备考、React Hooks 深入..."
                   className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 />
               </div>
@@ -319,7 +319,7 @@ export function NewTaskPage() {
             <textarea
               value={taskGoal}
               onChange={(event) => setTaskGoal(event.target.value)}
-              placeholder="请描述你的学习目标、希望达到的能力水平，以及计划应用的场景。"
+              placeholder="例如：\n\n我想全面掌握随机森林算法，包括：\n1. 理解集成学习的核心原理\n2. 掌握特征重要性评估方法\n3. 学会超参数调优技巧\n4. 能够在实际项目中应用该算法\n5. 了解与其他机器学习算法的对比"
               rows={7}
               className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
             />

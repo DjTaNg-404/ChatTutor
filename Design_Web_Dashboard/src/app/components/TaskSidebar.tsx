@@ -1,5 +1,5 @@
 import { Link, useLocation, useNavigate } from "react-router";
-import { Plus, ChevronDown, ChevronRight, BookOpen, Settings, Archive, Edit2, X, Loader2 } from "lucide-react";
+import { Plus, ChevronDown, ChevronRight, Settings, Archive, Edit2, X, Loader2 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 
 const COMMON_ICONS = [
@@ -43,8 +43,13 @@ interface Task {
   updated_at?: string;
 }
 
+const activeTasks: Task[] = [];
+
+const archivedTasks: Task[] = [];
+
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8000/api/v1";
 const TASK_DRAFT_KEY = "task_draft";
+const logoUrl = new URL("../../../img/acheng.jpg", import.meta.url).href;
 
 function loadDraftTask(): Task | null {
   try {
@@ -82,6 +87,17 @@ function clearDraftTask() {
   } catch {
     // ignore storage errors
   }
+}
+
+function mergeTasks(primary: Task[], secondary: Task[]): Task[] {
+  const map = new Map<string, Task>();
+  for (const item of secondary) {
+    map.set(item.id, item);
+  }
+  for (const item of primary) {
+    map.set(item.id, item);
+  }
+  return Array.from(map.values());
 }
 
 export function TaskSidebar() {
@@ -160,13 +176,16 @@ export function TaskSidebar() {
   };
 
   const activeTaskList = useMemo(() => {
-    const merged = storedTasks.filter((item) => item.status === "active");
+    const merged = mergeTasks(storedTasks.filter((item) => item.status === "active"), activeTasks);
     if (draftTask && !merged.some((item) => item.id === draftTask.id)) {
       return [draftTask, ...merged];
     }
     return merged;
   }, [storedTasks, draftTask]);
-  const archivedTaskList = useMemo(() => storedTasks.filter((item) => item.status === "archived"), [storedTasks]);
+  const archivedTaskList = useMemo(
+    () => mergeTasks(storedTasks.filter((item) => item.status === "archived"), archivedTasks),
+    [storedTasks]
+  );
 
   const handleContextMenu = (event: React.MouseEvent, task: Task) => {
     if (draftTask && task.id === draftTask.id) return;
@@ -369,11 +388,14 @@ export function TaskSidebar() {
     <aside className="w-[250px] bg-white border-r border-gray-200 flex flex-col">
       {/* Brand Logo */}
       <div className="p-6 border-b border-gray-200">
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 bg-gradient-to-br from-indigo-500 to-blue-600 rounded-lg flex items-center justify-center">
-            <BookOpen className="w-5 h-5 text-white" />
+        <div className="flex flex-col items-center text-center gap-1">
+          <div className="flex items-center justify-center gap-3">
+            <div className="w-20 h-20 rounded-2xl overflow-hidden bg-gray-100">
+              <img src={logoUrl} alt="阿城" className="w-full h-full object-cover" />
+            </div>
+            <h1 className="text-2xl font-semibold text-gray-900 pl-1">阿城</h1>
           </div>
-          <h1 className="text-xl font-semibold text-gray-900">ChatTutor</h1>
+          <div className="text-xs text-gray-500">陪你规划，陪你思考，陪你坚持</div>
         </div>
       </div>
 

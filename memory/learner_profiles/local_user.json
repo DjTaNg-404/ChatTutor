@@ -1,0 +1,556 @@
+{
+  "learner_id": "local_user",
+  "updated_at": "2026-03-15T11:20:34",
+  "cards": [
+    {
+      "type": "learning_fact",
+      "fact_type": "goal",
+      "fields": {
+        "subject": "预测离散类别时"
+      },
+      "source": "local_user",
+      "ts": "2026-03-04T12:07:59"
+    },
+    {
+      "type": "learning_fact",
+      "fact_type": "skill_state",
+      "fields": {
+        "topic": "**导致模型过拟合",
+        "level": "weak"
+      },
+      "source": "local_user",
+      "ts": "2026-03-04T12:13:22"
+    },
+    {
+      "type": "learning_fact",
+      "fact_type": "skill_state",
+      "fields": {
+        "topic": "导致过拟合",
+        "level": "weak"
+      },
+      "source": "local_user",
+      "ts": "2026-03-04T16:21:03"
+    },
+    {
+      "type": "learning_fact",
+      "fact_type": "skill_state",
+      "fields": {
+        "topic": "导致过拟合**",
+        "level": "weak"
+      },
+      "source": "local_user",
+      "ts": "2026-03-04T16:57:15"
+    },
+    {
+      "type": "learning_fact",
+      "fact_type": "skill_state",
+      "fields": {
+        "topic": "**导致过拟合",
+        "level": "weak"
+      },
+      "source": "local_user",
+      "ts": "2026-03-04T17:07:13"
+    },
+    {
+      "type": "learning_fact",
+      "fact_type": "skill_state",
+      "fields": {
+        "topic": "因I/O等待而空闲；",
+        "level": "weak"
+      },
+      "source": "local_user",
+      "ts": "2026-03-05T16:57:32"
+    },
+    {
+      "type": "learning_fact",
+      "fact_type": "preference",
+      "fields": {
+        "style": "两句话介绍异步编程的价值"
+      },
+      "source": "local_user",
+      "ts": "2026-03-05T17:00:14"
+    },
+    {
+      "type": "learning_fact",
+      "fact_type": "skill_state",
+      "fields": {
+        "topic": "傻站着",
+        "level": "weak"
+      },
+      "source": "local_user",
+      "ts": "2026-03-06T02:35:14"
+    },
+    {
+      "type": "learning_fact",
+      "fact_type": "goal",
+      "fields": {
+        "subject": "什么吗"
+      },
+      "source": "local_user",
+      "ts": "2026-03-07T14:39:52"
+    },
+    {
+      "type": "learning_fact",
+      "fact_type": "goal",
+      "fields": {
+        "subject": "掌握随机森林"
+      },
+      "source": "local_user",
+      "ts": "2026-03-07T14:50:11"
+    },
+    {
+      "type": "learning_fact",
+      "fact_type": "skill_state",
+      "fields": {
+        "topic": "按预期退出",
+        "level": "weak"
+      },
+      "source": "local_user",
+      "ts": "2026-03-09T21:03:55"
+    },
+    {
+      "type": "learning_fact",
+      "fact_type": "goal",
+      "fields": {
+        "subject": "明确**：用户的核心目标是学习Python和SQL"
+      },
+      "source": "local_user",
+      "ts": "2026-03-09T21:08:34"
+    },
+    {
+      "type": "learning_fact",
+      "fact_type": "goal",
+      "fields": {
+        "subject": "的知识：**"
+      },
+      "source": "local_user",
+      "ts": "2026-03-10T15:29:42"
+    },
+    {
+      "type": "learning_fact",
+      "fact_type": "goal",
+      "fields": {
+        "subject": "习随机森林"
+      },
+      "source": "local_user",
+      "ts": "2026-03-10T15:35:13"
+    },
+    {
+      "type": "learning_fact",
+      "fact_type": "skill_state",
+      "fields": {
+        "topic": "为负）",
+        "level": "weak"
+      },
+      "source": "local_user",
+      "ts": "2026-03-10T16:11:08"
+    },
+    {
+      "type": "learning_fact",
+      "fact_type": "goal",
+      "fields": {
+        "subject": "习 React Hooks"
+      },
+      "source": "local_user",
+      "ts": "2026-03-10T16:59:28"
+    },
+    {
+      "type": "learning_fact",
+      "fact_type": "goal",
+      "fields": {
+        "subject": "是**随机森林**"
+      },
+      "source": "local_user",
+      "ts": "2026-03-10T17:06:45"
+    },
+    {
+      "type": "learning_fact",
+      "fact_type": "goal",
+      "fields": {
+        "subject": "让同一节点内的样本尽可能属于同一类别"
+      },
+      "source": "local_user",
+      "ts": "2026-03-10T17:34:56"
+    },
+    {
+      "type": "learning_fact",
+      "fact_type": "assessment",
+      "fields": {
+        "score": 86
+      },
+      "source": "local_user",
+      "ts": "2026-03-10T21:54:27"
+    },
+    {
+      "type": "learning_fact",
+      "fact_type": "goal",
+      "fields": {
+        "subject": "习RAG记忆这一部分的内容"
+      },
+      "source": "local_user",
+      "ts": "2026-03-11T16:47:52"
+    },
+    {
+      "type": "learning_fact",
+      "fact_type": "goal",
+      "fields": {
+        "subject": "在**保留完整语义**和**控制信息密度**之间找到平衡"
+      },
+      "source": "local_user",
+      "ts": "2026-03-11T16:52:17"
+    },
+    {
+      "type": "learning_fact",
+      "fact_type": "skill_state",
+      "fields": {
+        "topic": "混入“故障排查”的内容",
+        "level": "weak"
+      },
+      "source": "local_user",
+      "ts": "2026-03-11T16:54:05"
+    },
+    {
+      "type": "learning_fact",
+      "fact_type": "goal",
+      "fields": {
+        "subject": "**：理解RAG完整架构"
+      },
+      "source": "local_user",
+      "ts": "2026-03-11T16:58:16"
+    },
+    {
+      "type": "learning_fact",
+      "fact_type": "goal",
+      "fields": {
+        "subject": "**：引入生成质量评估"
+      },
+      "source": "local_user",
+      "ts": "2026-03-11T17:15:37"
+    },
+    {
+      "type": "learning_fact",
+      "fact_type": "skill_state",
+      "fields": {
+        "topic": "把 “假设 — 数据 — 图表 — 结论” 切开",
+        "level": "weak"
+      },
+      "source": "local_user",
+      "ts": "2026-03-11T17:38:30"
+    },
+    {
+      "type": "learning_fact",
+      "fact_type": "goal",
+      "fields": {
+        "subject": "达到的状态"
+      },
+      "source": "local_user",
+      "ts": "2026-03-11T18:27:50"
+    },
+    {
+      "type": "learning_fact",
+      "fact_type": "progress",
+      "fields": {
+        "milestone": "多少"
+      },
+      "source": "local_user",
+      "ts": "2026-03-11T18:27:50"
+    },
+    {
+      "type": "learning_fact",
+      "fact_type": "goal",
+      "fields": {
+        "subject": "（锚定方向）**"
+      },
+      "source": "local_user",
+      "ts": "2026-03-11T18:27:53"
+    },
+    {
+      "type": "learning_fact",
+      "fact_type": "progress",
+      "fields": {
+        "milestone": "吗"
+      },
+      "source": "local_user",
+      "ts": "2026-03-11T18:27:53"
+    },
+    {
+      "type": "learning_fact",
+      "fact_type": "goal",
+      "fields": {
+        "subject": "]"
+      },
+      "source": "local_user",
+      "ts": "2026-03-11T18:27:58"
+    },
+    {
+      "type": "learning_fact",
+      "fact_type": "goal",
+      "fields": {
+        "subject": "习agnet 生成学习计划"
+      },
+      "source": "local_user",
+      "ts": "2026-03-11T18:28:47"
+    },
+    {
+      "type": "learning_fact",
+      "fact_type": "goal",
+      "fields": {
+        "subject": "调整后的学习计划达到什么具体目标"
+      },
+      "source": "local_user",
+      "ts": "2026-03-11T18:30:15"
+    },
+    {
+      "type": "learning_fact",
+      "fact_type": "goal",
+      "fields": {
+        "subject": "我辅助您生成某份材料的学习总结"
+      },
+      "source": "local_user",
+      "ts": "2026-03-11T18:33:13"
+    },
+    {
+      "type": "learning_fact",
+      "fact_type": "goal",
+      "fields": {
+        "subject": "做什么"
+      },
+      "source": "local_user",
+      "ts": "2026-03-11T18:36:56"
+    },
+    {
+      "type": "learning_fact",
+      "fact_type": "goal",
+      "fields": {
+        "subject": "应保持稳定"
+      },
+      "source": "local_user",
+      "ts": "2026-03-11T18:43:58"
+    },
+    {
+      "type": "learning_fact",
+      "fact_type": "goal",
+      "fields": {
+        "subject": "尝试为哪一部分内容做一个总结"
+      },
+      "source": "local_user",
+      "ts": "2026-03-11T18:48:00"
+    },
+    {
+      "type": "learning_fact",
+      "fact_type": "goal",
+      "fields": {
+        "subject": "用2小时掌握金属钠的基础性质和核心反应"
+      },
+      "source": "local_user",
+      "ts": "2026-03-11T22:04:47"
+    },
+    {
+      "type": "learning_fact",
+      "fact_type": "goal",
+      "fields": {
+        "subject": "重点理解定理的推导过程"
+      },
+      "source": "local_user",
+      "ts": "2026-03-12T03:37:39"
+    },
+    {
+      "type": "learning_fact",
+      "fact_type": "goal",
+      "fields": {
+        "subject": "什么”（如UI在某个状态下应该如何呈现）"
+      },
+      "source": "local_user",
+      "ts": "2026-03-12T19:55:56"
+    },
+    {
+      "type": "learning_fact",
+      "fact_type": "goal",
+      "fields": {
+        "subject": "习机器学习"
+      },
+      "source": "local_user",
+      "ts": "2026-03-12T22:35:12"
+    },
+    {
+      "type": "learning_fact",
+      "fact_type": "goal",
+      "fields": {
+        "subject": "我深入解释一下吗"
+      },
+      "source": "local_user",
+      "ts": "2026-03-12T23:52:46"
+    },
+    {
+      "type": "learning_fact",
+      "fact_type": "goal",
+      "fields": {
+        "subject": "更直接地聚焦于机器学习本身"
+      },
+      "source": "local_user",
+      "ts": "2026-03-13T00:23:23"
+    },
+    {
+      "type": "learning_fact",
+      "fact_type": "goal",
+      "fields": {
+        "subject": "习一下机器学习"
+      },
+      "source": "local_user",
+      "ts": "2026-03-14T14:14:11"
+    },
+    {
+      "type": "learning_fact",
+      "fact_type": "goal",
+      "fields": {
+        "subject": "来看"
+      },
+      "source": "local_user",
+      "ts": "2026-03-14T14:14:39"
+    },
+    {
+      "type": "learning_fact",
+      "fact_type": "goal",
+      "fields": {
+        "subject": "直接沉淀知识"
+      },
+      "source": "local_user",
+      "ts": "2026-03-14T18:26:29"
+    },
+    {
+      "type": "learning_fact",
+      "fact_type": "goal",
+      "fields": {
+        "subject": "学习从输入特征到已知输出标签的映射"
+      },
+      "source": "local_user",
+      "ts": "2026-03-14T21:09:13"
+    },
+    {
+      "type": "learning_fact",
+      "fact_type": "goal",
+      "fields": {
+        "subject": "什么"
+      },
+      "source": "local_user",
+      "ts": "2026-03-14T21:15:55"
+    },
+    {
+      "type": "learning_fact",
+      "fact_type": "goal",
+      "fields": {
+        "subject": "让计算机能像人一样“看懂”图像和视频"
+      },
+      "source": "local_user",
+      "ts": "2026-03-14T22:14:17"
+    },
+    {
+      "type": "learning_fact",
+      "fact_type": "goal",
+      "fields": {
+        "subject": "习一下深度学习"
+      },
+      "source": "local_user",
+      "ts": "2026-03-14T22:18:02"
+    },
+    {
+      "type": "learning_fact",
+      "fact_type": "goal",
+      "fields": {
+        "subject": "习一下计算机视觉的基础知识"
+      },
+      "source": "local_user",
+      "ts": "2026-03-14T22:30:39"
+    },
+    {
+      "type": "learning_fact",
+      "fact_type": "goal",
+      "fields": {
+        "subject": "让机器能够“看懂”图像和视频的内容"
+      },
+      "source": "local_user",
+      "ts": "2026-03-14T22:37:33"
+    },
+    {
+      "type": "learning_fact",
+      "fact_type": "goal",
+      "fields": {
+        "subject": "实现流畅的人机自然交互"
+      },
+      "source": "local_user",
+      "ts": "2026-03-14T23:07:16"
+    },
+    {
+      "type": "learning_fact",
+      "fact_type": "goal",
+      "fields": {
+        "subject": "让机器能够像人一样处理文本和语音"
+      },
+      "source": "local_user",
+      "ts": "2026-03-14T23:20:34"
+    },
+    {
+      "type": "learning_fact",
+      "fact_type": "goal",
+      "fields": {
+        "subject": "习一下计算机视觉相关的知识"
+      },
+      "source": "local_user",
+      "ts": "2026-03-15T00:20:43"
+    },
+    {
+      "type": "learning_fact",
+      "fact_type": "goal",
+      "fields": {
+        "subject": "建立对向量和矩阵的直观理解"
+      },
+      "source": "local_user",
+      "ts": "2026-03-15T09:13:38"
+    },
+    {
+      "type": "learning_fact",
+      "fact_type": "goal",
+      "fields": {
+        "subject": "找到一个函数 $f$"
+      },
+      "source": "local_user",
+      "ts": "2026-03-15T10:24:12"
+    },
+    {
+      "type": "learning_fact",
+      "fact_type": "goal",
+      "fields": {
+        "subject": "**从带标签的数据中学习一个映射函数**"
+      },
+      "source": "local_user",
+      "ts": "2026-03-15T10:25:04"
+    },
+    {
+      "type": "learning_fact",
+      "fact_type": "goal",
+      "fields": {
+        "subject": "找到一个在**可用时间**与**学习强度**之间取得平衡的可"
+      },
+      "source": "local_user",
+      "ts": "2026-03-15T10:36:43"
+    },
+    {
+      "type": "learning_fact",
+      "fact_type": "goal",
+      "fields": {
+        "subject": "我针对某个具体层次展开讲解"
+      },
+      "source": "local_user",
+      "ts": "2026-03-15T11:05:49"
+    },
+    {
+      "type": "learning_fact",
+      "fact_type": "goal",
+      "fields": {
+        "subject": "的框架"
+      },
+      "source": "local_user",
+      "ts": "2026-03-15T11:06:35"
+    }
+  ]
+}

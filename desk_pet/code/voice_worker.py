@@ -43,6 +43,7 @@ class AudioRecorder(QThread):
 
 class VoiceAgentWorker(QThread):
     response_ready = pyqtSignal(str, bool)
+    session_ready = pyqtSignal(str)
     
     def __init__(self, api_base_url, session_id, topic, audio_path, task_id=None):
         super().__init__()
@@ -59,7 +60,7 @@ class VoiceAgentWorker(QThread):
                 # ======== 【修改】：在此处新增 "client": "pet" 标识 ========
                 data = {
                     "task_id": self.task_id,
-                    "session_id": self.session_id, 
+                    "session_id": self.session_id or "", 
                     "topic": self.topic,
                     "client": "pet"  # 告诉后端我是桌宠，需要简短回答
                 }
@@ -84,6 +85,10 @@ class VoiceAgentWorker(QThread):
                 return
                 
             res_data = response.json()
+            session_id = res_data.get("session_id")
+            if session_id:
+                self.session_id = session_id
+                self.session_ready.emit(session_id)
             self.response_ready.emit(res_data.get("reply", ""), bool(res_data.get("is_concluded", False)))
             
         except Exception as e:
