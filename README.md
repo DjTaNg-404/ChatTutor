@@ -1,4 +1,4 @@
-# 阿城 (LearningBot)
+# 阿城 (ChatTutor)
 
 > 🎓 基于 LangGraph 多智能体架构的苏格拉底式 AI 学习助手
 
