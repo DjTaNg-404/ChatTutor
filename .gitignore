@@ -24,6 +24,7 @@ memory/sessions/*
 memory/notes/*
 !memory/notes/.gitkeep
 kg_output
+memory/
 # Logs
 *.log
 
