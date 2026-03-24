@@ -1,0 +1,51 @@
+services:
+  backend:
+    image: chattutor-backend:latest
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+      args:
+        PIP_INDEX_URL: https://pypi.tuna.tsinghua.edu.cn/simple
+        PIP_TRUSTED_HOST: pypi.tuna.tsinghua.edu.cn
+    container_name: chattutor-backend
+    env_file:
+      - ../.env
+    environment:
+      PYTHONUNBUFFERED: "1"
+      HF_HOME: /app/.cache/huggingface
+      ENABLE_STREAMING: "true"
+      ENABLE_PLAN_PROPOSAL: "true"
+      RAG_ENABLED: "false"
+      KG_ENABLED: "false"
+    ports:
+      - "8000:8000"
+    volumes:
+      - ../memory:/app/memory
+      - ../kg_output:/app/kg_output
+      - hf-cache:/app/.cache/huggingface
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/', timeout=5)"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 20s
+
+  frontend:
+    image: chattutor-frontend:latest
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.frontend
+      args:
+        NPM_REGISTRY: https://registry.npmmirror.com
+        VITE_API_BASE_URL: http://localhost:8000/api/v1
+        VITE_ENABLE_STREAMING: "true"
+    container_name: chattutor-frontend
+    ports:
+      - "8080:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+
+volumes:
+  hf-cache:

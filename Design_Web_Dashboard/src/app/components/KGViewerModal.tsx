@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { X, RefreshCw, AlertCircle, CheckCircle2, ExternalLink } from "lucide-react";
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8000/api/v1";
-const STREAMLIT_KG_URL = "http://localhost:8501";
+const STREAMLIT_KG_URL = (import.meta.env.VITE_KG_VIEWER_URL || "http://localhost:8501").replace(/\/$/, "");
 
 interface KGViewerModalProps {
   taskId: string;

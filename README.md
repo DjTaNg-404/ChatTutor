@@ -108,6 +108,19 @@ DEEPSEEK_API_KEY=sk-xxxxxxxxxxxxxxxx
 BAIDU_API_KEY=xxxxxxxxxxxx
 ```
 
+### 4. Docker 启动 Web 版（不含桌宠）
+仓库内提供了 `backend + frontend` 的 Docker 部署方案，默认不包含桌宠端，并关闭了较重的 RAG / KG 依赖以降低构建成本。
+
+```bash
+cp .env.example .env
+# 然后填写 .env 里的真实密钥
+docker compose -f docker/docker-compose.yml up --build -d
+```
+
+启动后访问：
+- Web Dashboard: `http://localhost:8080`
+- Swagger 文档: `http://localhost:8000/docs`
+
 ## 🚀 运行指南 (Usage)
 
 ### 启动后端 FastAPI 服务
