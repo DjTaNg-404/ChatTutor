@@ -171,7 +171,20 @@ LearningBot/
 ├── requirements.txt
 └── .env
 ```
+## 🌿 分支说明
 
+| 分支 | 用途 |
+|------|------|
+| `feature`（主分支） | 完整项目，包含所有模块、资产文件、桌宠、文档等 |
+| `core-code` | 核心源码精简版，移除构建产物、桌宠动画、文档图片等非核心文件，便于快速评审 |
+
+**`core-code` 分支核心工作：**
+
+- **新增生产级后端架构**：基于 FastAPI + SQLAlchemy 2.0 (Async) 构建完整后端体系，包含 JWT 认证（`app/api/auth.py`）、PostgreSQL 会话持久化（`app/db/` 含 User/Session/Task/Note/LearnerProfile/KGGraph 等 ORM 模型）、Redis 缓存（`app/core/redis_client.py`）、API 限流（`app/core/rate_limiter.py`）、Langfuse 可观测性追踪（`app/core/langfuse_callback.py`）
+- **数据库迁移体系**：Alembic 迁移脚本（`alembic/versions/`），支持数据库版本管理与回滚
+- **会话持久化修复**：解决 `sessions` 表未创建导致的聊天记录无法入库问题，将初始化逻辑从 `init_db_if_not_exists()` 改为 `init_db()` 确保所有表（sessions/tasks/notes 等）正确创建
+- **智能回退机制**：`memory.py` 中会话读写增加 DB 失败时的文件系统回退逻辑，保障服务可用性
+- **前端联动优化**：SummaryPanel 日历自动切换到有数据的月份，解决历史记录视觉上"空日历"问题
 ## 🔌 API 参考
 
 ### 对话接口
