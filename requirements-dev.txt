@@ -1,0 +1,5 @@
+# 开发与 CI 自动测试（pip install -r requirements-dev.txt）
+-r requirements.txt
+pytest>=8.0.0
+pytest-asyncio>=0.24.0
+httpx>=0.27.0

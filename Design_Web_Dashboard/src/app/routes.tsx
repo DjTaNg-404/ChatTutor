@@ -6,6 +6,8 @@ import { ChatHistoryPage } from "./components/ChatHistoryPage";
 import { DailyNotePage } from "./components/DailyNotePage";
 import { TaskNotePage } from "./components/TaskNotePage";
 import { NewTaskPage } from "./components/NewTaskPage";
+import { LoginPage } from "./components/LoginPage";
+import { ProtectedRoute } from "./components/ProtectedRoute";
 
 const TASK_DRAFT_KEY = "task_draft";
 
@@ -45,8 +47,16 @@ function DraftIndex() {
 
 export const router = createBrowserRouter([
   {
+    path: "/login",
+    element: <LoginPage />,
+  },
+  {
     path: "/",
-    element: <RootLayout />,
+    element: (
+      <ProtectedRoute>
+        <RootLayout />
+      </ProtectedRoute>
+    ),
     children: [
       { index: true, element: <DraftIndex /> },
       { path: "task/:taskId", element: <TutorSession /> },
@@ -55,18 +65,34 @@ export const router = createBrowserRouter([
   },
   {
     path: "/settings",
-    element: <SettingsPage />,
+    element: (
+      <ProtectedRoute>
+        <SettingsPage />
+      </ProtectedRoute>
+    ),
   },
   {
     path: "/history/:date",
-    element: <ChatHistoryPage />,
+    element: (
+      <ProtectedRoute>
+        <ChatHistoryPage />
+      </ProtectedRoute>
+    ),
   },
   {
     path: "/daily-note/:date",
-    element: <DailyNotePage />,
+    element: (
+      <ProtectedRoute>
+        <DailyNotePage />
+      </ProtectedRoute>
+    ),
   },
   {
     path: "/task-note/:taskId",
-    element: <TaskNotePage />,
+    element: (
+      <ProtectedRoute>
+        <TaskNotePage />
+      </ProtectedRoute>
+    ),
   },
 ]);

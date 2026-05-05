@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router";
 import { ArrowLeft, Calendar, Clock, Download, Share2 } from "lucide-react";
 
+const getToken = () => localStorage.getItem('chattutor_token');
+
 interface ChatMessage {
   id: string;
   role: "user" | "assistant";
@@ -355,9 +357,14 @@ export function ChatHistoryPage() {
       setIsLoading(true);
       setErrorText(null);
       try {
-        const sessionsResp = await fetch(`${API_BASE_URL}/history/tasks/${taskIdFromQuery}/sessions`);
+        const token = getToken();
+        const sessionsResp = await fetch(`${API_BASE_URL}/history/tasks/${taskIdFromQuery}/sessions`, {
+          headers: {
+            'Authorization': `Bearer ${token || ''}`,
+          },
+        });
         if (!sessionsResp.ok) {
-          throw new Error(`读取会话列表失败（${sessionsResp.status}）`);
+          throw new Error(`读取会话列表失败（${sessionsResp.status}`);
         }
 
         const sessionsData: TaskSessionsResponse = await sessionsResp.json();
@@ -377,9 +384,14 @@ export function ChatHistoryPage() {
 
         const historyResponses = await Promise.all(
           sameDaySessions.map(async (session) => {
-            const resp = await fetch(`${API_BASE_URL}/history/sessions/${session.session_id}/messages`);
+            const token = getToken();
+            const resp = await fetch(`${API_BASE_URL}/history/sessions/${session.session_id}/messages`, {
+              headers: {
+                'Authorization': `Bearer ${token || ''}`,
+              },
+            });
             if (!resp.ok) {
-              throw new Error(`读取会话消息失败（${resp.status}）`);
+              throw new Error(`读取会话消息失败（${resp.status}`);
             }
             const data: SessionMessagesResponse = await resp.json();
             return { session, data };

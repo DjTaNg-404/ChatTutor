@@ -1,4 +1,38 @@
+# Kafka：需与 profile 同时使用
+#   docker compose -f docker/docker-compose.yml --profile kafka up -d
+# 默认 KAFKA_ENABLED=false，不拉 Redpanda 也可启动 backend。
+
 services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: chattutor-postgres
+    environment:
+      POSTGRES_USER: chattutor
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-chattutor123}
+      POSTGRES_DB: chattutor
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U chattutor"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: chattutor-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
   backend:
     image: chattutor-backend:latest
     build:
@@ -15,21 +49,62 @@ services:
       HF_HOME: /app/.cache/huggingface
       ENABLE_STREAMING: "true"
       ENABLE_PLAN_PROPOSAL: "true"
-      RAG_ENABLED: "false"
       KG_ENABLED: "false"
+      # Database connection (internal network)
+      DATABASE_URL: postgresql+asyncpg://chattutor:${POSTGRES_PASSWORD:-chattutor123}@postgres:5432/chattutor
+      # Redis connection (internal network)
+      REDIS_URL: redis://redis:6379/0
+      KAFKA_ENABLED: ${KAFKA_ENABLED:-false}
+      KAFKA_BOOTSTRAP_SERVERS: ${KAFKA_BOOTSTRAP_SERVERS:-redpanda:9092}
+      KAFKA_TOPIC_EVENTS: ${KAFKA_TOPIC_EVENTS:-chattutor.events}
+      GUNICORN_WORKERS: ${GUNICORN_WORKERS:-4}
     ports:
       - "8000:8000"
     volumes:
       - ../memory:/app/memory
       - ../kg_output:/app/kg_output
       - hf-cache:/app/.cache/huggingface
-    command: uvicorn app.main:app --host 0.0.0.0 --port 8000
+    command: >
+      gunicorn app.main:app -k uvicorn.workers.UvicornWorker
+      -w ${GUNICORN_WORKERS:-4} -b 0.0.0.0:8000
+      --timeout 120 --access-logfile - --error-logfile -
     healthcheck:
-      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/', timeout=5)"]
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=5)"]
       interval: 30s
       timeout: 10s
       retries: 5
       start_period: 20s
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+  redpanda:
+    image: docker.redpanda.com/redpandadata/redpanda:v24.2.4
+    container_name: chattutor-redpanda
+    profiles: ["kafka"]
+    command:
+      - redpanda
+      - start
+      - --smp
+      - "1"
+      - --overprovisioned
+      - --reserve-memory
+      - 0M
+      - --kafka-addr
+      - PLAINTEXT://0.0.0.0:9092
+      - --advertise-kafka-addr
+      - PLAINTEXT://redpanda:9092
+    ports:
+      - "19092:9092"
+    volumes:
+      - redpanda_data:/var/lib/redpanda/data
+    healthcheck:
+      test: ["CMD-SHELL", "rpk cluster health || exit 1"]
+      interval: 20s
+      timeout: 15s
+      retries: 10
+      start_period: 60s
 
   frontend:
     image: chattutor-frontend:latest
@@ -48,4 +123,7 @@ services:
         condition: service_healthy
 
 volumes:
+  postgres_data:
+  redis_data:
   hf-cache:
+  redpanda_data:

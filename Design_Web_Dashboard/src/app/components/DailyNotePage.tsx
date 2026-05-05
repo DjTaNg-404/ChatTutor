@@ -3,6 +3,7 @@ import { useParams, useNavigate, useSearchParams } from "react-router";
 import { ArrowLeft, Calendar, Edit3, Save, Sparkles, Wand2, Eye, Pencil } from "lucide-react";
 import { MarkdownPreview } from "./MarkdownPreview";
 
+const getToken = () => localStorage.getItem('chattutor_token');
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8000/api/v1";
 
 interface DailyNoteApiResponse {
@@ -107,11 +108,17 @@ export function DailyNotePage() {
       setIsLoading(true);
       setSaveHint(null);
       try {
+        const token = getToken();
         const response = await fetch(
-          `${API_BASE_URL}/notes/daily?task_id=${encodeURIComponent(resolvedTaskId)}&date=${encodeURIComponent(resolvedDate)}`
+          `${API_BASE_URL}/notes/daily?task_id=${encodeURIComponent(resolvedTaskId)}&date=${encodeURIComponent(resolvedDate)}`,
+          {
+            headers: {
+              'Authorization': `Bearer ${token || ''}`,
+            },
+          }
         );
         if (!response.ok) {
-          throw new Error(`加载每日笔记失败（${response.status}）`);
+          throw new Error(`加载每日笔记失败（${response.status}`);
         }
         const data: DailyNoteApiResponse = await response.json();
         if (!cancelled) {
@@ -140,10 +147,12 @@ export function DailyNotePage() {
     setIsSaving(true);
     setSaveHint(null);
     try {
+      const token = getToken();
       const response = await fetch(`${API_BASE_URL}/notes/daily`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
+          "Authorization": `Bearer ${token || ''}`,
         },
         body: JSON.stringify({
           task_id: resolvedTaskId,
@@ -153,7 +162,7 @@ export function DailyNotePage() {
       });
 
       if (!response.ok) {
-        throw new Error(`保存失败（${response.status}）`);
+        throw new Error(`保存失败（${response.status}`);
       }
       setSaveHint("已保存");
     } catch (error) {
@@ -168,10 +177,12 @@ export function DailyNotePage() {
     setIsGeneratingSummary(true);
     setSaveHint(null);
     try {
+      const token = getToken();
       const response = await fetch(`${API_BASE_URL}/history/tasks/${resolvedTaskId}/daily-summary`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          "Authorization": `Bearer ${token || ''}`,
         },
         body: JSON.stringify({
           task_id: resolvedTaskId,
@@ -181,7 +192,7 @@ export function DailyNotePage() {
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.detail || `生成总结失败（${response.status}）`);
+        throw new Error(errorData.detail || `生成总结失败（${response.status}`);
       }
 
       const data: DailySummaryResponse = await response.json();

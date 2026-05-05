@@ -2,6 +2,7 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Link } from "react-router";
 import { useLocation } from "react-router";
 import { useEffect, useState, useCallback, useMemo, useRef } from "react";
+import { useAuth } from "../context/AuthContext";
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8000/api/v1";
 
@@ -150,8 +151,14 @@ export function SummaryPanel() {
     setIsCheckingNote(true);
     setHasDailyNote(null);
     try {
+      const token = localStorage.getItem('chattutor_token');
       const response = await fetch(
-        `${API_BASE_URL}/notes/daily?task_id=${encodeURIComponent(currentTaskId)}&date=${encodeURIComponent(dateKey)}`
+        `${API_BASE_URL}/notes/daily?task_id=${encodeURIComponent(currentTaskId)}&date=${encodeURIComponent(dateKey)}`,
+        {
+          headers: {
+            'Authorization': `Bearer ${token || ''}`,
+          },
+        }
       );
       if (!response.ok) {
         setHasDailyNote(false);
@@ -191,10 +198,12 @@ export function SummaryPanel() {
         checklist,
       });
 
+      const token = localStorage.getItem('chattutor_token');
       const response = await fetch(`${API_BASE_URL}/notes/task/plan-checklist`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
+          "Authorization": `Bearer ${token || ''}`,
         },
         body: JSON.stringify({
           task_id: currentTaskId,
@@ -228,14 +237,22 @@ export function SummaryPanel() {
     const loadTimeline = async () => {
       setIsLoading(true);
       try {
-        const response = await fetch(`${API_BASE_URL}/history/tasks/${currentTaskId}/timeline`);
+        const token = localStorage.getItem('chattutor_token');
+        const response = await fetch(`${API_BASE_URL}/history/tasks/${currentTaskId}/timeline`, {
+          headers: {
+            'Authorization': `Bearer ${token || ''}`,
+          },
+        });
+        console.log('[Timeline] API response status:', response.status, 'for task:', currentTaskId);
         if (!response.ok) {
           throw new Error(`读取时间线失败（${response.status}）`);
         }
         const data: TimelineApiResponse = await response.json();
+        console.log('[Timeline] API response data:', JSON.stringify(data));
         if (!cancelled) {
+          const timeline = data.timeline || [];
           setDailySummaries(
-            (data.timeline || []).map((item) => ({
+            timeline.map((item) => ({
               id: item.id,
               date: item.date,
               displayDate: item.display_date,
@@ -245,8 +262,17 @@ export function SummaryPanel() {
               messageCount: item.message_count || 0,
             }))
           );
+          // 自动切换到有数据的月份，避免用户看到全灰日历
+          if (timeline.length > 0) {
+            const firstDate = timeline[0].date; // format: YYYY-MM-DD
+            if (firstDate) {
+              const [y, m] = firstDate.split("-").map(Number);
+              setCurrentMonth(new Date(y, m - 1, 1));
+            }
+          }
         }
-      } catch {
+      } catch (err) {
+        console.error('[Timeline] Failed to load:', err);
         if (!cancelled) {
           setDailySummaries([]);
         }
@@ -260,7 +286,12 @@ export function SummaryPanel() {
     const loadPlan = async () => {
       setIsPlanLoading(true);
       try {
-        const response = await fetch(`${API_BASE_URL}/notes/task?task_id=${currentTaskId}`);
+        const token = localStorage.getItem('chattutor_token');
+        const response = await fetch(`${API_BASE_URL}/notes/task?task_id=${currentTaskId}`, {
+          headers: {
+            'Authorization': `Bearer ${token || ''}`,
+          },
+        });
         if (!response.ok) {
           throw new Error("failed");
         }

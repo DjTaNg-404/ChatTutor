@@ -1,12 +1,7 @@
 """
-Context Retrieval Module with RAG Support
+上下文拼装与记忆压缩（供 agent / 计划生成等引用）。
 
-This module is a drop-in replacement for context.py, providing:
-- RAG-based semantic retrieval (V2) with fallback to Jaccard (V1)
-- build_context() for assembling LLM context
-- manage_memory() for context compression
-
-Set RAG_ENABLED=False to use original Jaccard retrieval (rollback).
+历史相关片段召回仅使用 **Jaccard（字符集合）相似度**，不再使用向量库 / 混合检索。
 """
 
 from langchain_deepseek import ChatDeepSeek
@@ -21,10 +16,6 @@ RECALL_TOP_K = 2           # 每次召回最相关的对话对数量
 DISPLAY_WINDOW = 12        # 展示给模型的最近消息数量
 
 
-# ============================================================
-# V1: Original Jaccard-based Retrieval (回滚备份)
-# ============================================================
-
 def retrieve_relevant_messages_v1(
     messages: List[BaseMessage],
     query_text: str,
@@ -32,10 +23,7 @@ def retrieve_relevant_messages_v1(
     top_k: int = 2
 ) -> str:
     """
-    [V1] 轻量级 RAG 召回：基于 Jaccard 相似度（字符级）。
-
-    这是从 context.py 复制的原始实现，保留以支持回滚。
-    通过设置 RAG_ENABLED=False 使用此版本。
+    轻量级召回：基于 **Jaccard 相似度**（字符级），从历史里找与当前问题最相关的问答对。
     """
     if not query_text or len(messages) <= exclude_last_n:
         return ""
@@ -82,74 +70,23 @@ def retrieve_relevant_messages_v1(
     return result_str
 
 
-# ============================================================
-# V2: RAG-based Semantic Retrieval
-# ============================================================
-
-def retrieve_relevant_messages_v2(
-    query_text: str,
-    task_id: str,
-    session_id: Optional[str] = None,
-    top_k: int = 3
-) -> str:
-    """
-    [V2] 基于 RAG 的语义检索：使用向量数据库进行语义相似度检索。
-
-    通过设置 RAG_ENABLED=True 使用此版本。
-    """
-    if not query_text:
-        return ""
-
-    try:
-        from app.core.vector_store import rag_retrieve
-        return rag_retrieve(
-            query=query_text,
-            task_id=task_id,
-            top_k=top_k,
-            exclude_session=session_id
-        )
-    except Exception as e:
-        print(f"[RAG V2] Retrieval failed: {e}")
-        return ""
-
-
-# ============================================================
-# 统一检索入口：根据配置选择版本
-# ============================================================
-
 def retrieve_relevant_messages(
     messages: List[BaseMessage],
     query_text: str,
     exclude_last_n: int,
     top_k: int = 2,
     task_id: Optional[str] = None,
-    session_id: Optional[str] = None
+    session_id: Optional[str] = None,
 ) -> str:
     """
-    统一的检索入口，根据 RAG_ENABLED 配置选择使用 V1 或 V2。
-
-    这个函数保持与原始 context.py 的接口兼容。
+    历史片段召回入口（仅 Jaccard）。``task_id`` / ``session_id`` 保留仅为兼容旧调用，不参与检索。
     """
-    # 根据配置选择版本
-    if config.settings.RAG_ENABLED and task_id:
-        # V2: RAG 语义检索
-        result = retrieve_relevant_messages_v2(
-            query_text=query_text,
-            task_id=task_id,
-            session_id=session_id,
-            top_k=config.settings.RAG_TOP_K
-        )
-        if result:
-            return result
-        # RAG 检索无结果，fallback 到 V1
-        print("[RAG] No results from vector store, falling back to Jaccard")
-
-    # V1: Jaccard 字符相似度检索
+    _ = task_id, session_id
     return retrieve_relevant_messages_v1(
         messages=messages,
         query_text=query_text,
         exclude_last_n=exclude_last_n,
-        top_k=top_k
+        top_k=top_k,
     )
 
 
@@ -181,7 +118,7 @@ def build_context(state: models.AgentState, system_prompt: str) -> List[BaseMess
     if messages and isinstance(messages[-1], HumanMessage):
         current_query = messages[-1].content
 
-        # 使用 RAG 增强的检索
+        # 使用 Jaccard 相关片段召回
         relevant_context = retrieve_relevant_messages(
             messages=messages,
             query_text=current_query,

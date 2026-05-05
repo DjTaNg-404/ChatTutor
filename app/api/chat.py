@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Request, Depends
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 from typing import Optional, Any
@@ -8,12 +8,17 @@ import json
 import os
 import re
 from langchain_core.messages import HumanMessage, AIMessage
+from uuid import UUID
 
 from app.core.agent_builder import build_agent
 from app.core import memory
 from app.core.config import settings
 from app.core.task_plan import PLAN_SESSION_KEY
 from app.core.summary.generator import summary_generator
+from app.core.rate_limiter import limiter
+from app.core.deps import get_current_user
+from app.core.kafka_bus import emit_chat_event
+from app.db.models import User
 
 router = APIRouter()
 
@@ -115,14 +120,14 @@ async def _build_plan_proposal(
     return None
 
 
-def _build_state(request: ChatRequest, task_id: str, session_id: str):
-    current_state = memory.load_session(session_id)
+def _build_state(request: ChatRequest, task_id: str, session_id: str, user_id: str):
+    current_state = memory.load_session(session_id, user_id=user_id)
     _defaults = {
         "messages": [],
         "task_id": task_id,
         "current_topic": request.topic,
         "session_id": session_id,
-        "user_id": "local_user",
+        "user_id": user_id,
         "conversation_summary": "",
         "summarized_msg_count": 0,
         "plan": None,
@@ -143,7 +148,7 @@ def _build_state(request: ChatRequest, task_id: str, session_id: str):
         current_state["task_id"] = task_id
         current_state["session_id"] = session_id
         current_state["plan_handled"] = None
-        current_state.setdefault("user_id", "local_user")
+        current_state.setdefault("user_id", user_id)
         if request.topic:
             current_state["current_topic"] = request.topic
 
@@ -247,25 +252,33 @@ def _extract_reply_from_state(final_state: dict) -> str:
 def _event_line(event: str, data: dict) -> str:
     return json.dumps(StreamEvent(event=event, data=data).model_dump(), ensure_ascii=False) + "\n"
 
-@router.post("/chat", response_model=ChatResponse)
-async def chat_endpoint(request: ChatRequest):
+@router.post("/chat")
+@limiter.limit("10/minute")
+async def chat_endpoint(
+    request: Request,
+    chat_request: ChatRequest,
+    current_user: User = Depends(get_current_user),
+):
     """
     核心对话接口。
     接收用户的输入，加载历史会话状态，调用 Agent，并返回 AI 的回复。
     """
-    if not request.message.strip():
+    if not chat_request.message.strip():
         raise HTTPException(status_code=400, detail="Message cannot be empty")
 
-    task_id = _normalize_task_id(request.task_id, request.session_id)
-    session_id, is_new_session = _build_session_id(task_id, request.session_id)
+    # 获取当前用户 ID
+    user_id = str(current_user.id)
+
+    task_id = _normalize_task_id(chat_request.task_id, chat_request.session_id)
+    session_id, is_new_session = _build_session_id(task_id, chat_request.session_id)
 
     # 调用主 Agent
-    current_state = _build_state(request, task_id, session_id)
+    current_state = _build_state(chat_request, task_id, session_id, user_id)
     final_state, reply_content, is_concluded = await _invoke_agent(current_state)
 
     # 检查是否是新会话（用于判断是否提供计划建议）
     is_first_message = len(current_state.get("messages", [])) <= 1
-    plan_data = memory.get_task_plan_data(task_id)
+    plan_data = memory.get_task_plan_data(task_id, user_id=user_id)
     plan_session = plan_data.get(PLAN_SESSION_KEY) if isinstance(plan_data, dict) else None
     plan_status = plan_session.get("status") if isinstance(plan_session, dict) else None
     offer_shown = plan_status in {
@@ -276,15 +289,16 @@ async def chat_endpoint(request: ChatRequest):
         "collecting",
         "paused",
     }
-    if _should_offer_plan(request.message, is_first_message, memory.has_task_plan(task_id), offer_shown):
+    if _should_offer_plan(chat_request.message, is_first_message, memory.has_task_plan(task_id, user_id=user_id), offer_shown):
         reply_content = (
             reply_content.rstrip()
-            + '\n\n如果你需要我帮你制定学习计划，直接回复“需要”即可。'
+            + '\n\n如果你需要我帮你制定学习计划，直接回复"需要"即可。'
         )
         try:
             memory.save_task_plan(
                 task_id=task_id,
                 plan={PLAN_SESSION_KEY: {"status": "await_offer"}},
+                user_id=user_id,
             )
         except Exception:
             pass
@@ -301,15 +315,26 @@ async def chat_endpoint(request: ChatRequest):
 
             # 获取 Agent 生成的总结（如果有的话）
             summary_from_agent = final_state.get("summary_output") or final_state.get("summary_out")
-            asyncio.create_task(_call_summary_agent(session_id, task_id, summary_from_agent))
+            asyncio.create_task(_call_summary_agent(session_id, task_id, summary_from_agent, user_id))
         else:
             print(f"⚠️ 会话 {session_id} 已经在生成总结中，跳过重复请求")
 
     plan_proposal = final_state.get("plan_proposal") if isinstance(final_state, dict) else None
     suggested_replies = final_state.get("suggested_replies") if isinstance(final_state, dict) else None
-    plan_data = memory.get_task_plan_data(task_id)
+    plan_data = memory.get_task_plan_data(task_id, user_id=user_id)
     plan_session = plan_data.get(PLAN_SESSION_KEY) if isinstance(plan_data, dict) else None
     plan_status = plan_session.get("status") if isinstance(plan_session, dict) else None
+
+    await emit_chat_event(
+        "chat.completed",
+        {
+            "user_id": user_id,
+            "task_id": task_id,
+            "session_id": session_id,
+            "stream": False,
+            "is_concluded": is_concluded,
+        },
+    )
 
     return ChatResponse(
         task_id=task_id,
@@ -323,12 +348,20 @@ async def chat_endpoint(request: ChatRequest):
 
 
 @router.post("/chat/stream")
-async def chat_stream_endpoint(request: ChatRequest):
-    if not request.message.strip():
+@limiter.limit("5/minute")
+async def chat_stream_endpoint(
+    request: Request,
+    chat_request: ChatRequest,
+    current_user: User = Depends(get_current_user),
+):
+    if not chat_request.message.strip():
         raise HTTPException(status_code=400, detail="Message cannot be empty")
 
-    task_id = _normalize_task_id(request.task_id, request.session_id)
-    session_id, is_new_session = _build_session_id(task_id, request.session_id)
+    # 获取当前用户 ID
+    user_id = str(current_user.id)
+
+    task_id = _normalize_task_id(chat_request.task_id, chat_request.session_id)
+    session_id, is_new_session = _build_session_id(task_id, chat_request.session_id)
 
     # 清除旧的中断状态（如果有）
     _clear_interrupt(session_id)
@@ -341,7 +374,7 @@ async def chat_stream_endpoint(request: ChatRequest):
             # 发送意图识别开始事件
             yield _event_line("intent", {"status": "analyzing", "text": "get!阿城正在思考中..."})
 
-            current_state = _build_state(request, task_id, session_id)
+            current_state = _build_state(chat_request, task_id, session_id, user_id)
             final_state = None
             streamed_any = False
             saved_modules = None  # 保存 modules 信息，用于 node 事件
@@ -426,13 +459,15 @@ async def chat_stream_endpoint(request: ChatRequest):
 
             # 某些运行时不会给到完整 output，这里兜底从持久化会话读取最终状态
             if not isinstance(final_state, dict):
-                final_state = await asyncio.to_thread(memory.load_session, session_id) or {}
+                final_state = await asyncio.to_thread(
+                    lambda: memory.load_session(session_id, user_id=user_id)
+                ) or {}
 
             reply_content = _extract_reply_from_state(final_state)
             offer_text = ""
             # 检查是否是新会话（用于判断是否提供计划建议）
             is_first_message = len(current_state.get("messages", [])) <= 1
-            plan_data = memory.get_task_plan_data(task_id)
+            plan_data = memory.get_task_plan_data(task_id, user_id=user_id)
             plan_session = plan_data.get(PLAN_SESSION_KEY) if isinstance(plan_data, dict) else None
             plan_status = plan_session.get("status") if isinstance(plan_session, dict) else None
             offer_shown = plan_status in {
@@ -443,13 +478,14 @@ async def chat_stream_endpoint(request: ChatRequest):
                 "collecting",
                 "paused",
             }
-            if _should_offer_plan(request.message, is_first_message, memory.has_task_plan(task_id), offer_shown):
-                offer_text = '\n\n如果你需要我帮你制定学习计划，直接回复“需要”即可。'
+            if _should_offer_plan(chat_request.message, is_first_message, memory.has_task_plan(task_id, user_id=user_id), offer_shown):
+                offer_text = '\n\n如果你需要我帮你制定学习计划，直接回复"需要"即可。'
                 reply_content = reply_content.rstrip() + offer_text
                 try:
                     memory.save_task_plan(
                         task_id=task_id,
                         plan={PLAN_SESSION_KEY: {"status": "await_offer"}},
+                        user_id=user_id,
                     )
                 except Exception:
                     pass
@@ -476,13 +512,24 @@ async def chat_stream_endpoint(request: ChatRequest):
 
             if is_concluded:
                 summary_from_agent = final_state.get("summary_output") or final_state.get("summary_out")
-                asyncio.create_task(_call_summary_agent(session_id, task_id, summary_from_agent))
+                asyncio.create_task(_call_summary_agent(session_id, task_id, summary_from_agent, user_id))
 
             plan_proposal = final_state.get("plan_proposal") if isinstance(final_state, dict) else None
             suggested_replies = final_state.get("suggested_replies") if isinstance(final_state, dict) else None
-            plan_data = memory.get_task_plan_data(task_id)
+            plan_data = memory.get_task_plan_data(task_id, user_id=user_id)
             plan_session = plan_data.get(PLAN_SESSION_KEY) if isinstance(plan_data, dict) else None
             plan_status = plan_session.get("status") if isinstance(plan_session, dict) else None
+
+            await emit_chat_event(
+                "chat.completed",
+                {
+                    "user_id": user_id,
+                    "task_id": task_id,
+                    "session_id": session_id,
+                    "stream": True,
+                    "is_concluded": is_concluded,
+                },
+            )
 
             yield _event_line("done", {
                 "task_id": task_id,
@@ -500,7 +547,12 @@ async def chat_stream_endpoint(request: ChatRequest):
     return StreamingResponse(_gen(), media_type="application/x-ndjson")
 
 
-async def _call_summary_agent(session_id: str, task_id: str, summary_text: str = None):
+async def _call_summary_agent(
+    session_id: str,
+    task_id: str,
+    summary_text: str | None = None,
+    user_id: str | None = None,
+):
     """
     保存会话总结到笔记文件（异步后台任务）
 
@@ -508,10 +560,13 @@ async def _call_summary_agent(session_id: str, task_id: str, summary_text: str =
         session_id: 会话 ID
         task_id: 任务 ID
         summary_text: 可选的已生成总结文本，如果为 None 则重新生成
+        user_id: 当前用户，用于 DB/文件路径下按用户隔离加载会话
     """
     try:
-        # 从 memory 加载会话消息
-        session_data = await asyncio.to_thread(memory.get_session_messages, session_id)
+        # 从 memory 加载会话消息（必须带 user_id，避免跨用户读会话）
+        session_data = await asyncio.to_thread(
+            memory.get_session_messages, session_id, user_id
+        )
         if not session_data:
             print(f"⚠️ 会话 {session_id} 不存在")
             return
@@ -559,16 +614,30 @@ topic: {task_id}
 
 
 @router.post("/chat/interrupt")
-async def interrupt_chat(request: InterruptRequest):
+async def interrupt_chat(
+    request: InterruptRequest,
+    current_user: User = Depends(get_current_user),
+):
     """
     中断当前正在进行的生成
     """
     session_id = request.session_id
     if session_id:
+        owned = await asyncio.to_thread(
+            memory.get_session_messages,
+            session_id,
+            str(current_user.id),
+        )
+        if owned is None:
+            raise HTTPException(status_code=404, detail="Session not found or access denied")
         _generation_interrupts[session_id] = True
         # 清理旧的中断记录（防止内存泄漏）
         if len(_generation_interrupts) > 100:
             _generation_interrupts.clear()
+        await emit_chat_event(
+            "chat.interrupted",
+            {"user_id": str(current_user.id), "session_id": session_id},
+        )
     return {"status": "interrupted", "session_id": session_id}
 
 

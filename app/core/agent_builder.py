@@ -12,7 +12,7 @@ from langchain_core.messages import ToolMessage
 from app.core.config import settings
 from app.core.models import AgentState, ExecutionPlan
 from app.core import prompts, memory
-from app.core import context_rag as context  # RAG enhanced context module
+from app.core import context_rag as context  # Jaccard 召回 + 上下文拼装 / 压缩
 from app.core.cache import generation_cache, retrieval_cache
 from app.core import learning_profile
 from app.core import profile_store
@@ -85,6 +85,12 @@ def _mark_retrieval_cache(state: AgentState, hit: bool):
 
 def _get_user_id(state: AgentState) -> str:
     return state.get("user_id") or "local_user"
+
+
+def _memory_user_id(state: AgentState) -> Optional[str]:
+    """传给 memory 的 user_id；无登录上下文时返回 None（走旧版全局文件路径，不推荐生产使用）。"""
+    uid = state.get("user_id")
+    return str(uid) if uid else None
 
 
 def _inject_profile(prompt_str: str, state: AgentState) -> str:
@@ -194,10 +200,11 @@ async def analyzer_node(state: AgentState) -> Dict[str, Any]:
     plan_should_pause = False
     plan_force_request = False
     try:
-        existing_plan = memory_io.get_task_plan_data(task_id)
+        _uid = _memory_user_id(state)
+        existing_plan = memory_io.get_task_plan_data(task_id, user_id=_uid)
         draft_plan = existing_plan.get("draft_plan") if isinstance(existing_plan, dict) else None
         # ?? has_task_plan ?????????????????? await_offer ???
-        has_existing_plan = memory_io.has_task_plan(task_id) or isinstance(draft_plan, dict)
+        has_existing_plan = memory_io.has_task_plan(task_id, user_id=_uid) or isinstance(draft_plan, dict)
         plan_session = existing_plan.get(PLAN_SESSION_KEY) if existing_plan else None
         status = ""
         if isinstance(plan_session, dict):
@@ -209,7 +216,7 @@ async def analyzer_node(state: AgentState) -> Dict[str, Any]:
                 updated_plan = dict(existing_plan or {})
                 updated_plan[PLAN_SESSION_KEY] = plan_session
                 try:
-                    memory_io.save_task_plan(task_id, updated_plan)
+                    memory_io.save_task_plan(task_id, updated_plan, user_id=_uid)
                 except Exception:
                     pass
 
@@ -229,7 +236,7 @@ async def analyzer_node(state: AgentState) -> Dict[str, Any]:
                     "messages": [],
                 }
                 try:
-                    memory_io.save_task_plan(task_id, updated_plan)
+                    memory_io.save_task_plan(task_id, updated_plan, user_id=_uid)
                 except Exception:
                     pass
                 plan_session = None
@@ -252,7 +259,7 @@ async def analyzer_node(state: AgentState) -> Dict[str, Any]:
                     updated_plan = dict(existing_plan or {})
                     updated_plan[PLAN_SESSION_KEY] = plan_session
                     try:
-                        memory_io.save_task_plan(task_id, updated_plan)
+                        memory_io.save_task_plan(task_id, updated_plan, user_id=_uid)
                     except Exception:
                         pass
                     plan_should_pause = True
@@ -508,6 +515,7 @@ async def plan_node(state: AgentState) -> Dict[str, Any]:
     """
     task_id = state.get("task_id", "task_default")
     session_id = state.get("session_id", "")
+    _pu = _memory_user_id(state)
     user_message = ""
     for msg in reversed(state.get("messages", [])):
         if isinstance(msg, HumanMessage):
@@ -515,7 +523,7 @@ async def plan_node(state: AgentState) -> Dict[str, Any]:
             break
 
     try:
-        plan_data = memory.get_task_plan_data(task_id)
+        plan_data = memory.get_task_plan_data(task_id, user_id=_pu)
     except Exception:
         plan_data = None
 
@@ -524,9 +532,9 @@ async def plan_node(state: AgentState) -> Dict[str, Any]:
         draft_plan = plan_data.get("draft_plan")
     existing_plan = draft_plan if isinstance(draft_plan, dict) else plan_data
     plan_session = plan_data.get(PLAN_SESSION_KEY) if plan_data else None
-    has_plan = memory.has_task_plan(task_id) or isinstance(draft_plan, dict)
+    has_plan = memory.has_task_plan(task_id, user_id=_pu) or isinstance(draft_plan, dict)
 
-    session_state = memory.load_session(session_id) or {}
+    session_state = memory.load_session(session_id, user_id=_pu) or {}
     history_messages = state.get("messages") or session_state.get("messages", [])
     conversation_summary = state.get("conversation_summary") or session_state.get("conversation_summary") or ""
     if plan_session and plan_session.get("status") in {"await_confirm", "await_plan_confirm", "collecting"}:
@@ -568,7 +576,7 @@ async def plan_node(state: AgentState) -> Dict[str, Any]:
                 "messages": [],
             }
             try:
-                memory.save_task_plan(task_id, updated_plan)
+                memory.save_task_plan(task_id, updated_plan, user_id=_pu)
             except Exception:
                 pass
             plan = state.get("plan")
@@ -616,7 +624,7 @@ async def plan_node(state: AgentState) -> Dict[str, Any]:
         updated_plan = plan_data or {}
         updated_plan[PLAN_SESSION_KEY] = result["plan_session"]
         try:
-            memory.save_task_plan(task_id, updated_plan)
+            memory.save_task_plan(task_id, updated_plan, user_id=_pu)
         except Exception:
             pass
     if not result.get("handled"):
@@ -630,7 +638,7 @@ async def plan_node(state: AgentState) -> Dict[str, Any]:
 
     if result.get("plan_proposal"):
         try:
-            memory.save_task_plan(task_id, {"draft_plan": result["plan_proposal"]})
+            memory.save_task_plan(task_id, {"draft_plan": result["plan_proposal"]}, user_id=_pu)
         except Exception:
             pass
 
@@ -649,7 +657,7 @@ async def plan_node(state: AgentState) -> Dict[str, Any]:
     new_summary, new_cursor = context.manage_memory(temp_state)
     temp_state["conversation_summary"] = new_summary
     temp_state["summarized_msg_count"] = new_cursor
-    memory.save_session(temp_state)
+    await memory.save_session_async(temp_state, user_id=state.get("user_id"))
     return {
         "messages": [ai_reply],
         "plan_proposal": result.get("plan_proposal"),
@@ -751,7 +759,7 @@ async def aggregator_node(state: AgentState) -> Dict[str, Any]:
     try:
         if isinstance(final_response, AIMessage) and not state.get("should_exit"):
             task_id = state.get("task_id", "task_default")
-            plan_data = memory.get_task_plan_data(task_id)
+            plan_data = memory.get_task_plan_data(task_id, user_id=_memory_user_id(state))
             plan_session = plan_data.get(PLAN_SESSION_KEY) if isinstance(plan_data, dict) else None
             if plan_session and plan_session.get("status") in {"await_confirm", "await_plan_confirm", "collecting", "paused"}:
                 if not (plan and getattr(plan, "request_plan", False)):
@@ -825,7 +833,7 @@ async def aggregator_node(state: AgentState) -> Dict[str, Any]:
         generation_cache.clear_session(state.get("session_id", ""))
 
     # 7. 执行物理存档
-    memory.save_session(state_to_save)
+    await memory.save_session_async(state_to_save, user_id=state.get("user_id"))
 
     # 返回给 Graph 的更新 (包括 messages 和 可能更新的 summary/cursor)
     result = {

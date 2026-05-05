@@ -2,6 +2,8 @@
 streamlit>=1.35.0
 fastapi>=0.100.0
 uvicorn>=0.20.0
+gunicorn>=22.0.0
+aiokafka>=0.11.0
 langchain-core>=0.1.30
 langchain-community>=0.0.20
 langchain-deepseek
@@ -10,11 +12,6 @@ pydantic-settings
 rich
 requests
 openai
-
-# ===== RAG Dependencies (for memory retrieval) =====
-faiss-cpu>=1.7.4
-sentence-transformers>=2.2.0
-# Note: Use faiss-gpu instead of faiss-cpu if GPU is available
 
 # ===== Phase 1: Cache + Learning Profile =====
 # pymysql - optional, only needed when PROFILE_STORE=mysql
@@ -31,12 +28,37 @@ spacy>=3.7.0
 # python -m spacy download zh_core_web_sm
 
 # ===== Desk Pet (PyQt6 Desktop Pet) =====
-PyQt6>=6.6.0
-PyQt6-WebEngine>=6.6.0
-pyaudio>=0.2.13
+# PyQt6>=6.6.0
+# PyQt6-WebEngine>=6.6.0
+# pyaudio>=0.2.13
 
 # ===== macOS Desktop Pet Support (pyobjc) =====
-# Only required on macOS for window management
-# pyobjc>=9.0
-# pyobjc-framework-Quartz>=9.0
-# pyobjc-framework-Cocoa>=9.0
+# macOS only: for window management and transparency
+# pyobjc>=9.0; sys_platform == "darwin"
+# pyobjc-framework-Quartz>=9.0; sys_platform == "darwin"
+# pyobjc-framework-Cocoa>=9.0; sys_platform == "darwin"
+# pyobjc-framework-AppKit>=8.0; sys_platform == "darwin"
+
+# ===== Production: Database & Cache =====
+sqlalchemy[asyncio]>=2.0
+asyncpg>=0.29.0
+alembic>=1.13.0
+redis[hiredis]>=5.0.0
+pgvector>=0.2.5
+
+# ===== Production: Authentication =====
+python-jose[cryptography]>=3.3.0
+bcrypt>=4.1.0
+
+# ===== Production: Observability =====
+langfuse>=2.30.0
+structlog>=24.1.0
+
+# ===== Production: Rate Limiting =====
+slowapi>=0.1.9
+
+# ===== Production: Form Data =====
+python-multipart>=0.0.6
+
+# ===== Production: PostgreSQL sync driver (for Alembic) =====
+psycopg2-binary>=2.9.9

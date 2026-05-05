@@ -12,6 +12,8 @@ import {
   Palette,
 } from "lucide-react";
 
+const getToken = () => localStorage.getItem('chattutor_token');
+
 const COMMON_ICONS = [
   { icon: "📚", label: "书本" },
   { icon: "🎯", label: "目标" },
@@ -94,9 +96,13 @@ function formatPlanAsGoal(plan: TaskPlan): string {
 }
 
 async function saveTaskToIndex(task: { id: string; title: string; icon: string }) {
+  const token = getToken();
   await fetch(`${API_BASE_URL}/tasks`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${token || ''}`,
+    },
     body: JSON.stringify({
       task_id: task.id,
       title: task.title,
@@ -181,9 +187,13 @@ export function NewTaskPage() {
     setHint(null);
 
     try {
+      const token = getToken();
       const response = await fetch(`${API_BASE_URL}/agent/task-plan`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token || ''}`,
+        },
         body: JSON.stringify({
           task_id: taskId,
           user_goal: taskGoal,
@@ -227,9 +237,13 @@ export function NewTaskPage() {
         plan: [],
       };
 
+      const token = getToken();
       const response = await fetch(`${API_BASE_URL}/agent/task-plan/confirm`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token || ''}`,
+        },
         body: JSON.stringify({
           task_id: taskId,
           plan: {

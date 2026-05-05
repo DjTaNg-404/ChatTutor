@@ -1,6 +1,18 @@
-import { Bot, Cpu, Key } from "lucide-react";
+import { Bot, Cpu, Key, LogOut } from "lucide-react";
+import { useNavigate } from "react-router";
+import { useAuth } from "../context/AuthContext";
+import { useState } from "react";
 
 export function SettingsPage() {
+  const navigate = useNavigate();
+  const { logout, username } = useAuth();
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+
+  const handleLogout = () => {
+    logout();
+    navigate("/login");
+  };
+
   return (
     <div className="h-full flex flex-col">
       {/* Header */}
@@ -12,6 +24,58 @@ export function SettingsPage() {
       {/* Content */}
       <div className="flex-1 overflow-y-auto bg-gray-50 p-6">
         <div className="max-w-5xl mx-auto space-y-6">
+          {/* Account Section */}
+          <div className="bg-white rounded-xl border border-gray-200 p-6">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-green-100 rounded-lg">
+                  <LogOut className="w-6 h-6 text-green-600" />
+                </div>
+                <div>
+                  <h2 className="text-lg font-semibold text-gray-900">账户管理</h2>
+                  <p className="text-sm text-gray-600">当前登录：{username || "未知用户"}</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-between">
+              <div className="text-sm text-gray-600">
+                <p>退出登录后将返回登录页面</p>
+              </div>
+              <button
+                onClick={() => setShowLogoutConfirm(true)}
+                className="px-6 py-2.5 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium flex items-center gap-2"
+              >
+                <LogOut className="w-5 h-5" />
+                退出登录
+              </button>
+            </div>
+
+            {/* Logout Confirm Modal */}
+            {showLogoutConfirm && (
+              <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+                <div className="bg-white rounded-xl p-6 max-w-sm mx-4">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-2">确认退出登录？</h3>
+                  <p className="text-sm text-gray-600 mb-6">退出后需要重新登录才能继续使用。</p>
+                  <div className="flex gap-3 justify-end">
+                    <button
+                      onClick={() => setShowLogoutConfirm(false)}
+                      className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors font-medium"
+                    >
+                      取消
+                    </button>
+                    <button
+                      onClick={handleLogout}
+                      className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium"
+                    >
+                      确认退出
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
           {/* AI Agents Section */}
           <div className="bg-white rounded-xl border border-gray-200 p-6">
             <div className="flex items-center gap-3 mb-4">

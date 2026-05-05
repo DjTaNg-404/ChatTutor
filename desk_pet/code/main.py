@@ -1,16 +1,24 @@
 # desk_pet/code/main.py
 import sys
 import os
-import signal 
+import signal
 import json
 import random
 import time
 import threading
 from datetime import datetime
+import platform
 import requests
 
+# ======= 平台检测 =======
+IS_WINDOWS = platform.system() == "Windows"
+IS_MACOS = platform.system() == "Darwin"
+IS_LINUX = platform.system() == "Linux"
+
 # ======= 【核心修复：禁用 Chromium 硬件加速，防止透明窗口渲染崩溃】 =======
-os.environ["QTWEBENGINE_CHROMIUM_FLAGS"] = "--disable-gpu --disable-gpu-compositing --log-level=3"
+# macOS 不需要禁用 GPU，但 Windows 需要
+if IS_WINDOWS:
+    os.environ["QTWEBENGINE_CHROMIUM_FLAGS"] = "--disable-gpu --disable-gpu-compositing --log-level=3"
 
 # 【补充：屏蔽因靠近屏幕边缘动态变大而产生的无害 Qt 窗口警告】
 os.environ["QT_LOGGING_RULES"] = "qt.qpa.window=false"
@@ -122,9 +130,29 @@ class ChatTutorPet(QWidget):
     def init_ui(self):
         font = QFont("Microsoft YaHei", 10)
         QApplication.setFont(font)
-        # Windows/Linux 下的标准置顶与无边框配置
-        self.setWindowFlags(Qt.WindowType.FramelessWindowHint | Qt.WindowType.WindowStaysOnTopHint | Qt.WindowType.Tool)
-        self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
+
+        # ================= 跨平台窗口配置 =================
+        if IS_MACOS:
+            # macOS 需要不同的窗口标志组合
+            # WindowStaysOnTopHint: 置顶
+            # FramelessWindowHint: 无边框
+            # Tool: 在 Dock 中不显示
+            self.setWindowFlags(
+                Qt.WindowType.FramelessWindowHint |
+                Qt.WindowType.WindowStaysOnTopHint |
+                Qt.WindowType.Tool
+            )
+            # macOS 特殊处理：确保透明背景生效
+            self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
+            self.setAttribute(Qt.WidgetAttribute.WA_OpaquePaintEvent, False)
+        else:
+            # Windows/Linux 下的标准置顶与无边框配置
+            self.setWindowFlags(
+                Qt.WindowType.FramelessWindowHint |
+                Qt.WindowType.WindowStaysOnTopHint |
+                Qt.WindowType.Tool
+            )
+            self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
         
         self.layout = QVBoxLayout(self)
         self.layout.setContentsMargins(15, 15, 15, 15)

@@ -4,6 +4,12 @@ import { X, RefreshCw, AlertCircle, CheckCircle2, ExternalLink } from "lucide-re
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8000/api/v1";
 const STREAMLIT_KG_URL = (import.meta.env.VITE_KG_VIEWER_URL || "http://localhost:8501").replace(/\/$/, "");
 
+function authHeaders(extra?: Record<string, string>): HeadersInit {
+  const token =
+    typeof window !== "undefined" ? localStorage.getItem("chattutor_token") : null;
+  return { Authorization: `Bearer ${token || ""}`, ...extra };
+}
+
 interface KGViewerModalProps {
   taskId: string;
   isOpen: boolean;
@@ -23,7 +29,8 @@ export function KGViewerModal({ taskId, isOpen, onClose }: KGViewerModalProps) {
     setError(null);
     try {
       const response = await fetch(
-        `${API_BASE_URL}/kg/get-task-kg?task_id=${encodeURIComponent(taskId)}`
+        `${API_BASE_URL}/kg/get-task-kg?task_id=${encodeURIComponent(taskId)}`,
+        { headers: authHeaders() }
       );
       if (!response.ok) {
         throw new Error("检查知识图谱状态失败");
@@ -47,9 +54,7 @@ export function KGViewerModal({ taskId, isOpen, onClose }: KGViewerModalProps) {
     try {
       const response = await fetch(`${API_BASE_URL}/kg/build-from-task`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: authHeaders({ "Content-Type": "application/json" }),
         body: JSON.stringify({
           task_id: taskId,
           use_deepseek: true,

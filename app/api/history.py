@@ -1,12 +1,15 @@
 from typing import List, Optional, Dict, Any
 import asyncio
 from datetime import datetime
+from uuid import UUID
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, HTTPException, Query, Depends
 from pydantic import BaseModel
 
 from app.core import memory
 from app.core.summary.generator import summary_generator
+from app.core.deps import get_current_user
+from app.db.models import User
 
 router = APIRouter()
 
@@ -83,27 +86,40 @@ class TaskSummaryResponse(BaseModel):
 
 
 @router.get("/tasks/{task_id}/sessions", response_model=TaskSessionsResponse)
-async def get_task_sessions(task_id: str):
-    sessions = memory.list_task_sessions(task_id)
+async def get_task_sessions(
+    task_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    sessions = memory.list_task_sessions(task_id, user_id=str(current_user.id))
     return TaskSessionsResponse(task_id=task_id, sessions=sessions)
 
 
 @router.get("/sessions/{session_id}/messages", response_model=SessionMessagesResponse)
-async def get_session_messages(session_id: str):
-    session_data = memory.get_session_messages(session_id)
+async def get_session_messages(
+    session_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    session_data = memory.get_session_messages(session_id, user_id=str(current_user.id))
     if not session_data:
         raise HTTPException(status_code=404, detail=f"Session '{session_id}' 不存在")
     return SessionMessagesResponse(**session_data)
 
 
 @router.get("/tasks/{task_id}/timeline", response_model=TaskTimelineResponse)
-async def get_task_timeline(task_id: str):
-    timeline = memory.list_task_timeline(task_id)
+async def get_task_timeline(
+    task_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    timeline = memory.list_task_timeline(task_id, user_id=str(current_user.id))
     return TaskTimelineResponse(task_id=task_id, timeline=timeline)
 
 
 @router.post("/tasks/{task_id}/daily-summary")
-async def generate_daily_summary(task_id: str, request: GenerateDailySummaryRequest):
+async def generate_daily_summary(
+    task_id: str,
+    request: GenerateDailySummaryRequest,
+    current_user: User = Depends(get_current_user)
+):
     """
     根据指定日期的所有会话生成每日学习总结
 
@@ -113,10 +129,11 @@ async def generate_daily_summary(task_id: str, request: GenerateDailySummaryRequ
     3. 保存总结到每日笔记
     4. 返回生成的总结内容
     """
+    user_id = str(current_user.id)
     date = request.date
 
     # 获取该日期的所有会话
-    sessions_data = memory.list_task_sessions(task_id)
+    sessions_data = memory.list_task_sessions(task_id, user_id=user_id)
 
     # 过滤出指定日期的会话
     day_sessions = []
@@ -135,7 +152,7 @@ async def generate_daily_summary(task_id: str, request: GenerateDailySummaryRequ
 
         if session_date == date:
             # 加载完整的会话消息
-            messages_data = memory.get_session_messages(session_id)
+            messages_data = memory.get_session_messages(session_id, user_id=user_id)
             if messages_data:
                 # 转换为 SummaryGenerator 需要的格式
                 simple_messages = []
@@ -167,7 +184,7 @@ async def generate_daily_summary(task_id: str, request: GenerateDailySummaryRequ
     ai_summary = parse_daily_summary(summary)
 
     # 保存到每日笔记
-    memory.save_daily_note(task_id=task_id, date=date, content=summary)
+    memory.save_daily_note(task_id=task_id, date=date, content=summary, user_id=user_id)
 
     return DailySummaryResponse(
         task_id=task_id,
@@ -208,7 +225,11 @@ def parse_daily_summary(summary: str) -> Dict[str, List[str]]:
     return result
 
 @router.post("/tasks/{task_id}/summary")
-async def generate_task_summary(task_id: str, request: GenerateTaskSummaryRequest):
+async def generate_task_summary(
+    task_id: str,
+    request: GenerateTaskSummaryRequest,
+    current_user: User = Depends(get_current_user)
+):
     """
     根据任务的所有会话生成任务学习总结
 
@@ -218,8 +239,10 @@ async def generate_task_summary(task_id: str, request: GenerateTaskSummaryReques
     3. 覆盖保存到任务笔记（我的笔记）
     4. 返回生成的总结内容
     """
+    user_id = str(current_user.id)
+
     # 获取该任务的所有会话
-    sessions_data = memory.list_task_sessions(task_id)
+    sessions_data = memory.list_task_sessions(task_id, user_id=user_id)
 
     if not sessions_data:
         raise HTTPException(
@@ -231,7 +254,7 @@ async def generate_task_summary(task_id: str, request: GenerateTaskSummaryReques
     all_sessions = []
     for session in sessions_data:
         session_id = session.get("session_id", "")
-        messages_data = memory.get_session_messages(session_id)
+        messages_data = memory.get_session_messages(session_id, user_id=user_id)
         if messages_data:
             # 转换为 SummaryGenerator 需要的格式
             simple_messages = []
@@ -259,10 +282,10 @@ async def generate_task_summary(task_id: str, request: GenerateTaskSummaryReques
     )
 
     # 覆盖保存到任务笔记（不保留原有用户笔记内容）
-    memory.save_task_note(task_id=task_id, content=summary)
+    memory.save_task_note(task_id=task_id, content=summary, user_id=user_id)
 
     return TaskSummaryResponse(
         task_id=task_id,
         summary=summary,
-        created_at=memory._file_updated_at(memory._get_task_note_path(task_id))
+        created_at=memory._file_updated_at(memory._get_task_note_path(task_id, user_id=user_id))
     )

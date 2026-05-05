@@ -1,29 +1,72 @@
 # desk_pet/code/pet_controller.py
 import random
+import platform
 import ctypes
-from ctypes import wintypes
-from ctypes.wintypes import RECT, BOOL, HWND, LPARAM
 from PyQt6.QtCore import QObject, QTimer, pyqtSignal, QPoint
 from PyQt6.QtWidgets import QApplication
+from PyQt6.QtGui import QScreen
 
-# ================= C 函数签名与 EnumWindows =================
-user32 = ctypes.windll.user32
-dwmapi = ctypes.windll.dwmapi
+# ================= 平台检测 =================
+IS_WINDOWS = platform.system() == "Windows"
+IS_MACOS = platform.system() == "Darwin"
+IS_LINUX = platform.system() == "Linux"
 
-WNDENUMPROC = ctypes.WINFUNCTYPE(BOOL, HWND, LPARAM)
+# Windows 特定导入
+if IS_WINDOWS:
+    from ctypes import wintypes
+    from ctypes.wintypes import RECT, BOOL, HWND, LPARAM
 
-user32.EnumWindows.argtypes = [WNDENUMPROC, LPARAM]
-user32.EnumWindows.restype = BOOL
-user32.IsWindowVisible.argtypes = [HWND]
-user32.IsWindowVisible.restype = BOOL
-user32.IsIconic.argtypes = [HWND]
-user32.IsIconic.restype = BOOL
-user32.GetClassNameW.argtypes = [HWND, ctypes.c_wchar_p, ctypes.c_int]
-user32.GetClassNameW.restype = ctypes.c_int
-user32.GetWindowRect.argtypes = [HWND, ctypes.POINTER(RECT)]
-user32.GetWindowRect.restype = BOOL
-dwmapi.DwmGetWindowAttribute.argtypes = [HWND, wintypes.DWORD, ctypes.c_void_p, wintypes.DWORD]
-dwmapi.DwmGetWindowAttribute.restype = ctypes.c_long
+    # ================= C 函数签名与 EnumWindows =================
+    user32 = ctypes.windll.user32
+    dwmapi = ctypes.windll.dwmapi
+
+    WNDENUMPROC = ctypes.WINFUNCTYPE(BOOL, HWND, LPARAM)
+
+    user32.EnumWindows.argtypes = [WNDENUMPROC, LPARAM]
+    user32.EnumWindows.restype = BOOL
+    user32.IsWindowVisible.argtypes = [HWND]
+    user32.IsWindowVisible.restype = BOOL
+    user32.IsIconic.argtypes = [HWND]
+    user32.IsIconic.restype = BOOL
+    user32.GetClassNameW.argtypes = [HWND, ctypes.c_wchar_p, ctypes.c_int]
+    user32.GetClassNameW.restype = ctypes.c_int
+    user32.GetWindowRect.argtypes = [HWND, ctypes.POINTER(RECT)]
+    user32.GetWindowRect.restype = BOOL
+    dwmapi.DwmGetWindowAttribute.argtypes = [HWND, wintypes.DWORD, ctypes.c_void_p, wintypes.DWORD]
+    dwmapi.DwmGetWindowAttribute.restype = ctypes.c_long
+    # =========================================================
+elif IS_MACOS:
+    # macOS 使用 Quartz 框架获取窗口信息
+    try:
+        import Quartz
+        from AppKit import NSWorkspace, NSRunningApplication, NSApplication
+        MACOS_QUARTZ_AVAILABLE = True
+    except ImportError:
+        Quartz = None
+        NSWorkspace = None
+        NSRunningApplication = None
+        NSApplication = None
+        MACOS_QUARTZ_AVAILABLE = False
+        print("警告：macOS Quartz 框架不可用，窗口检测功能将受限")
+    # =========================================================
+
+# 定义 RECT 结构（跨平台通用）
+if IS_WINDOWS:
+    class RECT(ctypes.Structure):
+        _fields_ = [
+            ("left", ctypes.c_long),
+            ("top", ctypes.c_long),
+            ("right", ctypes.c_long),
+            ("bottom", ctypes.c_long),
+        ]
+else:
+    # macOS/Linux 下定义一个简单的字典类来模拟 RECT
+    class RECT:
+        def __init__(self, left=0, top=0, right=0, bottom=0):
+            self.left = left
+            self.top = top
+            self.right = right
+            self.bottom = bottom
 # =========================================================
 
 class PetController(QObject):
@@ -88,61 +131,160 @@ class PetController(QObject):
             self.change_state("STAND", 20)
 
     def get_all_visible_windows(self, screen_geo, ratio):
+        """获取所有可见窗口信息（跨平台）"""
+
+        # ================= Windows 实现 =================
+        if IS_WINDOWS:
+            return self._get_windows_windows(screen_geo, ratio)
+
+        # ================= macOS 实现 =================
+        elif IS_MACOS:
+            return self._get_macos_windows(screen_geo, ratio)
+
+        # ================= Linux 实现（返回空列表） =================
+        else:
+            return []
+
+    def _get_windows_windows(self, screen_geo, ratio):
+        """Windows: 使用 EnumWindows 获取窗口列表"""
         windows_info = []
         DWMWA_EXTENDED_FRAME_BOUNDS = 9
         DWMWA_CLOAKED = 14
-        
+
         def enum_window_proc(hwnd, lParam):
             if hwnd == self.win_id or not user32.IsWindowVisible(hwnd) or user32.IsIconic(hwnd):
-                return True 
-                
+                return True
+
             cloaked = wintypes.DWORD()
             res = dwmapi.DwmGetWindowAttribute(
                 hwnd, DWMWA_CLOAKED, ctypes.byref(cloaked), ctypes.sizeof(cloaked)
             )
             if res == 0 and cloaked.value != 0:
-                return True 
+                return True
 
             class_name = ctypes.create_unicode_buffer(256)
             user32.GetClassNameW(hwnd, class_name, 256)
             c_name = class_name.value
-            
+
             ignore_classes = [
-                "WorkerW", "Progman", "Shell_TrayWnd", 
+                "WorkerW", "Progman", "Shell_TrayWnd",
                 "Windows.UI.Core.CoreWindow", "PopupHost",
-                "CEF-OSC-WIDGET", "SystemTray_Main" 
+                "CEF-OSC-WIDGET", "SystemTray_Main"
             ]
-            
+
             if c_name not in ignore_classes:
                 rect = RECT()
                 res = dwmapi.DwmGetWindowAttribute(
                     hwnd, DWMWA_EXTENDED_FRAME_BOUNDS, ctypes.byref(rect), ctypes.sizeof(rect)
                 )
-                if res != 0: 
+                if res != 0:
                     user32.GetWindowRect(hwnd, ctypes.byref(rect))
-                
+
                 rect.left = int(rect.left / ratio)
                 rect.right = int(rect.right / ratio)
                 rect.top = int(rect.top / ratio)
                 rect.bottom = int(rect.bottom / ratio)
-                
+
                 width = rect.right - rect.left
                 height = rect.bottom - rect.top
-                
+
                 if width > 0 and height > 0:
                     is_fullscreen = (width >= screen_geo.width() - 20) and (height >= screen_geo.height() - 20)
                     is_valid_floor = not is_fullscreen and width > 100 and height > 50
-                    
+
                     windows_info.append({
                         "rect": rect,
                         "is_valid_floor": is_valid_floor
                     })
-            
-            return True 
-            
+
+            return True
+
         enum_proc = WNDENUMPROC(enum_window_proc)
         user32.EnumWindows(enum_proc, 0)
-        
+
+        return windows_info
+
+    def _get_macos_windows(self, screen_geo, ratio):
+        """macOS: 使用 Quartz 获取窗口列表"""
+
+        # 检查 Quartz 是否可用
+        if not MACOS_QUARTZ_AVAILABLE or Quartz is None:
+            # 如果 Quartz 不可用，返回空列表（桌宠会在屏幕上自由移动）
+            return []
+
+        windows_info = []
+
+        # 获取所有窗口 ID
+        window_ids = Quartz.CGWindowListCopyWindowInfo(
+            Quartz.kCGWindowListOptionOnScreenOnly | Quartz.kCGWindowListExcludeDesktopElements,
+            Quartz.kCGNullWindowID
+        )
+
+        if not window_ids:
+            return windows_info
+
+        # 获取屏幕尺寸用于坐标转换
+        screen_width = screen_geo.width()
+        screen_height = screen_geo.height()
+        screen_left = screen_geo.left()
+        screen_top = screen_geo.top()
+
+        for window in window_ids:
+            # 跳过自己的窗口
+            window_id = window.get(Quartz.kCGWindowNumber)
+            if window_id == self.win_id:
+                continue
+
+            # 获取窗口信息
+            window_name = window.get(Quartz.kCGWindowName, "")
+            owner_name = window.get(Quartz.kCGWindowOwnerName, "")
+            layer = window.get(Quartz.kCGWindowLayer, 0)
+            alpha = window.get(Quartz.kCGWindowAlpha, 1.0)
+
+            # 跳过系统窗口和透明窗口
+            if layer != 0 or alpha < 0.5:
+                continue
+
+            # 跳过特定应用
+            ignore_apps = ["Dock", "Menu Bar", "SystemUIServer", "Control Center"]
+            if owner_name in ignore_apps:
+                continue
+
+            # 获取窗口位置和大小
+            bounds = window.get(Quartz.kCGWindowBounds, {})
+            if not bounds:
+                continue
+
+            # macOS 坐标原点在左下角，需要转换
+            x = bounds.get('X', 0)
+            y = bounds.get('Y', 0)
+            width = bounds.get('Width', 0)
+            height = bounds.get('Height', 0)
+
+            # 应用缩放比例
+            x = int(x / ratio)
+            y = int(y / ratio)
+            width = int(width / ratio)
+            height = int(height / ratio)
+
+            # 转换为 RECT 兼容格式
+            rect = RECT()
+            rect.left = x
+            rect.top = y
+            rect.right = x + width
+            rect.bottom = y + height
+
+            # 判断是否是有效的"地板"
+            is_fullscreen = (width >= screen_geo.width() - 20) and (height >= screen_geo.height() - 20)
+            is_valid_floor = not is_fullscreen and width > 100 and height > 50
+
+            windows_info.append({
+                "rect": rect,
+                "is_valid_floor": is_valid_floor,
+                "window_name": window_name,
+                "owner_name": owner_name
+            })
+
         return windows_info
 
     def game_loop(self):

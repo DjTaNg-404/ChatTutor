@@ -1,4 +1,15 @@
+"""
+Memory module for ChatTutor - Production Version.
+
+This module provides session and task management with dual storage:
+1. Primary: PostgreSQL database (async)
+2. Fallback: File I/O (for backward compatibility)
+
+All functions maintain backward-compatible signatures for agent_builder.py.
+"""
+
 import os
+import asyncio
 import datetime
 from typing import Dict, Any, List, Optional
 from langchain_core.messages import messages_to_dict, messages_from_dict, BaseMessage
@@ -7,25 +18,77 @@ from langchain_core.messages import HumanMessage, AIMessage
 from app.core.models import AgentState
 from app.utils import file_io
 
-# Paths Configuration
+# Use database if available (set via environment)
+USE_DATABASE = os.getenv("USE_DATABASE", "false").lower() in ("1", "true", "yes", "on")
+
+# Try to import database modules if enabled
+try:
+    if USE_DATABASE:
+        from app.db.crud import (
+            save_session as db_save_session,
+            load_session as db_load_session,
+            list_sessions as db_list_sessions,
+            delete_session as db_delete_session,
+            set_session_summarizing as db_set_session_summarizing,
+            get_or_create_task,
+            update_task as db_update_task,
+            list_tasks as db_list_tasks,
+            delete_task as db_delete_task,
+            save_note,
+            list_notes,
+            get_task_note as db_get_task_note_orm,
+            fetch_task_plan_json as db_fetch_task_plan_json,
+            merge_task_plan_json as db_merge_task_plan_json,
+        )
+        from app.db.engine import async_session_maker
+        DATABASE_AVAILABLE = True
+    else:
+        DATABASE_AVAILABLE = False
+except (ImportError, Exception):
+    DATABASE_AVAILABLE = False
+
+# Paths Configuration (for fallback)
 MEMORY_DIR = "memory/sessions"
 NOTES_DIR = "memory/notes"
 TASK_INDEX_DIR = "memory/task_index"
 TASK_INDEX_PATH = os.path.join(TASK_INDEX_DIR, "tasks.json")
 
-# 防重复总结标记（内存级别）
+# 防重复总结标记（内存级别 + Redis if available）
 _SUMMARIZING_SESSIONS = set()
 
+# Try to import Redis for distributed locking
+try:
+    from app.core.redis_client import RedisSessionLock
+    REDIS_AVAILABLE = True
+except (ImportError, Exception):
+    REDIS_AVAILABLE = False
 
-def _get_daily_note_path(task_id: str, date: str) -> str:
-    return os.path.join(NOTES_DIR, "daily", task_id, f"{date}.md")
+
+def _get_daily_note_path(task_id: str, date: str, user_id: Optional[str] = None) -> str:
+    if user_id:
+        root = os.path.join(NOTES_DIR, "by_user", str(user_id), "daily", task_id)
+    else:
+        root = os.path.join(NOTES_DIR, "daily", task_id)
+    os.makedirs(root, exist_ok=True)
+    return os.path.join(root, f"{date}.md")
 
 
-def _get_task_note_path(task_id: str) -> str:
-    return os.path.join(NOTES_DIR, "task", f"{task_id}.md")
+def _get_task_note_path(task_id: str, user_id: Optional[str] = None) -> str:
+    if user_id:
+        root = os.path.join(NOTES_DIR, "by_user", str(user_id), "task")
+    else:
+        root = os.path.join(NOTES_DIR, "task")
+    os.makedirs(root, exist_ok=True)
+    return os.path.join(root, f"{task_id}.md")
 
-def _get_task_plan_path(task_id: str) -> str:
-    return os.path.join(NOTES_DIR, "task", f"{task_id}.json")
+
+def _get_task_plan_path(task_id: str, user_id: Optional[str] = None) -> str:
+    if user_id:
+        root = os.path.join(NOTES_DIR, "by_user", str(user_id), "task")
+    else:
+        root = os.path.join(NOTES_DIR, "task")
+    os.makedirs(root, exist_ok=True)
+    return os.path.join(root, f"{task_id}.json")
 
 
 def _load_task_index() -> List[Dict[str, Any]]:
@@ -44,16 +107,81 @@ def _save_task_index(items: List[Dict[str, Any]]):
     file_io.save_json(items, TASK_INDEX_PATH)
 
 
-def list_tasks(status: Optional[str] = None) -> List[Dict[str, Any]]:
+def list_tasks(status: Optional[str] = None, user_id: Optional[str] = None) -> List[Dict[str, Any]]:
+    """
+    List tasks for a user.
+
+    If DATABASE_AVAILABLE and user_id is provided, query from database.
+    Otherwise, fallback to file-based storage.
+    """
+    if DATABASE_AVAILABLE and user_id:
+        from uuid import UUID
+        import asyncio
+        async def db_list():
+            async with async_session_maker() as db:
+                return await db_list_tasks(db=db, user_id=UUID(user_id), status=status)
+        tasks = asyncio.run(db_list())
+        return [
+            {
+                "id": t.task_id,
+                "title": t.title,
+                "icon": t.icon,
+                "status": t.status,
+                "created_at": t.created_at.isoformat() if t.created_at else "",
+                "updated_at": t.updated_at.isoformat() if t.updated_at else "",
+            }
+            for t in tasks
+        ]
+
+    # Fallback to file-based storage
     tasks = _load_task_index()
+    if user_id:
+        tasks = [item for item in tasks if item.get("user_id") == user_id]
     if status:
         tasks = [item for item in tasks if item.get("status") == status]
     tasks.sort(key=lambda item: item.get("updated_at", ""), reverse=True)
     return tasks
 
 
-def upsert_task(task_id: str, title: str, icon: str, status: str = "active") -> Dict[str, Any]:
+def upsert_task(
+    task_id: str,
+    title: str,
+    icon: str,
+    status: str = "active",
+    user_id: Optional[str] = None
+) -> Dict[str, Any]:
+    """
+    Upsert a task for a user.
+
+    If DATABASE_AVAILABLE and user_id is provided, save to database.
+    Otherwise, fallback to file-based storage.
+    """
     now = datetime.datetime.now().isoformat()
+
+    if DATABASE_AVAILABLE and user_id:
+        from uuid import UUID
+        import asyncio
+        async def db_upsert():
+            async with async_session_maker() as db:
+                task_obj = await get_or_create_task(
+                    db=db,
+                    user_id=UUID(user_id),
+                    task_id=task_id,
+                    title=title,
+                    icon=icon,
+                    status=status,
+                )
+                return {
+                    "id": task_obj.task_id,
+                    "title": task_obj.title,
+                    "icon": task_obj.icon,
+                    "status": task_obj.status,
+                    "created_at": task_obj.created_at.isoformat() if task_obj.created_at else "",
+                    "updated_at": task_obj.updated_at.isoformat() if task_obj.updated_at else "",
+                }
+        return asyncio.run(db_upsert())
+
+    # Fallback to file-based storage
     tasks = _load_task_index()
     existing = None
     for item in tasks:
@@ -66,6 +194,8 @@ def upsert_task(task_id: str, title: str, icon: str, status: str = "active") -> 
             "id": task_id,
             "created_at": now,
         }
+        if user_id:
+            existing["user_id"] = user_id
         tasks.insert(0, existing)
 
     existing.update(
@@ -76,15 +206,46 @@ def upsert_task(task_id: str, title: str, icon: str, status: str = "active") -> 
             "updated_at": now,
         }
     )
+    if user_id:
+        existing["user_id"] = user_id
     _save_task_index(tasks)
     return existing
 
 
-def update_task_status(task_id: str, status: str) -> Optional[Dict[str, Any]]:
+def update_task_status(
+    task_id: str,
+    status: str,
+    user_id: Optional[str] = None
+) -> Optional[Dict[str, Any]]:
+    """
+    Update task status for a user.
+
+    If DATABASE_AVAILABLE and user_id is provided, update in database.
+    Otherwise, fallback to file-based storage.
+    """
+    if DATABASE_AVAILABLE and user_id:
+        from uuid import UUID
+        import asyncio
+        async def db_update():
+            async with async_session_maker() as db:
+                task_obj = await db_update_task(db=db, user_id=UUID(user_id), task_id=task_id, status=status)
+                if task_obj:
+                    return {
+                        "id": task_obj.task_id,
+                        "title": task_obj.title,
+                        "icon": task_obj.icon,
+                        "status": task_obj.status,
+                        "created_at": task_obj.created_at.isoformat() if task_obj.created_at else "",
+                        "updated_at": task_obj.updated_at.isoformat() if task_obj.updated_at else "",
+                    }
+                return None
+        return asyncio.run(db_update())
+
+    # Fallback to file-based storage
     now = datetime.datetime.now().isoformat()
     tasks = _load_task_index()
     for item in tasks:
-        if item.get("id") == task_id:
+        if item.get("id") == task_id and (not user_id or item.get("user_id") == user_id):
             item["status"] = status
             item["updated_at"] = now
             _save_task_index(tasks)
@@ -92,12 +253,47 @@ def update_task_status(task_id: str, status: str) -> Optional[Dict[str, Any]]:
     return None
 
 
-def update_task(task_id: str, title: Optional[str] = None, icon: Optional[str] = None) -> Optional[Dict[str, Any]]:
-    """更新任务的名称和/或图标"""
+def update_task(
+    task_id: str,
+    title: Optional[str] = None,
+    icon: Optional[str] = None,
+    user_id: Optional[str] = None
+) -> Optional[Dict[str, Any]]:
+    """
+    更新任务的名称和/或图标
+
+    If DATABASE_AVAILABLE and user_id is provided, update in database.
+    Otherwise, fallback to file-based storage.
+    """
+    if DATABASE_AVAILABLE and user_id:
+        from uuid import UUID
+        import asyncio
+        async def db_update():
+            async with async_session_maker() as db:
+                task_obj = await db_update_task(
+                    db=db,
+                    user_id=UUID(user_id),
+                    task_id=task_id,
+                    title=title,
+                    icon=icon,
+                )
+                if task_obj:
+                    return {
+                        "id": task_obj.task_id,
+                        "title": task_obj.title,
+                        "icon": task_obj.icon,
+                        "status": task_obj.status,
+                        "created_at": task_obj.created_at.isoformat() if task_obj.created_at else "",
+                        "updated_at": task_obj.updated_at.isoformat() if task_obj.updated_at else "",
+                    }
+                return None
+        return asyncio.run(db_update())
+
+    # Fallback to file-based storage
     now = datetime.datetime.now().isoformat()
     tasks = _load_task_index()
     for item in tasks:
-        if item.get("id") == task_id:
+        if item.get("id") == task_id and (not user_id or item.get("user_id") == user_id):
             if title is not None:
                 item["title"] = title
             if icon is not None:
@@ -108,9 +304,32 @@ def update_task(task_id: str, title: Optional[str] = None, icon: Optional[str] =
     return None
 
 
-def delete_task(task_id: str) -> bool:
+def delete_task(task_id: str, user_id: Optional[str] = None) -> bool:
+    """
+    Delete a task for a user.
+
+    If DATABASE_AVAILABLE and user_id is provided, delete from database.
+    Otherwise, fallback to file-based storage.
+    """
+    if DATABASE_AVAILABLE and user_id:
+        from uuid import UUID
+        import asyncio
+        async def db_delete():
+            async with async_session_maker() as db:
+                return await db_delete_task(db=db, user_id=UUID(user_id), task_id=task_id)
+        return asyncio.run(db_delete())
+
+    # Fallback to file-based storage
     tasks = _load_task_index()
-    next_tasks = [item for item in tasks if item.get("id") != task_id]
+
+    def _same_task_row(item: Dict[str, Any]) -> bool:
+        if item.get("id") != task_id:
+            return False
+        if not user_id:
+            return True
+        return item.get("user_id") == user_id
+
+    next_tasks = [item for item in tasks if not _same_task_row(item)]
     if len(next_tasks) == len(tasks):
         return False
     _save_task_index(next_tasks)
@@ -155,8 +374,8 @@ def _display_date(date_str: str) -> str:
         return date_str
 
 
-def _read_daily_note_sections(task_id: str, date: str) -> Dict[str, List[str]]:
-    path = _get_daily_note_path(task_id, date)
+def _read_daily_note_sections(task_id: str, date: str, user_id: Optional[str] = None) -> Dict[str, List[str]]:
+    path = _get_daily_note_path(task_id, date, user_id=user_id)
     if not os.path.exists(path):
         return {"key_learnings": [], "review_areas": []}
 
@@ -213,48 +432,53 @@ def _get_note_path(session_id: str, topic: Optional[str] = None) -> str:
     
     return os.path.join(NOTES_DIR, f"{filename}.md")
 
-def save_session(state: AgentState) -> str:
+async def save_session_async(state: AgentState, user_id: Optional[str] = None) -> str:
     """
-    Persist the current agent state to disk (Full Snapshot).
+    Persist the current agent state to disk and PostgreSQL when enabled.
 
-    1. Saves the raw session data (messages, metadata) to JSON.
-    2. If a conclusion note exists (summary_output), saves it to Markdown.
-    3. [RAG] Indexes conversation pairs into vector store (if enabled).
-
-    Returns:
-        The path to the saved JSON session file.
+    Must be awaited from async code (e.g. LangGraph nodes) so DB commits complete.
     """
     session_id = state.get("session_id")
     if not session_id:
-        # If no session ID, we can't save. Ideally should generate one or error.
-        # For now, let's assume session_id is always present in State as per logical flow.
         return ""
 
-    # 1. Serialize Messages (LangChain -> List[Dict])
-    # This handles HumanMessage, AIMessage, ToolMessage, etc. automatically.
     serialized_messages = messages_to_dict(state["messages"])
 
-    # 2. Construct Session Storage Object
     session_data = {
         "session_id": session_id,
         "task_id": state.get("task_id"),
         "last_updated": datetime.datetime.now().isoformat(),
         "topic": state.get("current_topic", "General"),
-        "conversation_summary": state.get("conversation_summary"), # The Compressed Context (B)
+        "conversation_summary": state.get("conversation_summary"),
         "summarized_msg_count": state.get("summarized_msg_count", 0),
-        "messages": serialized_messages # The Full Log (A)
+        "messages": serialized_messages,
+        "user_id": user_id,
     }
 
-    # 3. Save Session JSON (Overwrite Mode)
     json_path = _get_session_path(session_id)
     file_io.save_json(session_data, json_path)
 
-    # 4. Save Markdown Note (if applicable)
-    # Only save note if we are in a concluding state and actually have a note generated
+    if DATABASE_AVAILABLE and user_id:
+        try:
+            from uuid import UUID
+
+            async with async_session_maker() as db:
+                await db_save_session(
+                    db=db,
+                    user_id=UUID(user_id),
+                    session_id=session_id,
+                    task_id=state.get("task_id", "task_default"),
+                    messages=serialized_messages,
+                    topic=state.get("current_topic", "General"),
+                    conversation_summary=state.get("conversation_summary"),
+                    summarized_msg_count=state.get("summarized_msg_count", 0),
+                )
+        except Exception as e:
+            print(f"⚠️ Database save failed: {e}")
+
     if state.get("should_exit") and state.get("summary_output"):
         note_content = state["summary_output"]
 
-        # Add metadata header to the note
         header = f"""---
 source_session: {session_id}
 date: {datetime.datetime.now().strftime("%Y-%m-%d")}
@@ -267,72 +491,25 @@ topic: {state.get("current_topic", "General")}
         note_path = _get_note_path(session_id, state.get("current_topic"))
         file_io.save_text(full_note, note_path)
 
-    # 5. [RAG] Index conversation into vector store (if enabled)
-    _index_session_for_rag(
-        session_id=session_id,
-        task_id=state.get("task_id"),
-        messages=serialized_messages,
-        topic=state.get("current_topic", "General")
-    )
-
     return json_path
 
 
-def _index_session_for_rag(
-    session_id: str,
-    task_id: Optional[str],
-    messages: List[Dict[str, Any]],
-    topic: str = "General"
-):
+def save_session(state: AgentState, user_id: Optional[str] = None) -> str:
     """
-    Index session messages into vector store for RAG retrieval.
+    Sync persist API: writes file + DB when no asyncio loop is running (scripts / tests).
 
-    This is a non-blocking operation that gracefully handles errors.
-    Set RAG_ENABLED=False to disable this feature.
-
-    Args:
-        session_id: Session identifier
-        task_id: Task identifier for vector store isolation
-        messages: Serialized message list
-        topic: Conversation topic
+    From **async** code (FastAPI / LangGraph), use ``await save_session_async(...)`` instead.
+    ``run_coroutine_threadsafe`` without awaiting previously caused PostgreSQL writes to be
+    dropped or never committed before the request ended.
     """
-    # Check if RAG is enabled via config
     try:
-        from app.core.config import settings
-        if not settings.RAG_ENABLED:
-            return
-    except ImportError:
-        return
-
-    if not task_id or not messages:
-        return
-
-    try:
-        from app.core.vector_store import index_session
-
-        # Convert serialized messages to simple format
-        simple_messages = []
-        for msg in messages:
-            msg_type = msg.get("type", "")
-            if msg_type == "human":
-                simple_messages.append({"role": "user", "content": msg.get("content", "")})
-            elif msg_type == "ai":
-                simple_messages.append({"role": "assistant", "content": msg.get("content", "")})
-
-        # Index into vector store
-        index_session(
-            session_id=session_id,
-            task_id=task_id,
-            messages=simple_messages,
-            topic=topic
-        )
-
-    except ImportError as e:
-        # RAG dependencies not installed, skip silently
-        print(f"[RAG] Vector store not available: {e}")
-    except Exception as e:
-        # Don't fail the save operation if RAG indexing fails
-        print(f"[RAG] Failed to index session: {e}")
+        asyncio.get_running_loop()
+    except RuntimeError:
+        return asyncio.run(save_session_async(state, user_id))
+    raise RuntimeError(
+        "save_session() cannot commit PostgreSQL from inside a running event loop; "
+        "use: await memory.save_session_async(state, user_id=...)"
+    )
 
 
 # ==================== 防重复总结标记 ====================
@@ -351,22 +528,58 @@ def is_session_summarizing(session_id: str) -> bool:
     return session_id in _SUMMARIZING_SESSIONS
 
 
-def load_session(session_id: str) -> Optional[Dict[str, Any]]:
+def load_session(session_id: str, user_id: Optional[str] = None) -> Optional[Dict[str, Any]]:
     """
     Load a session from disk and reconstruct the AgentState.
+
+    If user_id is provided and database is available, try to load from database first.
     """
+    # Try to load from database first if user_id is provided
+    if DATABASE_AVAILABLE and user_id:
+        try:
+            import asyncio
+            from uuid import UUID
+
+            async def load_from_db():
+                async with async_session_maker() as db:
+                    return await db_load_session(db, UUID(user_id), session_id)
+
+            db_result = asyncio.run(load_from_db())
+            if db_result:
+                raw_stored = getattr(db_result, "messages", None) or []
+                if isinstance(raw_stored, dict) and "messages" in raw_stored:
+                    raw_stored = raw_stored.get("messages") or []
+                if not isinstance(raw_stored, list):
+                    raw_stored = []
+                messages = messages_from_dict(raw_stored)
+
+                return {
+                    "messages": messages,
+                    "task_id": getattr(db_result, "task_id", None),
+                    "session_id": getattr(db_result, "session_id", None) or session_id,
+                    "current_topic": getattr(db_result, "topic", None),
+                    "conversation_summary": getattr(db_result, "conversation_summary", None),
+                    "summarized_msg_count": int(getattr(db_result, "summarized_msg_count", 0) or 0),
+                    "user_id": user_id,
+                }
+            return None
+        except Exception as e:
+            print(f"⚠️ Database load failed: {e}")
+            # Fall back to file-based loading
+
+    # Fall back to file-based loading
     json_path = _get_session_path(session_id)
-    
+
     try:
         data = file_io.load_json(json_path)
     except FileNotFoundError:
         return None
-        
+
     # Reconstruct Messages (List[Dict] -> List[BaseMessage])
     messages = messages_from_dict(data.get("messages", []))
-    
+
     # Reconstruct Partial State
-    # Note: We don't restore everything (like 'plan' or 'tutor_output'), 
+    # Note: We don't restore everything (like 'plan' or 'tutor_output'),
     # just the persistent memory parts.
     return {
         "messages": messages,
@@ -375,6 +588,7 @@ def load_session(session_id: str) -> Optional[Dict[str, Any]]:
         "current_topic": data.get("topic"),
         "conversation_summary": data.get("conversation_summary"),
         "summarized_msg_count": data.get("summarized_msg_count", 0),
+        "user_id": user_id or data.get("user_id"),
         # created_at/updated_at can be handled by the caller or added here if needed
     }
 
@@ -387,10 +601,35 @@ def _infer_task_id(task_id: Optional[str], session_id: str) -> str:
     return "task_default"
 
 
-def list_task_sessions(task_id: str) -> List[Dict[str, Any]]:
+def list_task_sessions(task_id: str, user_id: Optional[str] = None) -> List[Dict[str, Any]]:
     """
     列出某个 task_id 下的所有会话元信息，按更新时间倒序。
+
+    If DATABASE_AVAILABLE and user_id is provided, query from database.
+    Otherwise, fallback to file-based storage.
     """
+    if DATABASE_AVAILABLE and user_id:
+        from uuid import UUID
+        import asyncio
+        async def db_list():
+            async with async_session_maker() as db:
+                return await db_list_sessions(db=db, user_id=UUID(user_id), task_id=task_id)
+        try:
+            db_sessions = asyncio.run(db_list())
+            return [
+                {
+                    "session_id": s.session_id,
+                    "task_id": s.task_id,
+                    "topic": s.topic,
+                    "last_updated": s.updated_at.isoformat() if s.updated_at else "",
+                    "message_count": s.message_count,
+                }
+                for s in db_sessions
+            ]
+        except Exception as e:
+            print(f"⚠️ DB session list failed ({e}), falling back to file storage")
+
+    # Fallback to file-based storage
     if not os.path.exists(MEMORY_DIR):
         return []
 
@@ -409,6 +648,12 @@ def list_task_sessions(task_id: str) -> List[Dict[str, Any]]:
         if file_task_id != task_id:
             continue
 
+        # Filter by user_id if provided (file-based).旧数据未写 user_id 时不应整段丢弃。
+        if user_id:
+            fu = data.get("user_id")
+            if fu not in (None, "") and fu != user_id:
+                continue
+
         msgs = data.get("messages", [])
         results.append({
             "session_id": data.get("session_id", session_id),
@@ -422,15 +667,78 @@ def list_task_sessions(task_id: str) -> List[Dict[str, Any]]:
     return results
 
 
-def get_session_messages(session_id: str) -> Optional[Dict[str, Any]]:
+def get_session_messages(session_id: str, user_id: Optional[str] = None) -> Optional[Dict[str, Any]]:
     """
     返回某个 session 的消息列表（前端友好格式）。
+
+    If DATABASE_AVAILABLE and user_id is provided, query from database.
+    Otherwise, fallback to file-based storage.
     """
+    if DATABASE_AVAILABLE and user_id:
+        from uuid import UUID
+        import asyncio
+
+        async def load_from_db():
+            async with async_session_maker() as db:
+                return await db_load_session(db, UUID(user_id), session_id)
+
+        db_result = None
+        db_available = True
+        try:
+            db_result = asyncio.run(load_from_db())
+        except Exception as e:
+            print(f"⚠️ DB session load failed ({e}), falling back to file storage")
+            db_available = False
+
+        if db_available and db_result:
+            # Reconstruct Messages from database（db_result 为 ORM Session）
+            raw_stored = getattr(db_result, "messages", None) or []
+            if isinstance(raw_stored, dict) and "messages" in raw_stored:
+                raw_stored = raw_stored.get("messages") or []
+            if not isinstance(raw_stored, list):
+                raw_stored = []
+            messages = messages_from_dict(raw_stored)
+            normalized: List[Dict[str, str]] = []
+            for index, msg in enumerate(messages):
+                if isinstance(msg, HumanMessage):
+                    role = "user"
+                elif isinstance(msg, AIMessage):
+                    role = "assistant"
+                else:
+                    continue
+                content = getattr(msg, "content", "") or ""
+                ts = getattr(msg, "additional_kwargs", {}).get("timestamp", "") or ""
+                normalized.append({
+                    "message_id": f"{session_id}-{index}",
+                    "role": role,
+                    "content": content,
+                    "timestamp": ts,
+                })
+            updated_at = getattr(db_result, "updated_at", None)
+            return {
+                "session_id": getattr(db_result, "session_id", session_id) or session_id,
+                "task_id": getattr(db_result, "task_id", None) or _infer_task_id(None, session_id),
+                "topic": getattr(db_result, "topic", None) or "General",
+                "last_updated": updated_at.isoformat() if updated_at else "",
+                "messages": normalized,
+            }
+        # 已走 DB 且带 user_id：无记录则视为无权或不存在，禁止回落到文件以免串会话
+        # 但若 DB 不可用（表不存在等），允许回落至文件
+        if db_available:
+            return None
+
+    # Fallback to file-based loading
     path = _get_session_path(session_id)
     try:
         data = file_io.load_json(path)
     except FileNotFoundError:
         return None
+
+    # Filter by user_id if provided (file-based)。旧 JSON 无 user_id 时仍允许当前登录用户读取。
+    if user_id:
+        fu = data.get("user_id")
+        if fu not in (None, "") and fu != user_id:
+            return None
 
     raw_messages = messages_from_dict(data.get("messages", []))
     normalized: List[Dict[str, str]] = []
@@ -470,8 +778,31 @@ def get_session_messages(session_id: str) -> Optional[Dict[str, Any]]:
     }
 
 
-def get_daily_note(task_id: str, date: str) -> Dict[str, Any]:
-    path = _get_daily_note_path(task_id, date)
+def get_daily_note(task_id: str, date: str, user_id: Optional[str] = None) -> Dict[str, Any]:
+    """
+    Get daily note for a task.
+
+    If DATABASE_AVAILABLE and user_id is provided, query from database.
+    Otherwise, fallback to file-based storage.
+    """
+    if DATABASE_AVAILABLE and user_id:
+        from uuid import UUID
+        import asyncio
+        async def db_get():
+            async with async_session_maker() as db:
+                return await list_notes(db=db, user_id=UUID(user_id), task_id=task_id, date=date)
+        notes = asyncio.run(db_get())
+        if notes:
+            note = notes[0]
+            return {
+                "task_id": note.task_id,
+                "date": note.date.isoformat() if note.date else date,
+                "content": note.content,
+                "updated_at": note.updated_at.isoformat() if note.updated_at else "",
+            }
+
+    # Fallback to file-based storage
+    path = _get_daily_note_path(task_id, date, user_id=user_id)
     if not os.path.exists(path):
         return {
             "task_id": task_id,
@@ -487,8 +818,51 @@ def get_daily_note(task_id: str, date: str) -> Dict[str, Any]:
     }
 
 
-def save_daily_note(task_id: str, date: str, content: str) -> Dict[str, Any]:
-    path = _get_daily_note_path(task_id, date)
+def save_daily_note(task_id: str, date: str, content: str, user_id: Optional[str] = None) -> Dict[str, Any]:
+    """
+    Save daily note for a task.
+
+    If DATABASE_AVAILABLE and user_id is provided, save to database.
+    Otherwise, fallback to file-based storage.
+    """
+    if DATABASE_AVAILABLE and user_id:
+        from uuid import UUID
+        import asyncio
+        async def db_save():
+            async with async_session_maker() as db:
+                from app.db.models import Note
+                from sqlalchemy import select
+                # Check if note exists
+                result = await db.execute(
+                    select(Note).where(
+                        Note.user_id == UUID(user_id),
+                        Note.task_id == task_id,
+                        Note.date == date,
+                    )
+                )
+                note = result.scalar_one_or_none()
+                if note:
+                    note.content = content
+                else:
+                    note = Note(
+                        user_id=UUID(user_id),
+                        task_id=task_id,
+                        date=date,
+                        content=content,
+                    )
+                    db.add(note)
+                await db.commit()
+                await db.refresh(note)
+                return {
+                    "task_id": note.task_id,
+                    "date": note.date.isoformat() if note.date else date,
+                    "content": note.content,
+                    "updated_at": note.updated_at.isoformat() if note.updated_at else "",
+                }
+        return asyncio.run(db_save())
+
+    # Fallback to file-based storage
+    path = _get_daily_note_path(task_id, date, user_id=user_id)
     file_io.save_text(content, path)
     return {
         "task_id": task_id,
@@ -497,8 +871,30 @@ def save_daily_note(task_id: str, date: str, content: str) -> Dict[str, Any]:
         "updated_at": _file_updated_at(path),
     }
 
-def _load_task_plan(task_id: str) -> Dict[str, Any]:
-    path = _get_task_plan_path(task_id)
+def _load_task_plan(task_id: str, user_id: Optional[str] = None) -> Dict[str, Any]:
+    """
+    Load task plan.
+
+    If DATABASE_AVAILABLE and user_id is provided, query from database.
+    Otherwise, fallback to file-based storage.
+    """
+    if DATABASE_AVAILABLE and user_id:
+        from uuid import UUID
+        import asyncio
+
+        async def db_get():
+            async with async_session_maker() as db:
+                return await db_fetch_task_plan_json(db=db, user_id=UUID(user_id), task_id=task_id)
+
+        try:
+            result = asyncio.run(db_get())
+            if result:
+                return result
+        except Exception:
+            pass
+
+    # Fallback to file-based storage
+    path = _get_task_plan_path(task_id, user_id=user_id)
     if not os.path.exists(path):
         return {}
     try:
@@ -508,9 +904,9 @@ def _load_task_plan(task_id: str) -> Dict[str, Any]:
                 data["plan"] = data.get("nextSteps")
             data.pop("nextSteps", None)
             return data
-        return {}
     except Exception:
-        return {}
+        pass
+    return {}
 
 
 def _resolve_task_note_updated_at(plan_path: str, note_path: str) -> str:
@@ -518,11 +914,11 @@ def _resolve_task_note_updated_at(plan_path: str, note_path: str) -> str:
     note_ts = _file_updated_at(note_path) if os.path.exists(note_path) else ""
     return max(plan_ts, note_ts)
 
-def get_task_plan_data(task_id: str) -> Dict[str, Any]:
-    return _load_task_plan(task_id)
+def get_task_plan_data(task_id: str, user_id: Optional[str] = None) -> Dict[str, Any]:
+    return _load_task_plan(task_id, user_id=user_id)
 
-def has_task_plan(task_id: str) -> bool:
-    plan = _load_task_plan(task_id)
+def has_task_plan(task_id: str, user_id: Optional[str] = None) -> bool:
+    plan = _load_task_plan(task_id, user_id=user_id)
     if not plan:
         return False
     for key in (
@@ -541,10 +937,46 @@ def has_task_plan(task_id: str) -> bool:
     return False
 
 
-def get_task_note(task_id: str) -> Dict[str, Any]:
-    note_path = _get_task_note_path(task_id)
-    plan_path = _get_task_plan_path(task_id)
-    plan_data = _load_task_plan(task_id)
+def get_task_note(task_id: str, user_id: Optional[str] = None) -> Dict[str, Any]:
+    """
+    Get task note for a task.
+
+    If DATABASE_AVAILABLE and user_id is provided, query from database.
+    Otherwise, fallback to file-based storage.
+    """
+    if DATABASE_AVAILABLE and user_id:
+        from uuid import UUID
+        import asyncio
+
+        async def db_get_combined():
+            async with async_session_maker() as db:
+                uid = UUID(user_id)
+                note = await db_get_task_note_orm(db, uid, task_id)
+                plan = await db_fetch_task_plan_json(db, uid, task_id)
+                content = (note.content if note else "") or ""
+                updated = ""
+                if note and getattr(note, "updated_at", None):
+                    updated = note.updated_at.isoformat()
+                elif note and getattr(note, "created_at", None):
+                    updated = note.created_at.isoformat()
+                out: Dict[str, Any] = dict(plan) if plan else {}
+                out["task_id"] = task_id
+                out["content"] = content
+                out["userNotes"] = content
+                out["updated_at"] = updated
+                return out
+
+        try:
+            combined = asyncio.run(db_get_combined())
+            if combined:
+                return combined
+        except Exception:
+            pass
+
+    # Fallback to file-based storage
+    note_path = _get_task_note_path(task_id, user_id=user_id)
+    plan_path = _get_task_plan_path(task_id, user_id=user_id)
+    plan_data = _load_task_plan(task_id, user_id=user_id)
     plan_data.pop("nextSteps", None)
 
     # 优先从 task_note.txt 文件读取用户笔记内容
@@ -566,10 +998,49 @@ def get_task_note(task_id: str) -> Dict[str, Any]:
     return response
 
 
-def save_task_note(task_id: str, content: str) -> Dict[str, Any]:
-    note_path = _get_task_note_path(task_id)
-    plan_path = _get_task_plan_path(task_id)
-    plan_data = _load_task_plan(task_id)
+def save_task_note(task_id: str, content: str, user_id: Optional[str] = None) -> Dict[str, Any]:
+    """
+    Save task note for a task.
+
+    If DATABASE_AVAILABLE and user_id is provided, save to database.
+    Otherwise, fallback to file-based storage.
+    """
+    if DATABASE_AVAILABLE and user_id:
+        from uuid import UUID
+        import asyncio
+        from app.db.models import Note, NoteType
+        from sqlalchemy import select
+
+        async def db_save():
+            async with async_session_maker() as db:
+                result = await db.execute(
+                    select(Note).where(
+                        Note.user_id == UUID(user_id),
+                        Note.task_id == task_id,
+                        Note.note_type == NoteType.TASK.value,
+                    )
+                )
+                note = result.scalar_one_or_none()
+                if note:
+                    note.content = content
+                else:
+                    note = Note(
+                        user_id=UUID(user_id),
+                        task_id=task_id,
+                        note_type=NoteType.TASK.value,
+                        content=content,
+                    )
+                    db.add(note)
+                await db.commit()
+                await db.refresh(note)
+
+        asyncio.run(db_save())
+        return get_task_note(task_id, user_id=user_id)
+
+    # Fallback to file-based storage
+    note_path = _get_task_note_path(task_id, user_id=user_id)
+    plan_path = _get_task_plan_path(task_id, user_id=user_id)
+    plan_data = _load_task_plan(task_id, user_id=user_id)
 
     plan_data["task_id"] = task_id
     plan_data["userNotes"] = content
@@ -579,14 +1050,28 @@ def save_task_note(task_id: str, content: str) -> Dict[str, Any]:
     title = plan_data.get("taskTitle")
     icon = plan_data.get("taskIcon")
     if title or icon:
-        update_task(task_id, title=title, icon=icon)
-    return get_task_note(task_id)
+        update_task(task_id, title=title, icon=icon, user_id=user_id)
+    return get_task_note(task_id, user_id=user_id)
 
 
-def save_task_plan(task_id: str, plan: Dict[str, Any]) -> Dict[str, Any]:
-    note_path = _get_task_note_path(task_id)
-    plan_path = _get_task_plan_path(task_id)
-    plan_data = _load_task_plan(task_id)
+def save_task_plan(task_id: str, plan: Dict[str, Any], user_id: Optional[str] = None) -> Dict[str, Any]:
+    if DATABASE_AVAILABLE and user_id:
+        from uuid import UUID
+        import asyncio
+
+        async def db_save():
+            async with async_session_maker() as db:
+                await db_merge_task_plan_json(db, UUID(user_id), task_id, plan)
+
+        try:
+            asyncio.run(db_save())
+            return get_task_note(task_id, user_id=user_id)
+        except Exception:
+            pass
+
+    note_path = _get_task_note_path(task_id, user_id=user_id)
+    plan_path = _get_task_plan_path(task_id, user_id=user_id)
+    plan_data = _load_task_plan(task_id, user_id=user_id)
 
     plan_data.update(plan)
     plan_data["task_id"] = task_id
@@ -597,15 +1082,18 @@ def save_task_plan(task_id: str, plan: Dict[str, Any]) -> Dict[str, Any]:
     title = plan_data.get("taskTitle")
     icon = plan_data.get("taskIcon")
     if title or icon:
-        update_task(task_id, title=title, icon=icon)
-    return get_task_note(task_id)
+        update_task(task_id, title=title, icon=icon, user_id=user_id)
+    return get_task_note(task_id, user_id=user_id)
 
 
-def list_task_timeline(task_id: str) -> List[Dict[str, Any]]:
+def list_task_timeline(task_id: str, user_id: Optional[str] = None) -> List[Dict[str, Any]]:
     """
-    按 task_id 聚合出“按天”的时间线数据。
+    按 task_id 聚合出"按天"的时间线数据。
+
+    If DATABASE_AVAILABLE and user_id is provided, query from database.
+    Otherwise, fallback to file-based storage.
     """
-    sessions = list_task_sessions(task_id)
+    sessions = list_task_sessions(task_id, user_id=user_id)
     grouped: Dict[str, Dict[str, Any]] = {}
 
     for session in sessions:
@@ -629,7 +1117,7 @@ def list_task_timeline(task_id: str) -> List[Dict[str, Any]]:
     timeline: List[Dict[str, Any]] = []
     for index, date_key in enumerate(sorted(grouped.keys(), reverse=True), start=1):
         bucket = grouped[date_key]
-        note_sections = _read_daily_note_sections(task_id, date_key)
+        note_sections = _read_daily_note_sections(task_id, date_key, user_id=user_id)
         key_learnings = note_sections.get("key_learnings", [])
         review_areas = note_sections.get("review_areas", [])
 

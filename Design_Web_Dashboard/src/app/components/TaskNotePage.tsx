@@ -4,6 +4,7 @@ import { ArrowLeft, BookOpen, Calendar, TrendingUp, Target, Clock, Edit3, Eye, P
 import { MarkdownPreview } from "./MarkdownPreview";
 import { KGViewerModal } from "./KGViewerModal";
 
+const getToken = () => localStorage.getItem('chattutor_token');
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8000/api/v1";
 
 interface TaskNoteApiResponse {
@@ -202,11 +203,17 @@ export function TaskNotePage() {
     setIsLoading(true);
     setSaveHint(null);
     try {
+      const token = getToken();
       const response = await fetch(
-        `${API_BASE_URL}/notes/task?task_id=${encodeURIComponent(resolvedTaskId)}`
+        `${API_BASE_URL}/notes/task?task_id=${encodeURIComponent(resolvedTaskId)}`,
+        {
+          headers: {
+            'Authorization': `Bearer ${token || ''}`,
+          },
+        }
       );
       if (!response.ok) {
-        throw new Error(`加载任务笔记失败（${response.status}）`);
+        throw new Error(`加载任务笔记失败（${response.status}`);
       }
       const data: TaskNoteApiResponse = await response.json();
       if (!cancelled) {
@@ -240,10 +247,12 @@ export function TaskNotePage() {
         checklist,
       });
 
+      const token = getToken();
       const response = await fetch(`${API_BASE_URL}/notes/task/plan-checklist`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
+          "Authorization": `Bearer ${token || ''}`,
         },
         body: JSON.stringify({
           task_id: resolvedTaskId,
@@ -254,7 +263,7 @@ export function TaskNotePage() {
       console.log("保存响应状态:", response.status);
 
       if (!response.ok) {
-        throw new Error(`保存进度失败（${response.status}）`);
+        throw new Error(`保存进度失败（${response.status}`);
       }
       // 触发任务计划更新事件，通知其他组件同步状态
       window.dispatchEvent(new Event("task-plan-updated"));
@@ -283,10 +292,12 @@ export function TaskNotePage() {
     setIsSaving(true);
     setSaveHint(null);
     try {
+      const token = getToken();
       const response = await fetch(`${API_BASE_URL}/notes/task`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
+          "Authorization": `Bearer ${token || ''}`,
         },
         body: JSON.stringify({
           task_id: resolvedTaskId,
@@ -295,7 +306,7 @@ export function TaskNotePage() {
       });
 
       if (!response.ok) {
-        throw new Error(`保存失败（${response.status}）`);
+        throw new Error(`保存失败（${response.status}`);
       }
       setSaveHint("已保存");
     } catch (error) {

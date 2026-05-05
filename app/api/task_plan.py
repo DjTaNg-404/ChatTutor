@@ -1,11 +1,13 @@
 from typing import List, Optional
 import asyncio
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 from pydantic import BaseModel
 from typing import Literal
 
 from app.core import memory
+from app.core.deps import get_current_user
+from app.db.models import User
 from app.core.task_plan import (
     PLAN_SESSION_KEY,
     plan_signature,
@@ -42,7 +44,11 @@ class PlanSessionActionRequest(BaseModel):
 
 
 @router.post("/task-plan")
-async def generate_task_plan(request: TaskPlanRequest):
+async def generate_task_plan(
+    request: TaskPlanRequest,
+    current_user: User = Depends(get_current_user),
+):
+    user_id = str(current_user.id)
     parts = []
     if request.user_goal:
         parts.append(f"User goal: {request.user_goal}")
@@ -59,7 +65,7 @@ async def generate_task_plan(request: TaskPlanRequest):
     plan_query = "\n".join(parts) if parts else ""
 
     try:
-        existing_plan = memory.get_task_plan_data(request.task_id)
+        existing_plan = memory.get_task_plan_data(request.task_id, user_id=user_id)
     except Exception:
         existing_plan = None
 
@@ -75,11 +81,15 @@ async def generate_task_plan(request: TaskPlanRequest):
         plan_query,
         existing_plan,
     )
-    return memory.save_task_plan(task_id=request.task_id, plan=plan)
+    return memory.save_task_plan(task_id=request.task_id, plan=plan, user_id=user_id)
 
 
 @router.post("/task-plan/confirm")
-async def confirm_task_plan(request: TaskPlanConfirmRequest):
+async def confirm_task_plan(
+    request: TaskPlanConfirmRequest,
+    current_user: User = Depends(get_current_user),
+):
+    user_id = str(current_user.id)
     plan = dict(request.plan or {})
     plan["task_id"] = request.task_id
     plan.pop(PLAN_SESSION_KEY, None)
@@ -89,11 +99,12 @@ async def confirm_task_plan(request: TaskPlanConfirmRequest):
 
     # 保存计划（只更新结构化数据，不生成笔记内容）
     # 用户的个人笔记由"更新任务笔记"按钮或结束对话时生成
-    result = memory.save_task_plan(task_id=request.task_id, plan=plan)
+    result = memory.save_task_plan(task_id=request.task_id, plan=plan, user_id=user_id)
     try:
         memory.save_task_plan(
             task_id=request.task_id,
             plan={"draft_plan": None, PLAN_SESSION_KEY: {"status": "idle"}},
+            user_id=user_id,
         )
     except Exception:
         pass
@@ -159,7 +170,11 @@ def build_plan_note_content(plan: dict) -> str:
 
 
 @router.post("/task-plan/from-chat")
-async def generate_task_plan_from_chat(request: TaskPlanFromChatRequest):
+async def generate_task_plan_from_chat(
+    request: TaskPlanFromChatRequest,
+    current_user: User = Depends(get_current_user),
+):
+    user_id = str(current_user.id)
     """
     从对话历史生成学习计划（Web 按钮触发）
 
@@ -171,7 +186,7 @@ async def generate_task_plan_from_chat(request: TaskPlanFromChatRequest):
 
     # 从会话中加载对话历史
     if session_id:
-        session_data = memory.load_session(session_id)
+        session_data = memory.load_session(session_id, user_id=user_id)
         messages = session_data.get("messages", []) if session_data else []
         conversation_summary = session_data.get("conversation_summary", "") if session_data else ""
     else:
@@ -180,7 +195,7 @@ async def generate_task_plan_from_chat(request: TaskPlanFromChatRequest):
 
     # 获取现有计划（如果有）
     try:
-        existing_plan = memory.get_task_plan_data(task_id)
+        existing_plan = memory.get_task_plan_data(task_id, user_id=user_id)
     except Exception:
         existing_plan = None
 
@@ -201,13 +216,17 @@ async def generate_task_plan_from_chat(request: TaskPlanFromChatRequest):
     )
 
     # 保存并返回
-    return memory.save_task_plan(task_id=task_id, plan=plan)
+    return memory.save_task_plan(task_id=task_id, plan=plan, user_id=user_id)
 
 
 @router.post("/task-plan/session")
-async def update_plan_session(request: PlanSessionActionRequest):
+async def update_plan_session(
+    request: PlanSessionActionRequest,
+    current_user: User = Depends(get_current_user),
+):
+    user_id = str(current_user.id)
     try:
-        plan_data = memory.get_task_plan_data(request.task_id)
+        plan_data = memory.get_task_plan_data(request.task_id, user_id=user_id)
     except Exception:
         plan_data = None
 
@@ -235,7 +254,7 @@ async def update_plan_session(request: PlanSessionActionRequest):
     updated_plan = dict(plan_data or {})
     updated_plan[PLAN_SESSION_KEY] = session
     try:
-        memory.save_task_plan(task_id=request.task_id, plan=updated_plan)
+        memory.save_task_plan(task_id=request.task_id, plan=updated_plan, user_id=user_id)
     except Exception:
         pass
 

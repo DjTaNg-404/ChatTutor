@@ -1,6 +1,9 @@
 import { Link, useLocation, useNavigate } from "react-router";
-import { Plus, ChevronDown, ChevronRight, Settings, Archive, Edit2, X, Loader2 } from "lucide-react";
+import { Plus, ChevronDown, ChevronRight, Settings, Archive, Edit2, X, Loader2, LogOut } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
+import { useAuth } from "../context/AuthContext";
+
+const getToken = () => localStorage.getItem('chattutor_token');
 
 const COMMON_ICONS = [
   { icon: "📚", label: "书本" },
@@ -133,7 +136,12 @@ export function TaskSidebar() {
 
   const loadTasks = async () => {
     try {
-      const response = await fetch(`${API_BASE_URL}/tasks`);
+      const token = getToken();
+      const response = await fetch(`${API_BASE_URL}/tasks`, {
+        headers: {
+          'Authorization': `Bearer ${token || ''}`,
+        },
+      });
       if (!response.ok) {
         throw new Error("failed");
       }
@@ -144,6 +152,8 @@ export function TaskSidebar() {
       setStoredTasks([]);
     }
   };
+
+  const { token, logout } = useAuth();
 
   useEffect(() => {
     const refreshTasks = () => {
@@ -156,7 +166,7 @@ export function TaskSidebar() {
     return () => {
       window.removeEventListener("tasks-updated", refreshTasks);
     };
-  }, []);
+  }, [token]);
 
   useEffect(() => {
     if (!menuState.visible) return;
@@ -202,9 +212,13 @@ export function TaskSidebar() {
     if (!menuState.task) return;
     const exists = storedTasks.some((item) => item.id === menuState.task?.id);
     if (!exists) {
+      const token = getToken();
       await fetch(`${API_BASE_URL}/tasks`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token || ''}`,
+        },
         body: JSON.stringify({
           task_id: menuState.task.id,
           title: menuState.task.title,
@@ -213,6 +227,7 @@ export function TaskSidebar() {
         }),
       });
     }
+    const token = getToken();
     await fetch(`${API_BASE_URL}/tasks/${menuState.task.id}/status`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
@@ -232,9 +247,13 @@ export function TaskSidebar() {
     if (!menuState.task) return;
     const exists = storedTasks.some((item) => item.id === menuState.task?.id);
     if (!exists) {
+      const token = getToken();
       await fetch(`${API_BASE_URL}/tasks`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token || ''}`,
+        },
         body: JSON.stringify({
           task_id: menuState.task.id,
           title: menuState.task.title,
@@ -243,9 +262,13 @@ export function TaskSidebar() {
         }),
       });
     }
+    const token = getToken();
     await fetch(`${API_BASE_URL}/tasks/${menuState.task.id}/status`, {
       method: "PATCH",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${token || ''}`,
+      },
       body: JSON.stringify({ status: "active" }),
     });
     setMenuState((prev) => ({ ...prev, visible: false }));
@@ -273,9 +296,13 @@ export function TaskSidebar() {
     }
     const exists = storedTasks.some((item) => item.id === taskId);
     if (!exists) {
+      const token = getToken();
       await fetch(`${API_BASE_URL}/tasks`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token || ''}`,
+        },
         body: JSON.stringify({
           task_id: menuState.task.id,
           title: menuState.task.title,
@@ -284,7 +311,13 @@ export function TaskSidebar() {
         }),
       });
     }
-    await fetch(`${API_BASE_URL}/tasks/${taskId}`, { method: "DELETE" });
+    const token = getToken();
+    await fetch(`${API_BASE_URL}/tasks/${taskId}`, {
+      method: "DELETE",
+      headers: {
+        "Authorization": `Bearer ${token || ''}`,
+      },
+    });
     setMenuState((prev) => ({ ...prev, visible: false }));
     window.dispatchEvent(new Event("tasks-updated"));
     if (location.pathname === `/task/${taskId}`) {
@@ -329,9 +362,13 @@ export function TaskSidebar() {
         payload.icon = editState.icon;
       }
 
+      const token = getToken();
       const response = await fetch(`${API_BASE_URL}/tasks/${taskId}`, {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token || ''}`,
+        },
         body: JSON.stringify(payload),
       });
 
@@ -384,6 +421,14 @@ export function TaskSidebar() {
     window.dispatchEvent(new Event("tasks-updated"));
     navigate(`/task/${taskId}`);
   };
+
+  const handleLogout = () => {
+    clearDraftTask();
+    setDraftTask(null);
+    logout();
+    window.location.href = '/login';
+  };
+
   return (
     <aside className="w-[250px] bg-white border-r border-gray-200 flex flex-col">
       {/* Brand Logo */}
@@ -472,8 +517,8 @@ export function TaskSidebar() {
         </div>
       </div>
 
-      {/* Bottom System Settings */}
-      <div className="border-t border-gray-200 p-4">
+      {/* Bottom System Settings and Logout */}
+      <div className="border-t border-gray-200 p-4 space-y-1">
         <Link
           to="/settings"
           className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-gray-700 hover:bg-gray-100 transition-colors"
@@ -481,6 +526,13 @@ export function TaskSidebar() {
           <Settings className="w-5 h-5 text-gray-500" />
           <span className="text-sm font-medium">系统设置</span>
         </Link>
+        <button
+          onClick={handleLogout}
+          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-red-600 hover:bg-red-50 transition-colors text-sm font-medium"
+        >
+          <LogOut className="w-5 h-5" />
+          退出登录
+        </button>
       </div>
 
       {menuState.visible && menuState.task && (
