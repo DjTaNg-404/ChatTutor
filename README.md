@@ -346,7 +346,7 @@ Content-Type: application/json
 {
   "task_id": "task_1",
   "taskTitle": "深度学习入门",
-  "totalDays": 30,
+  "totalDays": 20,
   "plan": ["Day 1: 神经网络基础", "Day 2: 反向传播"],
   "coreKnowledge": ["梯度下降", "激活函数"],
   "planChecklist": {"Day 1: 神经网络基础": true}
